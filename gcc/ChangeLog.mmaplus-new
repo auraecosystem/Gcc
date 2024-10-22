@@ -1,3 +1,72 @@
+
+---
+
+RFC2653-PowerPC: Switch to dense math names for all MMA operations.
+
+This patch changes the assembler instruction names for MMA instructions from
+the original name used in power10 to the new name when used with the dense math
+system.  I.e. xvf64gerpp becomes dmxvf64gerpp.  The assembler will emit the
+same bits for either spelling.
+
+For the non-prefixed MMA instructions, we add a 'dm' prefix in front of the
+instruction.  However, the prefixed instructions have a 'pm' prefix, and we add
+the 'dm' prefix afterwards.  To prevent having two sets of parallel int
+attributes, we remove the "pm" prefix from the instruction string in the
+attributes, and add it later, both in the insn name and in the output template.
+
+2024-10-22   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+	* config/rs6000/mma.md (vvi4i4i8): Change the instruction to not have a
+	"pm" prefix.
+	(avvi4i4i8): Likewise.
+	(vvi4i4i2): Likewise.
+	(avvi4i4i2): Likewise.
+	(vvi4i4): Likewise.
+	(avvi4i4): Likewise.
+	(pvi4i2): Likewise.
+	(apvi4i2): Likewise.
+	(vvi4i4i4): Likewise.
+	(avvi4i4i4): Likewise.
+	(mma_<vv>): Add support for running on DMF systems, generating the dense
+	math instruction and using the dense math accumulators.
+	(mma_<pv>): Likewise.
+	(mma_<avv>): Likewise.
+	(mma_<apv>): Likewise.
+	(mma_pm<vvi4i4i8>): Add support for running on DMF systems, generating
+	the dense math instruction and using the dense math accumulators.
+	Rename the insn with a 'pm' prefix and add either 'pm' or 'pmdm'
+	prefixes based on whether we have the original MMA specification or if
+	we have dense math support.
+	(mma_pm<avvi4i4i8>): Likewise.
+	(mma_pm<vvi4i4i2>): Likewise.
+	(mma_pm<avvi4i4i2>): Likewise.
+	(mma_pm<vvi4i4>): Likewise.
+	(mma_pm<avvi4i4): Likewise.
+	(mma_pm<pvi4i2>): Likewise.
+	(mma_pm<apvi4i2): Likewise.
+	(mma_pm<vvi4i4i4>): Likewise.
+	(mma_pm<avvi4i4i4>): Likewise.
+
+---
+
+Author: Kishan Parmar <kishan@linux.ibm.com>
+Date:   Mon Apr 27 19:08:56 2026 +0530
+
+	Update macro DMR_REGNO_P to DM_REGNO_P
+
+---
+	Author: Peter Bergner <bergner@linux.ibm.com>
+	Date:   Fri Apr 25 14:31:20 2025 -0500
+
+	MMA+: Fix up MMA+ constraint and predicate usage
+
+	Replace all mma.md "d" constraints with the new "wD" constraint.
+	Replace all mma.md fpr_reg_operand predicate usage with accumulator_operand.
+	Accept DMR registers in the gpc_reg_operand predicate.
+
+---
+
 2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
 
 MMA+: Update mma_assemble_acc for DMF
