@@ -2769,6 +2769,10 @@ trans_array_constructor (gfc_ss * ss, locus * where)
       mpz_clear (size);
     }
 
+  bool unlimited_polymorphic = false;
+  if (!se->direct_byref)
+    unlimited_polymorphic = UNLIMITED_POLY (expr);
+
   /* Special case constant array constructors.  */
   if (!dynamic)
     {
@@ -8173,9 +8177,6 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
       expr = expr->value.function.actual->expr;
     }
 
-  if (!se->direct_byref)
-    se->unlimited_polymorphic = UNLIMITED_POLY (expr);
-
   /* Special case things we know we can pass easily.  */
   switch (expr->expr_type)
     {
@@ -8626,7 +8627,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
          the offsets because all elements are within the array data.  */
 
       /* Set the dtype.  */
-      if (se->unlimited_polymorphic)
+      if (unlimited_polymorphic)
 	dtype = gfc_get_dtype (TREE_TYPE (desc), &loop.dimen);
       else if (expr->ts.type == BT_ASSUMED)
 	{
