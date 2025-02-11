@@ -7201,6 +7201,27 @@ gimplify_modify_expr_complex_part (tree *expr_p, gimple_seq *pre_p,
   return GS_ALL_DONE;
 }
 
+
+/* Return true if EXPR is a data reference that can be used on the left hand
+   side of an assignment.  */
+
+static bool
+is_modifiable_expr (tree expr)
+{
+  if (maybe_lvalue_p (expr))
+    return true;
+  else if (TREE_CODE (expr) != NON_LVALUE_EXPR)
+    return false;
+
+  /* We can generate a NON_LVALUE_EXPR to represent an array reference of a
+     vector.  See PR63764.  */ 
+  tree op0 = TREE_OPERAND (expr, 0);
+  return (TREE_CODE (op0) == ARRAY_REF
+	  && TREE_CODE (TREE_OPERAND (op0, 0)) == VIEW_CONVERT_EXPR
+	  && is_modifiable_expr (TREE_OPERAND (TREE_OPERAND (op0, 0), 1)));
+}
+
+
 /* Gimplify the MODIFY_EXPR node pointed to by EXPR_P.
 
       modify_expr
@@ -7232,6 +7253,12 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
   gcc_assert (TREE_CODE (*expr_p) == MODIFY_EXPR
 	      || TREE_CODE (*expr_p) == INIT_EXPR);
+
+  if (!is_modifiable_expr (*to_p))
+    {
+      error ("non-lvalue used as lhs in %qD", *expr_p);
+      return GS_ERROR;
+    }
 
   /* Trying to simplify a clobber using normal logic doesn't work,
      so handle it here.  */
