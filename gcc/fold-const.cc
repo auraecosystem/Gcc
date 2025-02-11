@@ -2689,7 +2689,7 @@ fold_convert_loc (location_t loc, tree type, tree arg)
 /* Return false if expr can be assumed not to be an lvalue, true
    otherwise.  */
 
-static bool
+bool
 maybe_lvalue_p (const_tree x)
 {
   /* We only need to wrap lvalue tree codes.  */

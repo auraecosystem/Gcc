@@ -96,6 +96,7 @@ extern bool fold_convertible_p (const_tree, const_tree);
 #define fold_convert(T1,T2)\
    fold_convert_loc (UNKNOWN_LOCATION, T1, T2)
 extern tree fold_convert_loc (location_t, tree, tree);
+extern bool maybe_lvalue_p (const_tree);
 extern tree fold_ignored_result (tree);
 extern tree fold_abs_const (tree, tree);
 extern tree fold_indirect_ref_1 (location_t, tree, tree);
