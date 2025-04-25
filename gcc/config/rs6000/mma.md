@@ -678,8 +678,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<vvi4i4i8> %A0,%x1,%x2,%3,%4,%5"
-          : "pm<vvi4i4i8> %A0,%x1,%x2,%3,%4,%5");
+	  ? "pmdm<vvi4i4i8> %A0,%x1,%x2,%3,%4,%5"
+	  : "pm<vvi4i4i8> %A0,%x1,%x2,%3,%4,%5");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -698,8 +698,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<avvi4i4i8> %A0,%x2,%x3,%4,%5,%6"
-          : "pm<avvi4i4i8> %A0,%x2,%x3,%4,%5,%6");
+	  ? "pmdm<avvi4i4i8> %A0,%x2,%x3,%4,%5,%6"
+	  : "pm<avvi4i4i8> %A0,%x2,%x3,%4,%5,%6");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -718,8 +718,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<vvi4i4i2> %A0,%x1,%x2,%3,%4,%5"
-          : "pm<vvi4i4i2> %A0,%x1,%x2,%3,%4,%5");
+	  ? "pmdm<vvi4i4i2> %A0,%x1,%x2,%3,%4,%5"
+	  : "pm<vvi4i4i2> %A0,%x1,%x2,%3,%4,%5");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -741,8 +741,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<avvi4i4i2> %A0,%x2,%x3,%4,%5,%6"
-          : "pm<avvi4i4i2> %A0,%x2,%x3,%4,%5,%6");
+	  ? "pmdm<avvi4i4i2> %A0,%x2,%x3,%4,%5,%6"
+	  : "pm<avvi4i4i2> %A0,%x2,%x3,%4,%5,%6");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -759,8 +759,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<vvi4i4> %A0,%x1,%x2,%3,%4"
-          : "pm<vvi4i4> %A0,%x1,%x2,%3,%4");
+	  ? "pmdm<vvi4i4> %A0,%x1,%x2,%3,%4"
+	  : "pm<vvi4i4> %A0,%x1,%x2,%3,%4");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -778,8 +778,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<avvi4i4> %A0,%x2,%x3,%4,%5"
-          : "pm<avvi4i4> %A0,%x2,%x3,%4,%5");
+	  ? "pmdm<avvi4i4> %A0,%x2,%x3,%4,%5"
+	  : "pm<avvi4i4> %A0,%x2,%x3,%4,%5");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -796,8 +796,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<pvi4i2> %A0,%x1,%x2,%3,%4"
-          : "pm<pvi4i2> %A0,%x1,%x2,%3,%4");
+	  ? "pmdm<pvi4i2> %A0,%x1,%x2,%3,%4"
+	  : "pm<pvi4i2> %A0,%x1,%x2,%3,%4");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -815,8 +815,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<apvi4i2> %A0,%x2,%x3,%4,%5"
-          : "pm<apvi4i2> %A0,%x2,%x3,%4,%5");
+	  ? "pmdm<apvi4i2> %A0,%x2,%x3,%4,%5"
+	  : "pm<apvi4i2> %A0,%x2,%x3,%4,%5");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -834,8 +834,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<vvi4i4i4> %A0,%x1,%x2,%3,%4,%5"
-          : "pm<vvi4i4i4> %A0,%x1,%x2,%3,%4,%5");
+	  ? "pmdm<vvi4i4i4> %A0,%x1,%x2,%3,%4,%5"
+	  : "pm<vvi4i4i4> %A0,%x1,%x2,%3,%4,%5");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
@@ -854,8 +854,8 @@
   "TARGET_MMA"
 {
   return (TARGET_DENSE_MATH
-          ? "pmdm<avvi4i4i4> %A0,%x2,%x3,%4,%5,%6"
-          : "pm<avvi4i4i4> %A0,%x2,%x3,%4,%5,%6");
+	  ? "pmdm<avvi4i4i4> %A0,%x2,%x3,%4,%5,%6"
+	  : "pm<avvi4i4i4> %A0,%x2,%x3,%4,%5,%6");
 }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
