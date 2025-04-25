@@ -1,7 +1,10 @@
 
-MMA+: Fix mma.md whitespace
 ----------------
 
+Author: Peter Bergner <bergner@linux.ibm.com>
+Date:   Fri Apr 25 16:47:45 2025 -0500
+
+	MMA+: Remove unneeded mma_xxsetaccz define_expand & define_insn
 
 ---
 

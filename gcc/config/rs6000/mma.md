@@ -568,35 +568,14 @@
 ;; UNSPEC_VOLATILE.  If we have dense math registers, we can just use a normal
 ;; UNSPEC instead of UNSPEC_VOLATILE.
 
-(define_expand "mma_xxsetaccz"
-  [(set (match_operand:XO 0 "accumulator_operand")
+(define_insn "mma_xxsetaccz"
+  [(set (match_operand:XO 0 "accumulator_operand" "=wD")
 	(unspec_volatile:XO [(const_int 0)]
 			    UNSPECV_MMA_XXSETACCZ))]
   "TARGET_MMA"
 {
-  if (TARGET_DENSE_MATH)
-    {
-      emit_insn (gen_mma_xxsetaccz_dm (operands[0]));
-      DONE;
-    }
-})
-
-;; Clear accumulator without dense math registers
-(define_insn "*mma_xxsetaccz_nodm"
-  [(set (match_operand:XO 0 "accumulator_operand" "=wD")
-	(unspec_volatile:XO [(const_int 0)]
-			    UNSPECV_MMA_XXSETACCZ))]
-  "TARGET_MMA && !TARGET_DENSE_MATH"
-  "xxsetaccz %A0"
-  [(set_attr "type" "mma")])
-
-;; Clear accumulator when dense math registers are available.
-(define_insn "mma_xxsetaccz_dm"
-  [(set (match_operand:XO 0 "accumulator_operand" "=wD")
-	(unspec [(const_int 0)]
-		UNSPEC_MMA_DMSETDMRZ))]
-  "TARGET_DENSE_MATH"
-  "dmsetdmrz %A0"
+  return TARGET_DENSE_MATH ? "dmsetdmrz %A0" : "xxsetaccz %A0";
+}
   [(set_attr "type" "mma")])
 
 
