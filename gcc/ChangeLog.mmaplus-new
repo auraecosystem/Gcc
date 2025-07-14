@@ -1,4 +1,21 @@
 
+MMA+: Add support for dmr disassemble builtins
+
+Add support for __builtin_mma_dmr_extract512 and
+__builtin_mma_disassemble_dmr.
+----------------
+
+
+--------------
+
+Author: Surya Kumari Jangala <jskumari@linux.ibm.com>
+Date:   Mon Jul 14 07:05:58 2025 -0500
+
+    MMA+: Add support for dmr disassemble builtins
+
+    Add support for __builtin_mma_dmr_extract512 and
+    __builtin_mma_disassemble_dmr.
+
 ----------------
 
 Author: Peter Bergner <bergner@linux.ibm.com>
