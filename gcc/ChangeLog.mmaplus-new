@@ -1,10 +1,10 @@
+---------------
 
-MMA+: Add support for dmr disassemble builtins
+MMA+: __builtin_mma_build_dmr does not build DMR correctly
 
-Add support for __builtin_mma_dmr_extract512 and
-__builtin_mma_disassemble_dmr.
-----------------
-
+The vectors are placed at incorrect locations in the DMR register.
+This patch ensures that the DMR is populated correctly.
+Also fix testcase dmf-extract512.c.
 
 --------------
 
