@@ -957,7 +957,8 @@
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
-;; TDOmode (__dmf keyword for 1,024 bit registers).
+
+;; TDOmode (__dm1024 keyword for 1,024 bit registers).
 (define_expand "movtdo"
   [(set (match_operand:TDO 0 "nonimmediate_operand")
 	(match_operand:TDO 1 "input_operand"))]

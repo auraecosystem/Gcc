@@ -1,5 +1,4 @@
 /* { dg-do compile } */
-/* { dg-require-effective-target powerpc_dense_math_ok } */
 /* { dg-options "-mdejagnu-cpu=future -O2" } */
 
 /* Test basic load/store for __dm1024 type.  */

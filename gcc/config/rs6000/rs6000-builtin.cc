@@ -1112,7 +1112,7 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
       push_gimplify_context (true);
       tree dst_ptr = gimple_call_arg (stmt, 0);
       tree src_ptr = gimple_call_arg (stmt, 1);
-      tree src_type = build_pointer_type (dmr_type_node);
+      tree src_type = build_pointer_type (dm1024_type_node);
 
       if (TREE_TYPE (src_ptr) != src_type)
 	src_ptr = build1 (NOP_EXPR, src_type, src_ptr);
