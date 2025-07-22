@@ -595,6 +595,13 @@ gfc_conv_descriptor_ubound_set (stmtblock_t *block, tree desc,
   gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
 }
 
+tree
+gfc_conv_descriptor_sm_get (tree desc, tree dim)
+{
+  return fold_build2_loc (input_location, MULT_EXPR, gfc_array_index_type,
+			  gfc_conv_descriptor_stride_get (desc, dim),
+			  gfc_conv_descriptor_span_get (desc));
+}
 
 /* Obtain offsets for trans-types.cc(gfc_get_array_descr_info).  */
 
