@@ -11283,136 +11283,21 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
       /* If we do bounds remapping, update LHS descriptor accordingly.  */
       if (remap)
 	{
-	  int dim;
 	  gcc_assert (remap->u.ar.dimen == expr1->rank);
-
-	  /* Always set dtype.  */
-	  gfc_conv_descriptor_dtype_set (&block, desc,
-					 gfc_get_dtype (TREE_TYPE (desc)));
-
-	  /* For unlimited polymorphic LHS use elem_len from RHS.  */
-	  if (UNLIMITED_POLY (expr1) && expr2->ts.type != BT_CLASS)
-	    {
-	      tree elem_len;
-	      tmp = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&expr2->ts));
-	      elem_len = fold_convert (gfc_array_index_type, tmp);
-	      elem_len = gfc_evaluate_now (elem_len, &block);
-	      gfc_conv_descriptor_elem_len_set (&block, desc, elem_len);
-	    }
 
 	  if (rank_remap)
 	    {
 	      /* Do rank remapping.  We already have the RHS's descriptor
 		 converted in rse and now have to build the correct LHS
 		 descriptor for it.  */
-
-	      tree data, span;
-	      tree offs, stride;
-	      tree lbound, ubound;
-
-	      /* Copy data pointer.  */
-	      data = gfc_conv_descriptor_data_get (rse.expr);
-	      gfc_conv_descriptor_data_set (&block, desc, data);
-
-	      /* Copy the span.  */
-	      if (VAR_P (rse.expr)
-		  && GFC_DECL_PTR_ARRAY_P (rse.expr))
-		span = gfc_conv_descriptor_span_get (rse.expr);
-	      else
-		{
-		  tmp = TREE_TYPE (rse.expr);
-		  tmp = TYPE_SIZE_UNIT (gfc_get_element_type (tmp));
-		  span = fold_convert (gfc_array_index_type, tmp);
-		}
-	      gfc_conv_descriptor_span_set (&block, desc, span);
-
-	      /* Copy offset but adjust it such that it would correspond
-		 to a lbound of zero.  */
-	      if (expr2->rank == -1)
-		gfc_conv_descriptor_offset_set (&block, desc,
-						gfc_index_zero_node);
-	      else
-		{
-		  offs = gfc_conv_descriptor_offset_get (rse.expr);
-		  for (dim = 0; dim < expr2->rank; ++dim)
-		    {
-		      stride = gfc_conv_descriptor_stride_get (rse.expr,
-							gfc_rank_cst[dim]);
-		      lbound = gfc_conv_descriptor_lbound_get (rse.expr,
-							gfc_rank_cst[dim]);
-		      tmp = fold_build2_loc (input_location, MULT_EXPR,
-					     gfc_array_index_type, stride,
-					     lbound);
-		      offs = fold_build2_loc (input_location, PLUS_EXPR,
-					      gfc_array_index_type, offs, tmp);
-		    }
-		  gfc_conv_descriptor_offset_set (&block, desc, offs);
-		}
-	      /* Set the bounds as declared for the LHS and calculate strides as
-		 well as another offset update accordingly.  */
-	      stride = gfc_conv_descriptor_stride_get (rse.expr,
-						       gfc_rank_cst[0]);
-	      for (dim = 0; dim < expr1->rank; ++dim)
-		{
-		  gfc_se lower_se;
-		  gfc_se upper_se;
-
-		  gcc_assert (remap->u.ar.start[dim] && remap->u.ar.end[dim]);
-
-		  if (remap->u.ar.start[dim]->expr_type != EXPR_CONSTANT
-		      || remap->u.ar.start[dim]->expr_type != EXPR_VARIABLE)
-		    gfc_resolve_expr (remap->u.ar.start[dim]);
-		  if (remap->u.ar.end[dim]->expr_type != EXPR_CONSTANT
-		      || remap->u.ar.end[dim]->expr_type != EXPR_VARIABLE)
-		    gfc_resolve_expr (remap->u.ar.end[dim]);
-
-		  /* Convert declared bounds.  */
-		  gfc_init_se (&lower_se, NULL);
-		  gfc_init_se (&upper_se, NULL);
-		  gfc_conv_expr (&lower_se, remap->u.ar.start[dim]);
-		  gfc_conv_expr (&upper_se, remap->u.ar.end[dim]);
-
-		  gfc_add_block_to_block (&block, &lower_se.pre);
-		  gfc_add_block_to_block (&block, &upper_se.pre);
-
-		  lbound = fold_convert (gfc_array_index_type, lower_se.expr);
-		  ubound = fold_convert (gfc_array_index_type, upper_se.expr);
-
-		  lbound = gfc_evaluate_now (lbound, &block);
-		  ubound = gfc_evaluate_now (ubound, &block);
-
-		  gfc_add_block_to_block (&block, &lower_se.post);
-		  gfc_add_block_to_block (&block, &upper_se.post);
-
-		  /* Set bounds in descriptor.  */
-		  gfc_conv_descriptor_lbound_set (&block, desc,
-						  gfc_rank_cst[dim], lbound);
-		  gfc_conv_descriptor_ubound_set (&block, desc,
-						  gfc_rank_cst[dim], ubound);
-
-		  /* Set stride.  */
-		  stride = gfc_evaluate_now (stride, &block);
-		  gfc_conv_descriptor_stride_set (&block, desc,
-						  gfc_rank_cst[dim], stride);
-
-		  /* Update offset.  */
-		  offs = gfc_conv_descriptor_offset_get (desc);
-		  tmp = fold_build2_loc (input_location, MULT_EXPR,
-					 gfc_array_index_type, lbound, stride);
-		  offs = fold_build2_loc (input_location, MINUS_EXPR,
-					  gfc_array_index_type, offs, tmp);
-		  offs = gfc_evaluate_now (offs, &block);
-		  gfc_conv_descriptor_offset_set (&block, desc, offs);
-
-		  /* Update stride.  */
-		  tmp = gfc_conv_array_extent_dim (lbound, ubound, NULL);
-		  stride = fold_build2_loc (input_location, MULT_EXPR,
-					    gfc_array_index_type, stride, tmp);
-		}
+	      gfc_conv_remap_descriptor (&block, desc, expr1->rank, rse.expr,
+					 expr2, &remap->u.ar,
+					 UNLIMITED_POLY (expr1));
 	    }
 	  else
 	    /* Bounds remapping.  Just shift the lower bounds.  */
-	    gfc_conv_shift_descriptor (&block, desc, remap->u.ar);
+	    gfc_conv_shift_descriptor (&block, desc, remap->u.ar, expr2,
+				       UNLIMITED_POLY (expr1));
 	}
 
       /* If rank remapping was done, check with -fcheck=bounds that
