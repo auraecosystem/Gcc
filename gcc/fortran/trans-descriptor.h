@@ -90,6 +90,6 @@ void gfc_copy_coarray_desc_part (stmtblock_t *, tree, tree);
 void gfc_set_descriptor_from_scalar_class (stmtblock_t *, tree, tree, gfc_expr *);
 void gfc_set_descriptor_from_scalar (stmtblock_t *, tree, tree);
 void gfc_set_descriptor_from_scalar (stmtblock_t *, tree, tree, gfc_expr *,
-				     tree);
+				     tree, tree);
 
 #endif /* GFC_TRANS_DESCRIPTOR_H */
