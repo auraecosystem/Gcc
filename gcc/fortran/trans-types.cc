@@ -2270,7 +2270,7 @@ gfc_get_array_type_bounds (tree etype, int dimen, int codimen, tree * lbound,
    arrays.  */
 
 tree
-gfc_get_scalar_to_descriptor_type (tree scalar, symbol_attribute attr)
+gfc_get_scalar_to_descriptor_type (tree scalar_type, symbol_attribute attr)
 {
   enum gfc_array_kind akind;
 
@@ -2281,21 +2281,20 @@ gfc_get_scalar_to_descriptor_type (tree scalar, symbol_attribute attr)
   else
     akind = GFC_ARRAY_ASSUMED_SHAPE_CONT;
 
-  if (POINTER_TYPE_P (TREE_TYPE (scalar)))
-    scalar = TREE_TYPE (scalar);
+  if (POINTER_TYPE_P (scalar_type))
+    scalar_type = TREE_TYPE (scalar_type);
 
   tree *lbound = NULL, *ubound = NULL;
   int codim = 0;
-  if (TYPE_LANG_SPECIFIC (TREE_TYPE (scalar)))
+  if (TYPE_LANG_SPECIFIC (scalar_type))
     {
-      struct lang_type *lang_specific = TYPE_LANG_SPECIFIC (TREE_TYPE (scalar));
+      struct lang_type *lang_specific = TYPE_LANG_SPECIFIC (scalar_type);
       codim = lang_specific->corank;
       lbound = lang_specific->lbound;
       ubound = lang_specific->ubound;
     }
-  return gfc_get_array_type_bounds (TREE_TYPE (scalar), 0, codim, lbound,
-				    ubound, 1, akind,
-				    !(attr.pointer || attr.target));
+  return gfc_get_array_type_bounds (scalar_type, 0, codim, lbound, ubound, 1,
+				    akind, !(attr.pointer || attr.target));
 }
 
 
