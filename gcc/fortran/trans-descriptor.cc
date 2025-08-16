@@ -1562,7 +1562,7 @@ gfc_copy_descriptor (stmtblock_t *block, tree dest, tree src, tree ptr,
 
 void
 gfc_conv_remap_descriptor (stmtblock_t *block, tree dest, int dest_rank,
-			   tree src, gfc_expr *src_expr, gfc_array_ref *ar,
+			   tree src, gfc_typespec *src_type, gfc_array_ref *ar,
 			   bool unlimited_poly_dest)
 {
   /* Set dtype.  */
@@ -1570,10 +1570,10 @@ gfc_conv_remap_descriptor (stmtblock_t *block, tree dest, int dest_rank,
 				 gfc_get_dtype (TREE_TYPE (dest)));
 
   /* For unlimited polymorphic LHS use elem_len from RHS.  */
-  if (unlimited_poly_dest && src_expr->ts.type != BT_CLASS)
+  if (unlimited_poly_dest && src_type->type != BT_CLASS)
     {
       tree elem_len;
-      tree tmp = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&src_expr->ts));
+      tree tmp = TYPE_SIZE_UNIT (gfc_typenode_for_spec (src_type));
       elem_len = fold_convert (gfc_array_index_type, tmp);
       elem_len = gfc_evaluate_now (elem_len, block);
       gfc_conv_descriptor_elem_len_set (block, dest, elem_len);
@@ -1598,23 +1598,7 @@ gfc_conv_remap_descriptor (stmtblock_t *block, tree dest, int dest_rank,
 
   /* Copy offset but adjust it such that it would correspond
      to a lbound of zero.  */
-  if (src_expr->rank == -1)
-    gfc_conv_descriptor_offset_set (block, dest,
-				    gfc_index_zero_node);
-  else
-    {
-      tree offs = gfc_conv_descriptor_offset_get (src);
-      for (int dim = 0; dim < src_expr->rank; ++dim)
-	{
-	  tree stride = gfc_conv_descriptor_stride_get (src, gfc_rank_cst[dim]);
-	  tree lbound = gfc_conv_descriptor_lbound_get (src, gfc_rank_cst[dim]);
-	  tree tmp = fold_build2_loc (input_location, MULT_EXPR,
-				      gfc_array_index_type, stride, lbound);
-	  offs = fold_build2_loc (input_location, PLUS_EXPR,
-				  gfc_array_index_type, offs, tmp);
-	}
-      gfc_conv_descriptor_offset_set (block, dest, offs);
-    }
+  gfc_conv_descriptor_offset_set (block, dest, gfc_index_zero_node);
 
   /* Set the bounds as declared for the LHS and calculate strides as
      well as another offset update accordingly.  */
