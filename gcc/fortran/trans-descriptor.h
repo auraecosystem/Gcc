@@ -101,7 +101,7 @@ void gfc_copy_descriptor (stmtblock_t *, tree, tree, tree, int);
 void gfc_copy_descriptor (stmtblock_t *, tree, tree, bool);
 
 void gfc_conv_remap_descriptor (stmtblock_t *, tree, int, tree, gfc_typespec *,
-				gfc_array_ref *, bool);
+				bool, gfc_array_ref *, bool);
 
 void gfc_set_descriptor_from_scalar_class (stmtblock_t *, tree, tree, gfc_expr *);
 void gfc_set_descriptor_from_scalar (stmtblock_t *, tree, tree, symbol_attribute,

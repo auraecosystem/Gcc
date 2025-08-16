@@ -11291,8 +11291,8 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 		 converted in rse and now have to build the correct LHS
 		 descriptor for it.  */
 	      gfc_conv_remap_descriptor (&block, desc, expr1->rank, rse.expr,
-					 &expr2->ts, &remap->u.ar,
-					 UNLIMITED_POLY (expr1));
+					 &expr2->ts, expr2->rank != 1,
+					 &remap->u.ar, UNLIMITED_POLY (expr1));
 	    }
 	  else
 	    /* Bounds remapping.  Just shift the lower bounds.  */
