@@ -117,5 +117,7 @@ gfc_set_descriptor (stmtblock_t *block, tree dest, tree src, gfc_expr *src_expr,
 		    bool unlimited_polymorphic, bool data_needed,
 		    bool subref);
 void gfc_set_contiguous_descriptor (stmtblock_t *, tree, tree, tree);
+void gfc_set_descriptor_with_shape (stmtblock_t *, tree, tree,
+				    gfc_expr *, gfc_expr *, locus *);
 
 #endif /* GFC_TRANS_DESCRIPTOR_H */
