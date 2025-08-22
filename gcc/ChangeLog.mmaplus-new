@@ -1,3 +1,37 @@
+
+
+-------------
+
+Author: Surya Kumari Jangala <jskumari@linux.ibm.com>
+Date:   Fri Aug 22 00:50:38 2025 -0500
+
+    MMA+: Add float16 ger builtins
+
+    Add builtins __builtin_mma_dmxvf16gerx2, __builtin_mma_dmxvf16gerx2nn,
+    __builtin_mma_dmxvf16gerx2np, __builtin_mma_dmxvf16gerx2pn,
+    __builtin_mma_dmxvf16gerx2pp, __builtin_mma_pmdmxvf16gerx2,
+    __builtin_mma_pmdmxvf16gerx2nn, __builtin_mma_pmdmxvf16gerx2np,
+    __builtin_mma_pmdmxvf16gerx2pn, __builtin_mma_pmdmxvf16gerx2pp
+
+-------------
+
+Author: Kishan Parmar <kishan@linux.ibm.com>
+Date:   Tue Apr 28 15:23:57 2026 +0530
+
+    Replace create_tmp_reg_or_ssa_name with make_ssa_name and
+    unnecessary duplicates.
+
+--------------
+
+Author: Surya Kumari Jangala <jskumari@linux.ibm.com>
+Date:   Mon Jul 14 22:33:44 2025 -0500
+
+    MMA+: Change __dmr to __dmr1024
+
+    This patch makes all the changes necessary to support __dmr1024 type.
+    Tests have been changed too. This patch also removes
+    dg-require-effective-target in the test dm-1024bit.c
+
 ---------------
 
 MMA+: __builtin_mma_build_dmr does not build DMR correctly
