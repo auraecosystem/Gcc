@@ -36,6 +36,7 @@ tree gfc_conv_descriptor_stride_get (tree, tree);
 tree gfc_conv_descriptor_lbound_get (tree, tree);
 tree gfc_conv_descriptor_ubound_get (tree, tree);
 tree gfc_conv_descriptor_sm_get (tree desc, tree dim);
+tree gfc_conv_descriptor_extent_get (tree desc, tree dim);
 
 void gfc_conv_descriptor_data_set (stmtblock_t *, tree, tree);
 void gfc_conv_descriptor_dtype_set (stmtblock_t *, tree, tree);
