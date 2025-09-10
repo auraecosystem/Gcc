@@ -958,3 +958,20 @@ gfc_init_descriptor_variable (stmtblock_t *block, gfc_symbol *sym, tree descr)
 {
   return gfc_init_descriptor_variable (block, sym, nullptr, descr);
 }
+
+
+tree
+gfc_create_unallocated_library_result_descriptor (stmtblock_t *block, tree source_descr, tree dtype)
+{
+  if (dtype == NULL_TREE)
+    dtype = gfc_get_dtype (TREE_TYPE (source_descr));
+
+  gfc_conv_descriptor_dtype_set (block, source_descr, dtype);
+
+  tree res_desc = gfc_evaluate_now (source_descr, block);
+  gfc_conv_descriptor_data_set (block, res_desc, null_pointer_node);
+
+  return res_desc;
+}
+
+
