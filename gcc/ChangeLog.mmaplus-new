@@ -1,5 +1,39 @@
 2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
 
+Add the -mdense-math option.
+
+This patch adds the -mdense-math option for -mcpu=future.  The next set of
+patches will support for using dense math registers with the MMA instructions.
+All this patch does is add the option.  A future patch will implement support
+for dense math registers, and another patch will then switch the MMA
+instructions to use dense math registers.
+
+The patches have been tested on both little and big endian systems.  Can I check
+it into the master branch?
+
+This is version 4 of the patches.  The previous patches were:
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707452.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707453.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707454.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707455.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707456.html
+
+gcc/
+
+2026-03-03   Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000-c.cc (rs6000_define_or_undefine_macro): Define
+	__DENSE_MATH__ if we have dense math registers.
+	* config/rs6000/rs6000.cc (rs6000_option_override_internal): Do not
+	allow -mdense-math unless -mcpu=future is used.
+	(rs6000_opt_masks): Add -mdense-math support.
+	* config/rs6000/rs6000.opt (-mdense-math): New option.
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Add -mdense-math.
+---
+
+2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
+
 Add wD constraint.
 
 This patch adds a new constraint ('wD') that matches the accumulator registers
