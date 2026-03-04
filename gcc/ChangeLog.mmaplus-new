@@ -1,5 +1,65 @@
 2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
 
+Add wD constraint.
+
+This patch adds a new constraint ('wD') that matches the accumulator registers
+used by the MMA instructions.  Possible future PowerPC machines are thinking
+about having a new set of 8 dense math accumulators that will be 1,024 bits in
+size.  The 'wD' constaint was chosen because the VSX constraints start with 'w'.
+The 'wd' constraint was already used, so I chose 'wD' to be similar.
+
+To change code to possibly use dense math registers, the 'd' constraint should
+be changed to 'wD', and the predicate 'fpr_reg_operand' should be changed to
+'accumulator_operand'.
+
+On current power10/power11 systems, the accumulators overlap with the 32
+traditional FPR registers (i.e. VSX vector registers 0..31).  Each accumulator
+uses 4 adjacent FPR/VSX registers for a 512 bit logical register.
+
+Possible future PowerPC machines would have these 8 accumulator registers be
+separate registers, called dense math registers.  It is anticipated that when in
+dense math register mode, the MMA instructions would use the accumulators
+instead of the adjacent VSX registers.  I.e. in power10/power11 mode,
+accumulator 1 will overlap with vector registers 4-7, but in dense math register
+mode, accumulator 1 will be a separate register.
+
+Code compiled for power10/power11 systems will continue to work on the potential
+future machine with dense math register support but the compiler will have fewer
+vector registers available for allocation because it believe the accumulators
+are using vector registers.  For example, the file mma-double-test.c in the
+gcc.target/powerpc testsuite directory has 8 more register spills to/from the
+stack for power10/power11 code then when compiled with dense math register
+support.
+
+The patches have been tested on both little and big endian systems.  Can I check
+it into the master branch?
+
+This is version 4 of the patches.  The previous patches were:
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707452.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707453.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707454.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707455.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707456.html
+
+In this patch, I have removed using the wD constriant in mma.md.  A later patch
+will change mma.md to using wA instead of a d constraint.
+
+2026-03-03   Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/constraints.md (wD): New constraint.
+	* config/rs6000/predicates.md (accumulator_operand): New predicate.
+	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Print the register
+	class for the 'wD' constraint.
+	(rs6000_init_hard_regno_mode_ok): Set up the 'wD' register constraint
+	class.
+	* config/rs6000/rs6000.h (enum r6000_reg_class_enum): Add element for
+	the 'wD' constraint.
+	* doc/md.texi (PowerPC constraints): Document the 'wD' constraint.
+---
+
+2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
+
 Use vector pair load/store for memcpy with -mcpu=future
 
 In the development for the power10 processor, GCC did not enable using the load
