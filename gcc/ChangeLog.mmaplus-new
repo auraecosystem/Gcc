@@ -1,5 +1,20 @@
 2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
 
+MMA+: Update mma_assemble_acc for DMF
+
+gcc/
+
+2026-03-03  Peter Bergner <bergner@linux.ibm.com>
+
+	* config/rs6000/mma.md: MMA+: Update mma_assemble_acc for DMF.
+
+2026-03-03  Michael Meissner <meissner@linux.ibm.com>
+
+	* config/rs6000/mma.md: Change dmr_operand to dense_math_operand.
+---
+
+2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
+
 MMA+: Remove unneeded vsx_assemble_pair define_expand
 
 2026-03-03  Peter Bergner <bergner@linux.ibm.com>
