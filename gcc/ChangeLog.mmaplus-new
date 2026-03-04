@@ -1,5 +1,109 @@
 2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
 
+Add support for dense math registers.
+
+This patch adds basic support for dense math registers.  It includes support for
+moving values to/from dense registers.  The MMA instructions are not yet
+modified to know about dense math registers.  The -mcpu=future option does not
+set -mdense-math in this patch.  A future patch will make these changes.
+
+The changes include:
+
+   1:	XOmode moves include moving to/from dense math registers.
+
+   2:	Add predicate dense_math_operand.
+
+   3:	Make the predicate accumulator_operand match on dense math registers.
+
+   4:	Add dense math register class.
+
+   5:	Add the 8 dense math register accumulators with internal register
+	numbers 111-118.
+
+   6:	Make the 'wD' constraint match dense math register if -mdense-math, and
+	4 adjacent VSX register if -mno-dense-math is in effect.
+
+   7:	Set up the reload information so that the register allocator knows that
+	dense math registers do not have load or store instructions.  Instead to
+	read/write dense math registers, you have to use VSX registers as
+	intermediaries.
+
+   8:	Make the print_operand '%A' output operand now knows about accumulators
+	in dense math registrs and accumulators in 4 adjacent VSX registers.
+
+   9:	Update register move and memmory load/store costs for dense math
+	registers.
+
+   10:	Make dense math registers a pressure class for register allocation.
+
+   11:	Do not issue MMA deprime instructions if -mdense-math is in effect.
+
+   12:	Add support for dense math registers to rs6000_split_multireg_move.
+
+The patches have been tested on both little and big endian systems.  Can I check
+it into the master branch?
+
+This is version 4 of the patches.  The previous patches were:
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707452.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707453.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707454.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707455.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/707456.html
+
+gcc/
+
+2026-03-03   Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/mma.md (movxo): Convert to being a define_expand that
+	can handle both the original MMA support without dense math registes,
+	and adding dense math support.
+	(movxo_nodm): Rename original movxo insn, and restrict this insn to when
+	we do not have dense math registers.
+	(movxo_dm): New define_insn_and_split for dense math registers.
+	* config/rs6000/predicates.md (dense_math_operand): New predicate.
+	(accumulator_operand): Add support for dense math registes.
+	* config/rs6000/rs6000.cc (enum rs6000_reg_type): Add dense math
+	register support.
+	(enum rs6000_reload_reg_typ): Likewise.
+	(LAST_RELOAD_REG_CLASS): Likewise.
+	(reload_reg_map): Likewise.
+	(rs6000_reg_names): Likewise.
+	(alt_reg_names): Likewise.
+	(rs6000_hard_regno_nregs_internal): Likewise.
+	(rs6000_hard_regno_mode_ok_uncached): Likewise.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_option_override_internal): Likewise.
+	(rs6000_secondary_reload_memory): Likewise.
+	(rs6000_secondary_reload_simple_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_secondary_reload_class): Likewise.
+	(print_operand): Likewise.
+	(rs6000_dense_math_register_move_cost): New helper function.
+	(rs6000_register_move_cost): Add dense math register support.
+	(rs6000_memory_move_cost): Likewise.
+	(rs6000_compute_pressure_classes): Likewise.
+	(rs6000_debugger_regno): Likewise.
+	(rs6000_opt_masks): Likewise.
+	(rs6000_split_multireg_move): Likewise.
+	* config/rs6000/rs6000.h (UNITS_PER_DM_WORD): New macro.
+	(FIRST_PSEUDO_REGISTER): Add dense math register support.
+	(FIXED_REGISTERS): Likewise.
+	(CALL_REALLY_USED_REGISTERS): Likewise.
+	(REG_ALLOC_ORDER): Likewise.
+	(DM_REGNO_P): New macro.
+	(enum reg_class): Add dense math register support.
+	(REG_CLASS_NAMES): Likewise.
+	(REGISTER_NAMES): Likewise.
+	(ADDITIONAL_REGISTER_NAMES): Likewise.
+	* config/rs6000/rs6000.md (FIRST_DM_REGNO): New constant.
+	(LAST_DM_REGNO): Likewise.
+---
+
+2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
+
 Add the -mdense-math option.
 
 This patch adds the -mdense-math option for -mcpu=future.  The next set of
