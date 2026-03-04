@@ -1,5 +1,16 @@
 2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
 
+MMA+: Remove unneeded vsx_assemble_pair define_expand
+
+2026-03-03  Peter Bergner <bergner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md: Remove unneeded vsx_assemble_pair define_expand
+---
+
+2026-03-03  Michael Meissner  <meissner@linux.ibm.com>
+
 Add support for 1,024 bit dense math registers.
 
 This patch is a prelimianry patch to add the full 1,024 bit dense math register
