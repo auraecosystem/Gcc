@@ -1,5 +1,39 @@
 ==================== Branch work238-dmf, patch #112 ====================
 
+Add paddis support.
+
+This patch adds support for the paddis instruction that might be added to a
+future PowerPC processor.
+
+gcc/
+
+2026-03-11  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/constraints.md (eU): New constraint.
+	(eV): Likewise.
+	* config/rs6000/predicates.md (paddis_operand): New predicate.
+	(paddis_paddi_operand): Likewise.
+	(add_operand): Add paddis support.
+	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Add paddis support.
+	(num_insns_constant_multi): Likewise.
+	(print_operand): Add %B<n> for paddis support.
+	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
+	(SIGNED_INTEGER_32BIT_P): Likewise.
+	* config/rs6000/rs6000.md (isa attribute): Add paddis support.
+	(enabled attribute); Likewise.
+	(add<mode>3): Likewise.
+	(adddi3 splitter): New splitter for paddis.
+	(movdi_internal64): Add paddis support.
+	(movdi splitter): New splitter for paddis.
+
+gcc/testsuite/
+
+2026-03-11  Michael Meissner  <meissner@linux.ibm.com>
+
+	* gcc.target/powerpc/prefixed-addis.c: New test.
+
+==================== Branch work238-dmf, patch #112 ====================
+
 Support load/store vector with right length.
 
 This patch adds support for new instructions that may be added to the PowerPC
