@@ -33,7 +33,7 @@ saturated_subtract_le (TYPE a, TYPE b, TYPE *p)
   *p = (a <= b) ? 0 : a - b;
 }
 
-/* { dg-final { scan-assembler-times {\msubfus\M} 4 } } */
+/* { dg-final { scan-assembler-times {\msubwus\M} 4 } } */
 /* { dg-final { scan-assembler-not   {\mcmplw\M}    } } */
 /* { dg-final { scan-assembler-not   {\misel\M}     } } */
 /* { dg-final { scan-assembler-not   {\msubf\M}     } } */
