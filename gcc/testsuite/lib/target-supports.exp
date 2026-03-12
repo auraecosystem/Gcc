@@ -8155,6 +8155,19 @@ proc check_htm_hw_available { } {
 	}
     }]
 }
+
+# Return 1 if this is a PowerPC target supporting -mcpu=future
+
+proc check_effective_target_powerpc_future_ok { } {
+    return [check_no_compiler_messages powerpc_future_ok object {
+	unsigned long a, b, c;
+	int main (void) {
+	    asm ("subdus %0,%1,%2" : "=r" (a) : "r" (b), "r" (c));
+	    return 0;
+	}
+    } "-mcpu=future"]
+}
+
 # Return 1 if this is a PowerPC target supporting -mcpu=cell.
 
 proc check_effective_target_powerpc_ppu_ok { } {
