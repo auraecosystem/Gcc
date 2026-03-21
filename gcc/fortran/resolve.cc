@@ -10447,6 +10447,23 @@ resolve_assoc_var (gfc_symbol* sym, bool resolve_target)
   gcc_assert (sym->assoc);
   gcc_assert (sym->attr.flavor == FL_VARIABLE);
 
+  if (sym->assoc->target
+      && sym->assoc->target->expr_type == EXPR_FUNCTION
+      && sym->assoc->target->symtree
+      && sym->assoc->target->symtree->n.sym
+      && sym->assoc->target->symtree->n.sym->attr.generic)
+    {
+      if (gfc_resolve_expr (sym->assoc->target))
+	sym->ts = sym->assoc->target->ts;
+      else
+	{
+	  gfc_error ("%s could not be resolved to a specific function at %L",
+		     sym->assoc->target->symtree->n.sym->name,
+		     &sym->assoc->target->where);
+	  return;
+	}
+    }
+
   /* If this is for SELECT TYPE, the target may not yet be set.  In that
      case, return.  Resolution will be called later manually again when
      this is done.  */
@@ -18896,8 +18913,8 @@ skip_interfaces:
 	  || (a->dummy && !a->pointer && a->intent == INTENT_OUT
 	      && sym->ns->proc_name->attr.if_source != IFSRC_IFBODY))
 	apply_default_init (sym);
-      else if (a->function && !a->pointer && !a->allocatable && !a->use_assoc
-	       && sym->result)
+      else if (a->function && !a->pointer && !a->allocatable
+	       && !a->use_assoc && !a->used_in_submodule && sym->result)
 	/* Default initialization for function results.  */
 	apply_default_init (sym->result);
       else if (a->function && sym->result && a->access != ACCESS_PRIVATE

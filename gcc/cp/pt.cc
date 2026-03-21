@@ -14135,12 +14135,28 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 	    return error_mark_node;
 	  gcc_assert (DECL_HAS_VALUE_EXPR_P (orig_arg));
 	  arg_pack = DECL_VALUE_EXPR (orig_arg);
-	  tree vec = make_tree_vec (TREE_VEC_LENGTH (arg_pack) - 2);
-	  if (TREE_VEC_LENGTH (vec))
-	    memcpy (TREE_VEC_BEGIN (vec), &TREE_VEC_ELT (arg_pack, 2),
-		    TREE_VEC_LENGTH (vec) * sizeof (tree));
-	  arg_pack = make_node (NONTYPE_ARGUMENT_PACK);
-	  ARGUMENT_PACK_ARGS (arg_pack) = vec;
+	  if (TREE_CODE (arg_pack) != ARRAY_REF)
+	    {
+	      /* Structured binding packs when initializer is non-dependent
+		 should have their DECL_VALUE_EXPR set to a TREE_VEC.  See
+		 cp_finish_decomp comment above the packv variable for
+		 details.  */
+	      tree vec = make_tree_vec (TREE_VEC_LENGTH (arg_pack) - 2);
+	      if (TREE_VEC_LENGTH (vec))
+		memcpy (TREE_VEC_BEGIN (vec), &TREE_VEC_ELT (arg_pack, 2),
+			TREE_VEC_LENGTH (vec) * sizeof (tree));
+	      arg_pack = make_node (NONTYPE_ARGUMENT_PACK);
+	      ARGUMENT_PACK_ARGS (arg_pack) = vec;
+	    }
+	  else
+	    {
+	      /* If the structured binding pack has type dependent
+		 base, we can't expand it yet.  */
+	      tree base = TREE_OPERAND (arg_pack, 0);
+	      gcc_assert (VAR_P (base)
+			  && type_dependent_expression_p (base));
+	      arg_pack = NULL_TREE;
+	    }
 	}
       else
         {
@@ -17784,6 +17800,18 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	templ = tsubst_splice_expr (templ, args, complain, in_decl);
 	if (templ == error_mark_node)
 	  return error_mark_node;
+	if (!DECL_TYPE_TEMPLATE_P (templ)
+	    && !DECL_TEMPLATE_TEMPLATE_PARM_P (templ))
+	  {
+	    if (complain & tf_error)
+	      {
+		auto_diagnostic_group d;
+		error_at (cp_expr_loc_or_input_loc (TREE_OPERAND (t, 0)),
+			  "expected a reflection of a type template");
+		inform_tree_category (templ);
+	      }
+	    return error_mark_node;
+	  }
 	tree targs = TREE_OPERAND (t, 1);
 	if (targs)
 	  targs = tsubst_template_args (targs, args, complain, in_decl);
@@ -18069,12 +18097,12 @@ tsubst_baselink (tree baselink, tree object_type,
    true if the qualified-id will be a postfix-expression in-and-of
    itself; false if more of the postfix-expression follows the
    QUALIFIED_ID.  ADDRESS_P is true if the qualified-id is the operand
-   of "&".  */
+   of "&".  NAME_LOOKUP_P is true if we intend to perform name lookup.  */
 
 static tree
 tsubst_qualified_id (tree qualified_id, tree args,
 		     tsubst_flags_t complain, tree in_decl,
-		     bool done, bool address_p)
+		     bool done, bool address_p, bool name_lookup_p = true)
 {
   tree expr;
   tree scope;
@@ -18197,7 +18225,9 @@ tsubst_qualified_id (tree qualified_id, tree args,
   if (expr == error_mark_node && complain & tf_error)
     qualified_name_lookup_error (scope, TREE_OPERAND (qualified_id, 1),
 				 expr, input_location);
-  else if (TYPE_P (scope))
+  /* For ^^S::mem, we do not want to create the dummy object that
+     finish_non_static_data_member would give us.  */
+  else if (TYPE_P (scope) && name_lookup_p)
     {
       expr = (adjust_result_of_qualified_name_lookup
 	      (expr, scope, current_nonlambda_class_type ()));
@@ -21049,7 +21079,8 @@ tsubst_lambda_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       /* [temp.deduct] A lambda-expression appearing in a function type or a
 	 template parameter is not considered part of the immediate context for
 	 the purposes of template argument deduction. */
-      complain = tf_warning_or_error;
+      if (!emitting_diagnostic_p ())
+	complain = tf_warning_or_error;
 
       tree saved = DECL_SAVED_TREE (oldfn);
       if (TREE_CODE (saved) == BIND_EXPR && BIND_EXPR_BODY_BLOCK (saved))
@@ -22430,6 +22461,7 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	object_type = TREE_TYPE (object);
 
 	member = TREE_OPERAND (t, 1);
+	const bool splice_p = dependent_splice_p (member);
 	if (BASELINK_P (member))
 	  member = tsubst_baselink (member,
 				    non_reference (TREE_TYPE (object)),
@@ -22525,6 +22557,12 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	      }
 	    RETURN (error_mark_node);
 	  }
+	else if (splice_p && BASELINK_P (member))
+	  /* We need to call adjust_result_of_qualified_name_lookup when
+	     we have obj->[:^^T::fn:], but we don't set BASELINK_QUALIFIED_P
+	     so that we still get virtual function binding.  */
+	  member = (adjust_result_of_qualified_name_lookup
+		    (member, NULL_TREE, object_type));
 
 	r = finish_class_member_access_expr (object, member,
 					     /*template_p=*/false,
@@ -22705,7 +22743,8 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	  else if (r == NULL_TREE)
 	    {
 	      /* First try name lookup to find the instantiation.  */
-	      r = lookup_name (DECL_NAME (t));
+	      if (DECL_NAME (t))
+		r = lookup_name (DECL_NAME (t));
 	      if (r)
 		{
 		  if (!VAR_P (r))
@@ -23155,6 +23194,10 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	     instantiated entities and so no need to tsubst the annotation
 	     attribute and we rely on pointer equality of that.  */
 	  ;
+	else if (TREE_CODE (h) == SCOPE_REF)
+	  h = tsubst_qualified_id (h, args, complain, in_decl,
+				   /*done=*/true, /*address_p=*/false,
+				   /*name_lookup_p=*/false);
 	else
 	  {
 	    /* [expr.reflect] The id-expression of a reflect-expression is

@@ -763,6 +763,7 @@ _loop_vec_info::_loop_vec_info (class loop *loop_in, vec_info_shared *shared)
     peeling_for_gaps (false),
     peeling_for_niter (false),
     early_breaks (false),
+    loop_iv_cond (NULL),
     user_unroll (false),
     no_data_dependencies (false),
     has_mask_store (false),
@@ -1693,7 +1694,7 @@ vect_create_loop_vinfo (class loop *loop, vec_info_shared *shared,
 
   unsigned cond_id = 0;
   if (!LOOP_VINFO_NITERS_UNCOUNTED_P (loop_vinfo))
-      LOOP_VINFO_LOOP_IV_COND (loop_vinfo) = info->conds[cond_id++];
+    LOOP_VINFO_LOOP_IV_COND (loop_vinfo) = info->conds[cond_id++];
 
   for (; cond_id < info->conds.length (); cond_id ++)
     LOOP_VINFO_LOOP_CONDS (loop_vinfo).safe_push (info->conds[cond_id]);
@@ -1975,6 +1976,9 @@ vect_analyze_loop_costing (loop_vec_info loop_vinfo,
   return 1;
 }
 
+/* Gather data references in LOOP with body BBS and store them into
+   *DATAREFS.  */
+
 static opt_result
 vect_get_datarefs_in_loop (loop_p loop, basic_block *bbs,
 			   vec<data_reference_p> *datarefs)
@@ -2172,7 +2176,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo, int masked_p, bool &fatal,
 
   loop_p loop = LOOP_VINFO_LOOP (loop_vinfo);
 
-  /* Gather the data references and count stmts in the loop.  */
+  /* Gather the data references.  */
   if (!LOOP_VINFO_DATAREFS (loop_vinfo).exists ())
     {
       opt_result res
@@ -10441,26 +10445,35 @@ vectorizable_live_operation (vec_info *vinfo, stmt_vec_info stmt_info,
 				   "def\n");
 		continue;
 	      }
-	    /* ???  It can also happen that we end up pulling a def into
-	       a loop where replacing out-of-loop uses would require
-	       a new LC SSA PHI node.  Retain the original scalar in
-	       those cases as well.  PR98064.  */
-	    if (TREE_CODE (new_tree) == SSA_NAME
-		&& !SSA_NAME_IS_DEFAULT_DEF (new_tree)
-		&& (gimple_bb (use_stmt)->loop_father
-		    != gimple_bb (vec_stmt)->loop_father)
-		&& !flow_loop_nested_p (gimple_bb (vec_stmt)->loop_father,
-					gimple_bb (use_stmt)->loop_father))
-	      {
-		if (dump_enabled_p ())
-		  dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
-				   "Using original scalar computation for "
-				   "live lane because there is an out-of-loop "
-				   "definition for it\n");
-		continue;
-	      }
 	    FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
-	      SET_USE (use_p, new_tree);
+	      {
+		/* ???  It can also happen that we end up pulling a def into
+		   a loop where replacing out-of-loop uses would require
+		   a new LC SSA PHI node.  Retain the original scalar in
+		   those cases as well.  PR98064.  */
+		edge e;
+		if (TREE_CODE (new_tree) == SSA_NAME
+		    && !SSA_NAME_IS_DEFAULT_DEF (new_tree)
+		    && (gimple_bb (use_stmt)->loop_father
+			!= gimple_bb (vec_stmt)->loop_father)
+		    /* But a replacement in a LC PHI is OK.  This happens
+		       in gcc.dg/vect/bb-slp-57.c for example.  */
+		    && (gimple_code (use_stmt) != GIMPLE_PHI
+			|| (((e = phi_arg_edge_from_use (use_p)), true)
+			    && !loop_exit_edge_p
+				  (gimple_bb (vec_stmt)->loop_father, e)))
+		    && !flow_loop_nested_p (gimple_bb (vec_stmt)->loop_father,
+					    gimple_bb (use_stmt)->loop_father))
+		  {
+		    if (dump_enabled_p ())
+		      dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
+				       "Using original scalar computation for "
+				       "live lane because there is an "
+				       "out-of-loop definition for it\n");
+		    continue;
+		  }
+		SET_USE (use_p, new_tree);
+	      }
 	    update_stmt (use_stmt);
 	  }
     }

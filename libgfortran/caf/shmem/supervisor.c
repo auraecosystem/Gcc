@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Free Software Foundation, Inc.
+/* Copyright (C) 2025-2026 Free Software Foundation, Inc.
    Contributed by Thomas Koenig, Nicolas Koenig, Andre Vehreschild
 
 This file is part of the GNU Fortran Shmem Coarray Library (caf_shmem).
@@ -300,7 +300,7 @@ startWorker (image *im __attribute__ ((unused)),
   return true;
 }
 
-#ifndef WIN32
+#ifdef HAVE_FORK
 static void
 kill_all_images (supervisor *m)
 {

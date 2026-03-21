@@ -1,3 +1,712 @@
+2026-03-20  Tobias Burnus  <tburnus@baylibre.com>
+	    Sandra Loosemore  <sloosemore@baylibre.com>
+
+	PR c/122866
+	* gimplify.cc (omp_instantiate_mapper): Give a sorry if there are
+	iterators.
+
+2026-03-20  Kwok Cheung Yeung  <kcyeung@baylibre.com>
+	    Sandra Loosemore  <sloosemore@baylibre.com>
+
+	* gimplify.cc (gimplify_omp_workshare): Handle iterators in
+	"target data".
+
+2026-03-20  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	* config/aarch64/tuning_models/olympus.h (olympus_tunings): Set
+	loop_align to 64:16.
+
+2026-03-20  Takayuki 'January June' Suwa  <jjsuwa_sys3175@yahoo.co.jp>
+
+	* config/xtensa/xtensa.cc (gen_int_relational):
+	Specify the table array "info" and the pointer to its elements
+	as const.
+
+2026-03-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124565
+	* config/i386/i386.cc (ix86_build_builtin_va_list_64): Set TREE_PUBLIC
+	on type_decl.
+
+2026-03-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124566
+	* config/sh/sh.cc (sh_build_builtin_va_list): Set TREE_PUBLIC
+	on type_decl.
+
+2026-03-20  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/124578
+	* tree-ssa-sccvn.cc (vn_reference_eq): Consistently check
+	fields from vro2.
+
+2026-03-20  Yangyu Chen  <cyy@cyyself.name>
+
+	* config/aarch64/aarch64.cc (aarch64_generate_version_dispatcher_body):
+	Check DECL_VIRTUAL_P for virtual functions for LTO handling.
+	* config/i386/i386-features.cc (ix86_generate_version_dispatcher_body):
+	Ditto.
+	* config/riscv/riscv.cc (riscv_generate_version_dispatcher_body): Ditto.
+	* config/rs6000/rs6000.cc (rs6000_generate_version_dispatcher_body):
+	Ditto.
+	* config/loongarch/loongarch.cc
+	(loongarch_generate_version_dispatcher_body): Ditto.
+
+2026-03-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124565
+	* config/alpha/alpha.cc (alpha_build_builtin_va_list): Set TREE_PUBLIC
+	on type_decl.
+
+2026-03-19  Dhruv Chawla  <dhruvc@nvidia.com>
+
+	* common.opt.urls: Added missing entry.
+
+2026-03-18  Vladimir N. Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/124041
+	PR rtl-optimization/124439
+	* lra-constraints.cc (process_alt_operands): Check hard reg subreg
+	mode by hard_regno_mode_ok.
+	(curr_insn_transform): Always subsitute equivalence for hard reg
+	subreg.
+
+2026-03-18  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/124555
+	* match.pd ((A - B) >=/> 0 ? (A - B) : (B - A) -> abs (A - B)):
+	Guard the vector case with target_supports_op_p checks.
+	((A - B) <=/< 0 ? (A - B) : (B - A) -> -abs (A - B)): Likewise.
+	((type)A >=/> 0 ? A : -A -> abs (A)): Likewise.
+	((type)A <=/< 0 ? A : -A -> -abs (A)): Likewise.
+
+2026-03-18  Dhruv Chawla  <dhruvc@nvidia.com>
+
+	* Makefile.in (all.fda): Add `--print-autofdo-gcov-version` to
+	profile_merger invocation.
+	* auto-profile.cc (AUTO_PROFILE_VERSION): Move from here ...
+	* auto-profile.h (AUTO_PROFILE_VERSION): ... to here.
+	* common.opt: Add -print-autofdo-gcov-version and
+	--print-autofdo-gcov-version.
+	* doc/invoke.texi: Document the options.
+	* gcc.cc: Add include for auto-profile.h.
+	(driver_handle_option): Add OPT_print_autofdo_gcov_version.
+	(driver::maybe_print_and_exit): Handle the option.
+
+2026-03-18  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/124552
+	* function.cc (free_after_compilation): Free the copyid
+	allocator.
+
+2026-03-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/124547
+	* configure.ac (--with-gnu-ld): Set gnu_ld_flag= instead of
+	gnu_ld_flag=no if not explicitly specified.
+	(--with-gnu-as): Similarly for gas_flag.
+	(DEFAULT_ASSEMBLER): Use wording without GNU as whenever gas_flag
+	is not yes rather than when it is no.
+	* configure: Regenerate.
+
+2026-03-18  Richard Biener  <rguenther@suse.de>
+
+	* common.opt (fpost-ipa-mem-report): Fix typo.
+
+2026-03-18  Richard Biener  <rguenther@suse.de>
+
+	* ipa-cp.cc (gather_edges_for_value): Return an auto_vec.
+	(decide_about_value): Simplify, fixing leak of callers.
+
+2026-03-18  Prachi Godbole  <pgodbole@nvidia.com>
+
+	PR target/123749
+	* ipa-locality-cloning.cc (partition_callchain): Start new partition
+	if no. of insns exceeds size and if there are nodes to process.
+
+2026-03-18  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	* config/sparc/t-rtems: Add leon5 multilibs.
+
+2026-03-17  Alice Carlotti  <alice.carlotti@arm.com>
+
+	* config/aarch64/aarch64-sve2.md (@aarch64_pred_revd<mode>):
+	Remove movprfx alternative.
+	(@cond_revd<mode>): Likewise.
+
+2026-03-17  Philipp Tomsich  <philipp.tomsich@vrull.eu>
+
+	PR rtl-optimization/124476
+	* avoid-store-forwarding.cc
+	(store_forwarding_analyzer::process_store_forwarding): Replace
+	bitmap_all_bits_in_range_p with bitmap_any_bit_in_range_p and
+	return false on partial overlap.  Remove redundant-store vectors
+	and their associated removal, dump, and deletion logic.
+
+2026-03-17  Richard Biener  <rguenther@suse.de>
+
+	* tree-vect-slp.cc (vect_analyze_slp): Release BST map when
+	returning.
+
+2026-03-17  Richard Biener  <rguenther@suse.de>
+
+	* tree-vect-loop.cc (_loop_vec_info::_loop_vec_info):
+	Initialize loop_iv_cond given it's no longer always
+	initialized ...
+	(vect_create_loop_vinfo): ... here.  Fix formatting.
+
+2026-03-17  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/122380
+	* tree-ssa-sccvn.h (copy_reference_ops_from_ref): Declare.
+	(vn_reference_compute_hash): Likewise.
+	(vn_reference_eq): Add parameter indicating lexical equivalence,
+	defaulted to false.
+	* tree-ssa-sccvn.cc (vn_reference_eq): Likewise.
+	(print_vn_reference_ops): Print alias type and alignment.
+	(vn_reference_compute_hash): Export.
+	(copy_reference_ops_from_ref): Likewise.
+	* tree-ssa-pre.cc (pre_expr_d::equal): Use lexical equivalence.
+	(get_or_alloc_expr_for_reference): Also get value-id, upon
+	zero assign a new value-id if the expression is unknown.
+	(expr_cmp): New helper.
+	(prefer): Likewise.
+	(pre_expr_DFS): Get expression exclusion bitmap and honor it.
+	(sorted_array_from_bitmap_set): If done for insertion, do limited
+	canonexpr() via pairwise prefer on expression pairs with the same
+	value, populating an exclution bitmap.
+	(phi_translate_1): Do not use the VN hashtable expressions
+	or insert there.  Instead maintain a PRE view of expressions.
+	(clean): Adjust.
+	(do_hoist_insertion): Likewise.
+	(insert): Likewise.
+	(compute_avail): Use gimple_could_trap_p_1
+	on the original stmt rather than vn_reference_may_trap on
+	the VN leader.  Use the original stmt operands for the PRE
+	view of reference expressions, only use the value number from the VN
+	tables.  Remove no longer effective workarounds for semantically
+	different references with same value.
+	(fini_pre): Release operand vectors for PRE IL reference
+	expressions.
+
+2026-03-17  Yangyu Chen  <cyy@cyyself.name>
+
+	* config/i386/i386-features.cc (make_resolver_func): Use
+	symtab->change_decl_assembler_name instead of
+	SET_DECL_ASSEMBLER_NAME to properly update the symbol table.
+
+2026-03-16  Jose E. Marchesi  <jemarch@gnu.org>
+
+	* doc/install.texi (Configuration): Fix copy pasto
+	--enable-objc-gc to --enable-algol68-gc.
+
+2026-03-16  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/124528
+	* tree-scalar-evolution.cc (scev_dfs::add_to_evolution):
+	Perform the negation in an unsigned type if we cannot make
+	sure it will not cause UB.
+
+2026-03-16  Kito Cheng  <kito.cheng@sifive.com>
+
+	* doc/invoke.texi: Add experimental warning for RISC-V
+	big-endian support.
+
+2026-03-16  Takayuki 'January June' Suwa  <jjsuwa_sys3175@yahoo.co.jp>
+
+	* config/xtensa/xtensa.cc
+	(constantsynth_method_lshr_mi12b): New.
+	(constantsynth_methods): Add constantsynth_method_lshr_mi12b.
+
+2026-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/124508
+	* config/loongarch/genopts/gen-evolution.awk: Rename copyright_header
+	routine so that update-copyright.py isn't upset about it.
+
+2026-03-13  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR rtl-optimization/124454
+	* regcprop.cc (pass_cprop_hardreg::execute): If something
+	changed and non-call exceptions is on, call purge_all_dead_edges
+	and cleanup_cfg.
+
+2026-03-13  Vladimir N. Makarov  <vmakarov@redhat.com>
+
+	PR target/117182
+	* lra-constraints.cc (curr_insn_transform): Don't change an output
+	operand by constant or invariant equivalence.
+
+2026-03-13  Andre Vieira  <andre.simoesdiasvieira@arm.com>
+
+	* config/arm/arm.cc (TARGET_C_BITINT_TYPE_INFO): New Macro.
+	(arm_return_in_memory): Return true for any _BitInt(N) where N > 64.
+	(arm_needs_doubleword_align): Return true for any _BitInt(N) where N > 32.
+	(arm_bitint_type_info): New.
+	* config/arm/arm-protos.h (arm_bitint_type_info): New declaration.
+
+2026-03-13  Saurabh Jha  <saurabh.jha@arm.com>
+
+	PR target/122953
+	* config/aarch64/aarch64-c.cc
+	(TARGET_AARCH64_MS_ABI): Explicitly set it to 0 if not on mingw.
+	(aarch64_define_unconditional_macros): Remove __ARM_PCS_AAPCS64
+	from here.
+	(aarch64_update_cpp_builtins): Define __ARM_PCS_AAPCS64 if not
+	on Windows ABI.
+	---
+	Hey,
+	Regression tested on aarch64-linux-gnu and found no regressions.
+	Built for arch64-w64-mingw32, ran target dependent tests, and
+	found no regressions.
+	Ok for master?
+	Thanks,
+	Saurabh
+
+2026-03-13  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-profile.cc (struct conds_ctx): Formatting fixes.
+	Rename B1, B2, G1, G2 and G3 members to b1, b2, g1, g2 and g3.
+	Adjust all uses.
+	(topological_cmp, topological_src_cmp, index_of, single_p,
+	single_edge, contract_edge_up): Formatting fixes.
+	(struct outcomes): Likewise.
+	(conditional_succs, condition_index, condition_uid,
+	masking_vectors, emit_assign, emit_bitwise_op): Likewise.
+	(make_top_index_visit, make_top_index): Likewise.  Rename
+	L argument to l.
+	(paths_between): Formatting fixes.
+	(struct condcov): Likewise.
+	(cov_length, cov_blocks, cov_masks, cov_maps, cov_free): Likewise.
+	(find_conditions): Likewise.  Don't start warning_at message with
+	uppercase letter.
+	(struct counters): Formatting fixes.
+	(find_counters, resolve_counter, resolve_counters,
+	instrument_decisions): Likewise.
+	(init_ic_make_global_vars): Comment formatting fixes.
+	(gimple_init_gcov_profiler): Formatting fixes.
+
+2026-03-13  Jørgen Kvalsvik  <j@lambda.is>
+
+	PR ipa/124462
+	* tree-profile.cc (masking_vectors): Skip blocks with less than
+	2 non-complex incoming edges.
+
+2026-03-13  Takayuki 'January June' Suwa  <jjsuwa_sys3175@yahoo.co.jp>
+
+	* config/xtensa/xtensa.cc (constantsynth_pass1):
+	Change the comparison between src and SET_SRC(pat) to be performed
+	using rtx_equal_p rather than between references (pointer values)
+	directly, and adjust the destination of changes in validate_change
+	to eliminate the need to call gen_rtx_SET.
+	(constantsynth_pass2):
+	Fill in missing spacing in one place and changes dump file output
+	slightly.
+
+2026-03-13  Takayuki 'January June' Suwa  <jjsuwa_sys3175@yahoo.co.jp>
+
+	* config/xtensa/xtensa.cc (xtensa_split_operand_pair)
+	Move the common code from the split part of movd[if]_internal
+	MD patterns into this function, since this function is only
+	called from the split part of that patterns.
+	Also, during non-debug optimization, re-register new literal
+	pool entries with the split values themselves instead of
+	splitting the memory reference of the source numeric constant
+	placed in the pool.
+	(split_DI_SF_DF_const):
+	Rename to convert_SF_const and remove the split function of
+	D[IF]mode constant assignment.
+	(do_largeconst2):
+	Change the call from split_DI_SF_DF_const to convert_SF_const.
+	* config/xtensa/xtensa.md (movdi_internal, movdf_internal):
+	Reduce their split parts to just a call to xtensa_split_operand_pair.
+
+2026-03-13  Takayuki 'January June' Suwa  <jjsuwa_sys3175@yahoo.co.jp>
+
+	* config/xtensa/xtensa.cc (FPreg_neg_scaled_simm12b_1):
+	Change the test to determine whether REAL_VALUE_TYPE is a non-
+	zero finite value to whether it is normal.
+	(FPreg_neg_scaled_simm12b):
+	Place the call to FPreg_neg_scaled_simm12b_1 last in the
+	expression to improve performance, and change the dump file
+	output slightly.
+
+2026-03-13  Takayuki 'January June' Suwa  <jjsuwa_sys3175@yahoo.co.jp>
+
+	* config/xtensa/xtensa-passes.def (pass_xtensa_largeconst):
+	Rename to pass_xtensa_largeconst1.
+	(pass_xtensa_largeconst2): New target-specific pass.
+	* config/xtensa/xtensa-protos.h (make_pass_xtensa_largeconst):
+	Rename to make_pass_xtensa_largeconst1.
+	(make_pass_xtensa_largeconst2): New function prototype.
+	* config/xtensa/xtensa.cc (litpool_set_src_1):
+	Change to process large numeric constant assignments to DImode
+	as well as [SH]Imode.
+	(do_largeconst):
+	Rename it to do_largeconst1 and leave only the mandatory insn
+	transformation process.
+	(do_largeconst2): New function that inherits the optional insn
+	transformation processes from the old do_largeconst.
+	(rest_of_handle_largeconst):
+	Rename to rest_of_handle_largeconst1 and change to call
+	do_largeconst1.
+	(rest_of_handle_largeconst2): New function that calls
+	do_largeconst2.
+	(pass_data_xtensa_largeconst)
+	Rename to pass_data_xtensa_largeconst1.
+	(pass_xtensa_largeconst):
+	Rename to pass_xtensa_largeconst1 and change to call
+	rest_of_handle_largeconst1.
+	(pass_data_xtensa_largeconst2): New opt_pass data.
+	(pass_xtensa_largeconst2):
+	New rtl_opt_pass that runs rest_of_handle_largeconst2 when non-
+	debug optimizations are enabled.
+	(make_pass_xtensa_largeconst):
+	Rename to make_pass_xtensa_largeconst1.
+	(make_pass_xtensa_largeconst2): New function definition.
+
+2026-03-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124461
+	* config/i386/i386.md (movrs<mode>): Use <imodesuffix> only for
+	-masm=att, not for -masm=intel.
+
+2026-03-12  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR rtl-optimization/123822
+	* simplify-rtx.cc (simplify_context::simplify_subreg): Check the
+	mode of the part to be non-VOIDmode before calling gen_rtx_SUBREG.
+
+2026-03-12  Vladimir N. Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/124452
+	* lra-constraints.cc (curr_insn_transform): Move return on the
+	postponed insn before any reload generation.
+
+2026-03-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	Revert:
+	2026-02-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gnu_ld_flag): Move $gcc_cv_ld --version check into
+	AC_ARG_WITH(gnu-ld).
+	(gcc_cv_ld): Set before gnu_ld_flag.
+	(gas_flag): Move $gcc_cv_ld --version check into AC_ARG_WITH(gnu-ld).
+	(gcc_cv_as): Set before gas_flag.
+	* configure: Regenerate.
+
+2026-03-12  Martin Jambor  <mjambor@suse.cz>
+
+	PR objc/124260
+	* ipa-prop.cc (ipa_analyze_var_static_initializer): Skip a constructor
+	entry if its index is NULL.
+
+2026-03-12  Richard Biener  <rguenther@suse.de>
+
+	PR bootstrap/124406
+	* ipa-pure-const.cc (skip_function_for_local_pure_const):
+	Do not analyze interposable functions when LTO is enabled.
+
+2026-03-12  H.J. Lu  <hjl.tools@gmail.com>
+
+	PR target/122925
+	PR target/119979
+	* config/sh/sh.cc (TARGET_PROMOTE_PROTOTYPES): Removed.
+
+2026-03-12  Philipp Tomsich  <philipp.tomsich@vrull.eu>
+
+	* fold-mem-offsets.cc (do_analysis): Revise comment.
+
+2026-03-12  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR middle-end/120030
+	* symtab.cc (symtab_node::set_init_priority): Better
+	handle the case of setting the priority back to default.
+	(cgraph_node::set_fini_priority): Likewise.
+
+2026-03-12  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	* doc/extend.texi (constructor/destructor): Add documentation
+	about multiple attributes here.
+
+2026-03-12  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	* doc/extend.texi (constructor/destructor): Document
+	the priority when none is supplied.
+
+2026-03-12  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR target/124409
+	* doc/install.texi: Increment the required binutils for
+	riscv to 2.40.
+
+2026-03-12  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124397
+	* diagnostic.h (emitting_diagnostic_p): New.
+	* diagnostics/context.h (context::emitting_diagnostic_p): New.
+
+2026-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124436
+	* genautomata.cc (output_dfa_insn_code_func): Use
+	MIN (INT_MAX, 2U * uid) instead of 2 * uid in dfa_insn_code_enlarge.
+
+2026-03-11  H.J. Lu  <hjl.tools@gmail.com>
+
+	PR target/124407
+	* config/i386/i386-features.cc (ix86_place_single_vector_set):
+	Handle non-int load with integer constant.
+	(ix86_broadcast_inner): Convert const0_rtx to non-int mode.
+
+2026-03-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/124435
+	* expr.cc (store_field_updates_msb_p): Use GET_MODE_BITSIZE
+	instead of GET_MODE_SIZE.  Handle the two endiannesses separately.
+
+2026-03-11  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	Revert:
+	2026-02-27  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	PR tree-optimization/90036
+	* tree-ssa-scopedtables.cc (avail_exprs_stack::record_cond): Always
+	record the new hash table entry.
+
+2026-03-11  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	Revert:
+	2026-02-28  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	PR tree-optimization/90036
+	* tree-ssa-dom.cc (back_propagate_equivalences): Accept new
+	argument for available expression stack.  Lookup equivalences
+	in the expression hash table too.  If an expression hash a
+	known constant value, record it and recurse.
+	(record_temporary_equivalences): Back propagate for a subset of
+	edge equivalences.
+
+2026-03-11  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/123271
+	* config/arm/arm.md (subvsi3_intmin): Renamed to ...
+	(sub_cmpVsi3_intmin): ... this.
+	(subvsi3): Renamed to ...
+	(sub_cmpVsi3): ... this.
+	(subvsi3_imm1): Renamed to ...
+	(sub_cmpVsi3_imm1): ... this.
+	(usubvsi3_borrow): Renamed to ...
+	(usub_cmpVsi3_borrow): ... this.
+	(usubvsi3_borrow_imm): Renamed to ...
+	(usub_cmpVsi3_borrow_imm): ... this.
+	(subvsi3_borrow): Renamed to ...
+	(sub_cmpVsi3_borrow): ... this.
+	(subvsi3_borrow_imm): Renamed to ...
+	(sub_cmpVsi3_borrow_imm): ... this.
+
+2026-03-11  Arsen Arsenović  <aarsenovic@baylibre.com>
+
+	* config/gcn/gcn.cc (gcn_addr_space_convert): Use
+	SHARED_BASE_REG to find flat address space base of LDS.
+
+2026-03-11  Arsen Arsenović  <aarsenovic@baylibre.com>
+
+	PR target/124044
+	* config/gcn/gcn.cc (gcn_addr_space_resolve_default): New
+	function.  Converts from ADDR_SPACE_DEFAULT to
+	DEFAULT_ADDR_SPACE.
+	(gcn_addr_space_convert): Resolve from_type and to_type address
+	spaces.
+
+2026-03-11  Arsen Arsenović  <aarsenovic@baylibre.com>
+
+	* config/gcn/gcn.cc (gcn_regno_reg_class): Handle
+	MEMORY_APERTURE_REGS.
+	(gcn_hard_regno_rename_ok): Return false for memory aperture
+	regs.
+	(gcn_memory_move_cost): Handle memory aperture regs the same as
+	general registers.
+	(gcn_hard_regno_nregs): Handle MEMORY_APERTURE_REGS.
+	* config/gcn/gcn.h (SHARED_BASE_REG): Define.
+	(SHARED_LIMT_REG): Ditto.
+	(PRIVATE_BASE_REG): Ditto.
+	(PRIVATE_LIMT_REG): Ditto.
+	(MEMORY_APERTURE_REG_P): New macro.  Evaluates to non-zero if
+	parameter is one of the above registers.
+	(SSRC_REGNO_P): Also evaluate to non-zero for aperture regs, as
+	they can be sources to scalar instructions.
+	(enum reg_class): New class: MEMORY_APERTURE_REGS.
+	(REG_CLASS_NAMES): Provide name for that class.
+	(MEMORY_APERTURE_REGS_MASK): New helper macro.  Value of
+	NAMED_REG_MASK2 for each of the memory aperture regs.
+	(REG_CLASS_CONTENTS): Add the above registers to
+	MEMORY_APERTURE_REGS, SGPR_VOP_SRC_REGS, and SGPR_SRC_REGS.
+
+2026-03-11  Philipp Tomsich  <philipp.tomsich@vrull.eu>
+
+	* fold-mem-offsets.cc (do_check_validity): fix wrong mode
+	and rename arguments to avoid future confusion
+
+2026-03-10  Yangyu Chen  <cyy@cyyself.name>
+
+	* config/riscv/riscv.cc (riscv_check_target_clone_version):
+	Fix TARGET_CHECK_TARGET_CLONE_VERSION implementation.
+
+2026-03-10  Richard Biener  <rguenther@suse.de>
+
+	* tree-vect-loop.cc (vect_get_datarefs_in_loop): Add function
+	level comment.
+	(vect_analyze_loop_2): Fix comment.
+
+2026-03-10  Jan Hubicka  <jh@suse.cz>
+	    Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR tree-optimization/120987
+	* ipa-modref.cc (ipa_merge_modref_summary_after_inlining): Mask
+	off non const/pure/novops related flags when combining of outer
+	functions.
+
+2026-03-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR translation/124422
+	* config/loongarch/loongarch-target-attr.cc
+	(loongarch_parse_fmv_features): Fix spelling in diagnostics.
+	* params.opt (max-devirt-targets): Fix typo in description.
+
+2026-03-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR ipa/124291
+	* ipa-cp.cc (ipcp_val_replacement_ok_p): Allow more precise
+	contexts that what the clone was originally intended for.
+
+2026-03-09  Dhruv Chawla  <dhruvc@nvidia.com>
+
+	PR gcov-profile/124075
+	* config/aarch64/gcc-auto-profile: Add "-o perf.data" to perf
+	record invocation.
+	* config/i386/gcc-auto-profile: Likewise.
+
+2026-03-09  Dhruv Chawla  <dhruvc@nvidia.com>
+
+	PR gcov-profile/123923
+	* config/aarch64/gcc-auto-profile: Add --inherit to perf record flags.
+	* config/i386/gcc-auto-profile: Likewise.
+
+2026-03-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/118608
+	* rtlanal.cc (truncated_to_mode): Revert a change made on 2026-02-03.
+	* config/mips/mips.md (*extenddi_truncate<mode>): Likewise.
+
+2026-03-09  Takayuki 'January June' Suwa  <jjsuwa_sys3175@yahoo.co.jp>
+
+	* config/xtensa/xtensa.md (movdi_internal, movdf_internal, *btrue,
+	*ubtrue, movsicc_internal0, movsicc_internal1, movsfcc_internal0,
+	movsfcc_internal1):
+	Rewrite in compact syntax.
+
+2026-03-08  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR target/124403
+	* config/riscv/riscv.cc (riscv_get_vls_cc_attr): Fix formating
+	of the diagnostic.
+
+2026-03-07  Sandra Loosemore  <sloosemore@baylibre.com>
+
+	PR driver/69367
+	PR driver/69849
+	* Makefile.in (TEXI_GCCINT_FILES): Add specs.texi.
+	* doc/gccint.texi: Include it.
+	* doc/install.texi: Fix cross-references.
+	* doc/invoke.texi: Likewise.
+	(Option Summary): Reclassify -specs/--specs as a developer option.
+	(Overall Options): Move -specs= documentation to...
+	(Developer Options): ...here.
+	(Spec Files): Move entire section to....
+	* doc/specs.texi: ....new file.
+	* common.opt.urls: Regenerated.
+
+2026-03-07  Jørgen Kvalsvik  <j@lambda.is>
+
+	* tree-profile.cc (struct conds_ctx): Add edges.
+	(topological_src_cmp): New function.
+	(masking_vectors): New search strategy.
+
+2026-03-07  Robin Dapp  <rdapp@oss.qualcomm.com>
+
+	PR rtl-optimization/121649
+	* cse.cc (find_sets_in_insn):  Only use non-reg vec_select
+	simplifications.
+
+2026-03-06  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR target/124126
+	* config/aarch64/aarch64-builtins.cc (aarch64_init_ls64_builtins_types): Copy
+	the array type before setting the mode.
+
+2026-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/124135
+	* tree-inline.cc (expand_call_inline): If both gimple_call_lhs (stmt)
+	and use_retvar aren't gimple regs but have gimple reg type, use
+	separate load of use_retva into SSA_NAME and then store of it
+	into gimple_call_lhs (stmt).
+
+2026-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/124358
+	* match.pd ((ptr) (x p+ y) p+ z -> (ptr) (x p+ (y + z))): Simplify
+	into (ptr) x p+ (y + z) instead.
+
+2026-03-05  Victor Do Nascimento  <victor.donascimento@arm.com>
+
+	PR tree-optimization/124037
+	* tree-vect-stmts.cc (get_load_store_type): Fix
+	alignment_support_scheme categorization for early
+	break VMAT_ELEMENTWISE accesses.
+
+2026-03-05  Richard Biener  <rguenther@suse.de>
+
+	* tree-vect-loop.cc (vectorizable_live_operation): Fix typo.
+
+2026-03-05  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/98064
+	* tree-vect-loop.cc (vectorizable_live_operation): Do
+	not restrict replacing uses in a LC PHI.
+
+2026-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.md (swap<mode>): Swap operand order for
+	-masm=intel.
+
+2026-03-05  Xi Ruoyao  <xry111@xry111.site>
+
+	PR target/123807
+	PR middle-end/124250
+	* config/loongarch/loongarch.cc
+	(loongarch_expand_vector_init_same): Revert r16-7163 change.
+
+2026-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124349
+	* config/i386/sse.md (iptrssebvec_2): New define_mode_attr.
+	(cvthf82ph<mode><mask_name>): Use it for -masm=intel input
+	operand.
+
+2026-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124367
+	* config/i386/sse.md (*andnot<mode>3): Use 0x44 rather than $0x44
+	for -masm=intel.
+
+2026-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124366
+	* config/i386/i386.md (@wrss<mode>, @wruss<mode>): Swap operand
+	order for -masm=intel.
+
 2026-03-04  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
 
 	PR tree-optimization/119568

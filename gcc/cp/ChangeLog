@@ -1,3 +1,302 @@
+2026-03-20  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124575
+	* call.cc (set_up_extended_ref_temp): If var is consteval-only,
+	mark it DECL_EXTERNAL.
+
+2026-03-19  Jason Merrill  <jason@redhat.com>
+
+	* constexpr.cc (build_constexpr_constructor_member_initializers):
+	Handle TRY_FINALLY_EXPR.
+	(potential_constant_expression_1): Handle EH_ELSE_EXPR.
+	(check_for_failed_contracts): Handle non-MCE case.
+	(cxx_eval_outermost_constant_expr): Call it sooner.
+
+2026-03-18  Dhruv Chawla  <dhruvc@nvidia.com>
+
+	* Make-lang.in (cc1plus.fda): Add `--print-autofdo-gcov-version` to
+	profile_merger invocation.
+	(create_fdas_for_cc1plus): Add `--print-autofdo-gcov-version` to
+	create_gcov invocations.
+
+2026-03-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124474
+	* reflect.cc (check_out_of_consteval_use_r): Don't walk subtrees
+	of RETURN_EXPR on cdtor_returns_this targets in cdtors.
+
+2026-03-17  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124493
+	* error.cc (inform_tree_category): Handle variable templates.
+
+2026-03-17  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124472
+	* parser.cc (cp_parser_reflection_name): Move the
+	cp_preserve_using_decl overriding below, before
+	cp_parser_lookup_name_simple.
+
+2026-03-17  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124493
+	* pt.cc (tsubst) <case TEMPLATE_ID_EXPR>: Check that templ is
+	either DECL_TYPE_TEMPLATE_P or DECL_TEMPLATE_TEMPLATE_PARM_P.
+
+2026-03-16  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124496
+	* parser.cc (cp_parser_splice_specifier): Use NULL_TREE instead of
+	NULL.
+	(cp_parser_splice_expression): Don't assert seen_error() when not
+	committed to tentative parse.
+
+2026-03-16  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/123618
+	* tree.cc (handle_annotation_attribute): Reject annotations on void
+	parameters.
+
+2026-03-16  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR c++/124307
+	* parser.cc (cp_parser_base_specifier): Check for
+	error mark like checking for non-nullness on the
+	attribute.
+
+2026-03-16  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124489
+	* error.cc (dump_type) <case NULLPTR_TYPE>: Use pp_cxx_ws_string
+	instead of pp_string.
+	<case META_TYPE>: Likewise.
+
+2026-03-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/120039
+	PR c++/122559
+	* pt.cc (tsubst_expr) <case VAR_DECL>: Don't call lookup_name on
+	DECL_NAME (t) if it is NULL_TREE.
+
+2026-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124399
+	* decl.cc (grokdeclarator): If both *attrlist and
+	declarator->std_attributes list contain annotations, chainon
+	declarator->std_attributes to tail of copy_list (*attrlist)
+	rather than *attrlist to tail of declarator->std_attributes.
+
+2026-03-14  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	PR c++/124485
+	* cp-tree.h (lazy_load_pendings): Declare new overload.
+	* module.cc (lazy_load_pendings): Define it.
+	* name-lookup.cc (lookup_elaborated_type): Load pending entities
+	with given name before doing namespace-scope lookup.
+	(pushtag): Remove no-longer-needed pending load.
+
+2026-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124456
+	* pt.cc (tsubst_pack_expansion): For structured binding pack
+	with type dependent pack set arg_pack to NULL_TREE.
+
+2026-03-14  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	PR c++/124478
+	* cp-tree.h (lazily_declare_fn): Make return type void.
+	* method.cc (is_lazy_special_member): New function.
+	(implicitly_declare_fn): Bail early if we lazy loaded the member
+	we're trying to declare.
+	(lazily_declare_fn): Likewise.
+
+2026-03-13  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (check-c++-all): Also test c++26.
+
+2026-03-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124388
+	* reflect.cc (eval_display_string_of): Only print <unnmamed bit-field>
+	for DECL_UNNAMED_BIT_FIELD, for anon union print <anonymous union>,
+	otherwise print <unnamed member>.
+
+2026-03-12  Nathaniel Shead  <nathanieloshead@gmail.com>
+	    Thomas Berger  <loki+gcc@loki.codes>
+
+	PR c++/124200
+	* name-lookup.h (walk_namespace_bindings): Declare.
+	* name-lookup.cc (walk_namespace_bindings): New function.
+	* reflect.cc (namespace_members_of): Use it.
+
+2026-03-12  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	PR c++/124309
+	* module.cc (enum module_directness): Fix inconsistent
+	capitalisation.
+	(module_state::read_imports): Reparent module locations newly
+	seen as direct via partition.
+
+2026-03-12  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124440
+	* parser.cc (cp_parser_postfix_dot_deref_expression): Pass
+	parser->scope to adjust_result_of_qualified_name_lookup even
+	when splice_p.  Assign the result of
+	adjust_result_of_qualified_name_lookup to name.
+	* pt.cc (tsubst_expr): Call adjust_result_of_qualified_name_lookup
+	for BASELINKs in splice-expressions.
+	* search.cc (adjust_result_of_qualified_name_lookup): Return early
+	if decl is not a BASELINK.  If qualifying_scope is null, use decl's
+	binfo.  Set BASELINK_QUALIFIED_P only if qualifying_scope wasn't
+	null.
+
+2026-03-12  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	PR c++/124459
+	* module.cc (module_state::read_initial): Move
+	read_diagnostic_classification after read_macro_maps.
+
+2026-03-12  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	PR c++/124311
+	* module.cc (trees_in::key_mergeable): Check DECL_DEFAULTED_FN
+	instead of DECL_ARTIFICIAL.
+
+2026-03-12  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	* decl.cc (start_decl): Check module_may_redeclare for members.
+	(grokfndecl): Likewise.
+
+2026-03-12  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	* semantics.cc (begin_class_definition): Move
+	module_may_redeclare check to...
+	* parser.cc (cp_parser_class_head): ...here.
+
+2026-03-12  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	PR c++/124390
+	* module.cc (depset::hash::add_binding_entity): Don't create
+	bindings for hidden friends.
+
+2026-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* reflect.cc (check_out_of_consteval_use_r): Don't walk BLOCK
+	subtrees.
+
+2026-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* parser.cc (cp_parser_omp_taskwait): Set TREE_TYPE of OMP_TASK
+	to void_type_node rather than void_node.
+	(cp_parser_omp_dispatch): Likewise.
+
+2026-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124425
+	* reflect.cc (get_range_elts): Handle proxy iterators.  Call
+	fold_build_cleanup_point_expr on both deref and inc.
+
+2026-03-12  Nathaniel Shead  <nathanieloshead@gmail.com>
+
+	PR c++/124431
+	* module.cc (trees_in::key_mergeable): Allow merging members of
+	template specialisations.
+
+2026-03-12  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124397
+	* pt.cc (tsubst_lambda_expr): Don't override complain when emitting
+	diagnostics.
+
+2026-03-11  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/120285
+	* init.cc (build_vec_init): Only build up a CONSTRUCTOR for
+	arrays, otherwise use a TREE_LIST like prior to r15-3933.
+
+2026-03-11  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124331
+	* pt.cc (tsubst_qualified_id): New name_lookup_p parameter.  Don't
+	call adjust_result_of_qualified_name_lookup and
+	finish_qualified_id_expr if name_lookup_p is false.
+	(tsubst_expr) <case REFLECT_EXPR>: Handle SCOPE_REF specially by
+	calling tsubst_qualified_id with name_lookup_p=false.
+
+2026-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124417
+	* reflect.cc (get_meta_exception_object): Add CTX argument.  For
+	!flag_exceptions emit error unless ctx->quiet, set *non_constant_p
+	to true and return NULL_TREE instead of throwing an exception.
+	(throw_exception): Adjust get_meta_exception_object caller.
+
+2026-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124404
+	* constexpr.cc (cxx_eval_constexpr_diag): Call convert_from_reference
+	on arguments.
+
+2026-03-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124399
+	* reflect.cc (compare_reflections): For REFLECT_ANNOTATION, compare
+	TREE_VALUE of lhs and rhs instead of lhs and rhs.
+
+2026-03-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124399
+	* reflect.cc (eval_annotations_of): Call complete_type on r if it
+	is a type.
+
+2026-03-07  Jason Merrill  <jason@redhat.com>
+	     <mtxn@duck.com>
+
+	PR c++/123622
+	* module.cc (preprocess_module): Check deps.missing_files.
+
+2026-03-06  Patrick Palka  <ppalka@redhat.com>
+
+	PR c++/124297
+	* mangle.cc (write_template_param_decl) <case PARM_DECL>:
+	Strip fold-expression before calling write_type_constraint.
+
+2026-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124145
+	* constexpr.cc (cxx_eval_constant_expression) <case TARGET_EXPR>: Move
+	ctx->save_expr->safe_push (slot) call before if (*jump_target) test.
+	Use TARGET_EXPR_INITIAL instead of TREE_OPERAND.
+
+2026-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/123810
+	* cp-tree.h (TYPE_DECL_FOR_LINKAGE_PURPOSES_P): Define.
+	(TYPE_DECL_WAS_UNNAMED): Likewise.
+	(TYPE_WAS_UNNAMED): Also check TYPE_DECL_WAS_UNNAMED.
+	* decl.cc (start_decl): Use TYPE_DECL_FOR_LINKAGE_PURPOSES_P.
+	(maybe_diagnose_non_c_class_typedef_for_l): If t == type, use
+	DECL_SOURCE_LOCATION (orig) instead of
+	DECL_SOURCE_LOCATION (TYPE_NAME (t)).
+	(name_unnamed_type): Set TYPE_DECL_FOR_LINKAGE_PURPOSES_P
+	on decl.  For -freflection don't change TYPE_NAME from
+	orig to decl, but instead change DECL_NAME (orig) to
+	DECL_NAME (decl) and set TYPE_DECL_FOR_LINKAGE_PURPOSES_P on
+	orig too.
+	* decl2.cc (grokfield): Use TYPE_DECL_FOR_LINKAGE_PURPOSES_P.
+	* name-lookup.cc (fields_linear_search): Ignore
+	TYPE_DECL_WAS_UNNAMED decls.
+	(count_class_fields): Likewise.
+	(member_vec_append_class_fields): Likewise.
+	(pop_local_binding): Likewise.
+	* reflect.cc (namespace_members_of): For TYPE_DECL with
+	TYPE_DECL_FOR_LINKAGE_PURPOSES_P set also append
+	reflection of strip_typedefs (m).
+	* class.cc (find_flexarrays): Handle TYPE_DECLs with
+	TYPE_DECL_WAS_UNNAMED like the ones with IDENTIFIER_ANON_P
+	name.
+
 2026-03-04  Marek Polacek  <polacek@redhat.com>
 
 	PR c++/124368

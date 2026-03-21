@@ -1317,13 +1317,12 @@ gfc_conv_class_to_class (gfc_se *parmse, gfc_expr *e, gfc_typespec class_ts,
   stmtblock_t block;
   bool full_array = false;
 
-  /* Class transformational function results are the data field of a class
-     temporary and so the class expression can be obtained directly.  */
-  if (e->expr_type == EXPR_FUNCTION
-      && e->value.function.isym
-      && e->value.function.isym->transformational
+  /* If this is the data field of a class temporary, the class expression
+     can be obtained and returned directly.  */
+  if (e->expr_type != EXPR_VARIABLE
       && TREE_CODE (parmse->expr) == COMPONENT_REF
-      && !GFC_CLASS_TYPE_P (TREE_TYPE (parmse->expr)))
+      && !GFC_CLASS_TYPE_P (TREE_TYPE (parmse->expr))
+      && GFC_CLASS_TYPE_P (TREE_TYPE (TREE_OPERAND (parmse->expr, 0))))
     {
       parmse->expr = TREE_OPERAND (parmse->expr, 0);
       if (!VAR_P (parmse->expr))
@@ -7789,6 +7788,16 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      gfc_init_block (&class_se.pre);
 	      gfc_init_block (&class_se.post);
 
+	      if (e->expr_type != EXPR_VARIABLE)
+		{
+		  int n;
+		  /* Set the bounds and offset correctly.  */
+		  for (n = 0; n < e->rank; n++)
+		    gfc_conv_shift_descriptor_lbound (&class_se.pre,
+						      class_se.expr,
+						      n, gfc_index_one_node);
+		}
+
 	      /* The conversion does not repackage the reference to a class
 	         array - _data descriptor.  */
 	      gfc_conv_class_to_class (&class_se, e, fsym->ts, false,
@@ -11739,7 +11748,7 @@ gfc_trans_scalar_assign (gfc_se *lse, gfc_se *rse, gfc_typespec ts,
     }
   else if (gfc_bt_struct (ts.type)
 	   && (ts.u.derived->attr.alloc_comp
-		|| (deep_copy && ts.u.derived->attr.pdt_type)))
+	       || (deep_copy && has_parameterized_comps (ts.u.derived))))
     {
       tree tmp_var = NULL_TREE;
       cond = NULL_TREE;
@@ -12179,8 +12188,13 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
   gfc_symbol *sym = expr1->symtree->n.sym;
   bool finalizable =  gfc_may_be_finalized (expr1->ts);
 
+  /* If the symbol is host associated and has not been referenced in its name
+     space, it might be lacking a backend_decl and vtable.  */
+  if (sym->backend_decl == NULL_TREE)
+    return NULL_TREE;
+
   if (arrayfunc_assign_needs_temporary (expr1, expr2))
-    return NULL;
+    return NULL_TREE;
 
   /* The frontend doesn't seem to bother filling in expr->symtree for intrinsic
      functions.  */
@@ -12190,7 +12204,7 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
 	      || (comp && comp->attr.dimension)
 	      || (!comp && gfc_return_by_reference (expr2->value.function.esym)
 		  && expr2->value.function.esym->result->attr.dimension)))
-    return NULL;
+    return NULL_TREE;
 
   gfc_init_se (&se, NULL);
   gfc_start_block (&se.pre);
@@ -13100,10 +13114,11 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
   tree string_length;
   int n;
   bool maybe_workshare = false, lhs_refs_comp = false, rhs_refs_comp = false;
-  symbol_attribute lhs_caf_attr, rhs_caf_attr, lhs_attr;
+  symbol_attribute lhs_caf_attr, rhs_caf_attr, lhs_attr, rhs_attr;
   bool is_poly_assign;
   bool realloc_flag;
   bool assoc_assign = false;
+  bool dummy_class_array_copy;
 
   /* Assignment of the form lhs = rhs.  */
   gfc_start_block (&block);
@@ -13159,6 +13174,17 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
      needed at two locations, so do it once only before the information is
      needed.  */
   lhs_attr = gfc_expr_attr (expr1);
+  rhs_attr = gfc_expr_attr (expr2);
+  dummy_class_array_copy
+    = (expr2->expr_type == EXPR_VARIABLE
+       && expr2->rank > 0
+       && expr2->symtree != NULL
+       && expr2->symtree->n.sym->attr.dummy
+       && expr2->ts.type == BT_CLASS
+       && !rhs_attr.pointer
+       && !rhs_attr.allocatable
+       && !CLASS_DATA (expr2)->attr.class_pointer
+       && !CLASS_DATA (expr2)->attr.allocatable);
 
   is_poly_assign
     = (use_vptr_copy
@@ -13464,15 +13490,18 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
 
       expr1->must_finalize = 0;
     }
-  else if (!is_poly_assign && expr2->must_finalize
+  else if (!is_poly_assign
 	   && expr1->ts.type == BT_CLASS
-	   && expr2->ts.type == BT_CLASS)
+	   && expr2->ts.type == BT_CLASS
+	   && (expr2->must_finalize || dummy_class_array_copy))
     {
       /* This case comes about when the scalarizer provides array element
-	 references. Use the vptr copy function, since this does a deep
-	 copy of allocatable components, without which the finalizer call
-	 will deallocate the components.  */
+	 references to class temporaries or nonpointer dummy arrays. Use the
+	 vptr copy function, since this does a deep copy of allocatable
+	 components.  */
       tmp = gfc_get_vptr_from_expr (rse.expr);
+      if (tmp == NULL_TREE && dummy_class_array_copy)
+	tmp = gfc_get_vptr_from_expr (gfc_get_class_from_gfc_expr (expr2));
       if (tmp != NULL_TREE)
 	{
 	  tree fcn = gfc_vptr_copy_get (tmp);

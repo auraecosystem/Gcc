@@ -6692,6 +6692,10 @@ start_decl (const cp_declarator *declarator,
 			       context, DECL_NAME (decl));
 		  DECL_CONTEXT (decl) = DECL_CONTEXT (field);
 		}
+
+	      if (modules_p () && !module_may_redeclare (field))
+		return error_mark_node;
+
 	      /* Static data member are tricky; an in-class initialization
 		 still doesn't provide a definition, so the in-class
 		 declaration will have DECL_EXTERNAL set, but will have an
@@ -12677,6 +12681,9 @@ grokfndecl (tree ctype,
 	      return NULL_TREE;
 	    }
 
+	  if (modules_p () && !module_may_redeclare (old_decl))
+	    return NULL_TREE;
+
 	  /* Since we've smashed OLD_DECL to its
 	     DECL_TEMPLATE_RESULT, we must do the same to DECL.  */
 	  if (TREE_CODE (decl) == TEMPLATE_DECL)
@@ -15885,7 +15892,21 @@ grokdeclarator (const cp_declarator *declarator,
       /* [dcl.meaning]/1: The optional attribute-specifier-seq following
 	 a declarator-id appertains to the entity that is declared.  */
       if (declarator->std_attributes != error_mark_node)
-	*attrlist = attr_chainon (declarator->std_attributes, *attrlist);
+	{
+	  if (flag_reflection
+	      && declarator->std_attributes != error_mark_node
+	      && lookup_attribute ("internal ", "annotation ",
+				   declarator->std_attributes)
+	      && *attrlist != error_mark_node
+	      && lookup_attribute ("internal ", "annotation ", *attrlist))
+	    /* If there are annotations in both lists, ensure
+	       declarator->std_attributes go after *attrlist.  See
+	       PR124399.  */
+	    *attrlist = chainon (copy_list (*attrlist),
+				 declarator->std_attributes);
+	  else
+	    *attrlist = attr_chainon (declarator->std_attributes, *attrlist);
+	}
       else
 	/* We should have already diagnosed the issue (c++/78344).  */
 	gcc_assert (seen_error ());

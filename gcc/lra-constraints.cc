@@ -2741,7 +2741,14 @@ process_alt_operands (int only_alternative)
 		  winreg = true;
 		  if (REG_P (op))
 		    {
+		      rtx orig_op = *curr_id->operand_loc[nop];
+		      if (GET_CODE (orig_op) == SUBREG && HARD_REGISTER_P (op)
+			  && !targetm.hard_regno_mode_ok (REGNO (op),
+							  GET_MODE(orig_op)))
+			break;
+
 		      tree decl;
+
 		      if (hard_regno[nop] >= 0
 			  && in_hard_reg_set_p (this_alternative_set,
 						mode, hard_regno[nop])
@@ -4402,24 +4409,18 @@ curr_insn_transform (bool check_only_p)
 	  continue;
 
 	old = op = *curr_id->operand_loc[i];
-	machine_mode outer_mode = GET_MODE (old);
-	bool subreg_p = false;
 	if (GET_CODE (old) == SUBREG)
-	  {
-	    old = SUBREG_REG (old);
-	    subreg_p = true;
-	  }
+	  old = SUBREG_REG (old);
 	subst = get_equiv_with_elimination (old, curr_insn);
 	original_subreg_reg_mode[i] = VOIDmode;
 	equiv_substition_p[i] = false;
 
-	/* If we are about to replace a register inside a subreg, check if
-	   the target can handle that.  */
-	if (subreg_p && REG_P (subst) && HARD_REGISTER_P (subst)
-	    && !targetm.hard_regno_mode_ok (REGNO (subst), outer_mode))
-	  continue;
-
-	if (subst != old)
+	if (subst != old
+	    /* We don't want to change an out operand by constant or invariant
+	       which will require additional reloads, e.g. by putting a constant
+	       into memory.  */
+	    && (curr_static_id->operand[i].type == OP_IN || MEM_P (subst)
+		|| (GET_CODE (subst) == SUBREG && MEM_P (SUBREG_REG (subst)))))
 	  {
 	    equiv_substition_p[i] = true;
 	    rtx new_subst = copy_rtx (subst);
@@ -4452,7 +4453,14 @@ curr_insn_transform (bool check_only_p)
 	  }
       }
 
-  /* Reload address registers and displacements.  We do it before
+  /* We process equivalences before ignoring postponed insns on the current
+     constraint sub-pass but before any reload insn generation for the
+     postponed insn.  */
+  if (! check_only_p
+      && bitmap_bit_p (&lra_postponed_insns, INSN_UID (curr_insn)))
+    return true;
+
+   /* Reload address registers and displacements.  We do it before
      finding an alternative because of memory constraints.  */
   before = after = NULL;
   for (i = 0; i < n_operands; i++)
@@ -4470,17 +4478,9 @@ curr_insn_transform (bool check_only_p)
        we chose previously may no longer be valid.  */
     lra_set_used_insn_alternative (curr_insn, LRA_UNKNOWN_ALT);
 
-  if (! check_only_p)
-    {
-      if (bitmap_bit_p (&lra_postponed_insns, INSN_UID (curr_insn)))
-	/* Processing insn constraints were postponed.  Do nothing, the insn
-	   will be processed on the next constraint sub-pass after assignment
-	   of reload pseudos in the insn.  */
-	return true;
-      if (curr_insn_set != NULL_RTX
-	  && check_and_process_move (&change_p, &sec_mem_p))
-	return change_p;
-    }
+  if (! check_only_p && curr_insn_set != NULL_RTX
+      && check_and_process_move (&change_p, &sec_mem_p))
+    return change_p;
 
  try_swapped:
 
