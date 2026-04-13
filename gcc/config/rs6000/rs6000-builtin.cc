@@ -1308,7 +1308,7 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
     }
 
   unsigned nopnds = 0;
-  for (unsigned i = 0; i < bd->nargs; i++)
+  for (int i = 0; i < bd->nargs; i++)
     {
       tree arg = gimple_call_arg (stmt, i);
       if (i == 0 && !bif_is_dmr (*bd) && !bif_is_quad (*bd))

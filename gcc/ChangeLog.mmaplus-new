@@ -1,4 +1,12 @@
 
+rs6000: Use signed int in rs6000_gimple_fold_mma_builtin
+
+A change in 50679b8dc080 introduces a loop with unsiged index variable.
+The bootstrap build failed due to -Werror=sign-compare. This commit just
+changed the index variable type to signed int.
+----------------
+
+
 
 -------------
 
