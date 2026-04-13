@@ -1,4 +1,47 @@
 
+rs6000: Don't fold stuff for C++ during targetm.resolve_overloaded_builtin [PR124133]
+
+The following testcase ICEs starting with the removal of NON_DEPENDENT_EXPR
+in GCC 14.  The problem is that while parsing templates if all the arguments
+of the overloaded builtins are non-dependent types,
+targetm.resolve_overloaded_builtin can be called on it.  And trying to
+fold_convert or fold_build2 subexpressions of such arguments can ICE,
+because they can contain various FE specific trees, or standard trees
+with NULL_TREE types, or e.g. type mismatches in binary tree operands etc.
+All that goes away later when the trees are instantiated and
+targetm.resolve_overloaded_builtin is called again, but if it ICEs while
+doing that, it won't reach that point.  And the reason to call that
+hook in that case if none of the arguments are type dependent is to figure
+out if the result type is also non-dependent.
+
+Given the general desire to fold stuff in the FE during parsing as little
+as possible and fold it only during cp_fold later on and because from the
+target *-c.cc files it isn't easily possible to find out if it is
+processing_template_decl or not, the following patch just stops folding
+anything in the arguments, calls convert instead of fold_convert and
+just build2 instead of fold_build2 etc. when in C++ (and keeps doing what
+it did for C).
+
+2026-02-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124133
+	* config/rs6000/rs6000-c.cc (c_fold_convert): New function.
+	(c_fold_build2_loc): Likewise.
+	(fully_fold_convert): Use c_fold_convert instead of fold_convert.
+	(altivec_build_resolved_builtin): Likewise.  Use c_fold_build2_loc
+	instead of fold_build2.
+	(resolve_vec_mul, resolve_vec_adde_sube, resolve_vec_addec_subec):
+	Use c_fold_build2_loc instead of fold_build2_loc.
+	(resolve_vec_splats, resolve_vec_extract): Use c_fold_convert instead
+	of fold_convert.
+	(resolve_vec_insert): Use c_fold_build2_loc instead of fold_build2.
+	(altivec_resolve_overloaded_builtin): Use c_fold_convert instead
+	of fold_convert.
+
+	* g++.target/powerpc/pr124133.C: New test.
+----------------
+
+
 rs6000: Use signed int in rs6000_gimple_fold_mma_builtin
 
 A change in 50679b8dc080 introduces a loop with unsiged index variable.
