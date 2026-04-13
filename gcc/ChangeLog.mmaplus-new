@@ -1,4 +1,21 @@
 
+-------------
+
+Author: Kishan Parmar <kishan@linux.ibm.com>
+Date:   Mon Apr 13 19:09:57 2026 +0530
+
+    MMA+: Fix type comparison in rs6000_gimple_fold_mma_builtin
+
+    Use types_compatible_p instead of tree pointer equality when
+    checking whether a built-in argument points to the accumulator
+    type.  This fixes a failure to convert pass-by-reference
+    __vector_quad arguments into pass-by-value arguments for the
+    new float16 ger built-ins, which was causing an ICE.
+
+    2026-04-13  Kishan Parmar  <kishan@linux.ibm.com>
+
+-------------
+
 rs6000: Don't fold stuff for C++ during targetm.resolve_overloaded_builtin [PR124133]
 
 The following testcase ICEs starting with the removal of NON_DEPENDENT_EXPR

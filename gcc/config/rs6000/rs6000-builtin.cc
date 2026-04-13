@@ -1317,14 +1317,14 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
 	 The internal built-ins use pass-by-value, so load this operand
 	 into a variable and pass that in as our operand.  */
       if (POINTER_TYPE_P (TREE_TYPE (arg))
-	&& TREE_TYPE (TREE_TYPE (arg)) == lhs_type)
-       {
-	 tree op_mem = build_simple_mem_ref (build1 (NOP_EXPR,
-					     TREE_TYPE (arg),
-					     arg));
-	 op[nopnds] = make_ssa_name (lhs_type);
-	 gimplify_assign (op[nopnds], op_mem, &new_seq);
-       }
+	  && types_compatible_p (TREE_TYPE (TREE_TYPE (arg)), lhs_type))
+	{
+	  tree op_mem = build_simple_mem_ref (build1 (NOP_EXPR,
+						      TREE_TYPE (arg),
+						      arg));
+	  op[nopnds] = create_tmp_reg_or_ssa_name (lhs_type);
+	  gimplify_assign (op[nopnds], op_mem, &new_seq);
+	}
       else
        op[nopnds] = arg;
       nopnds++;
