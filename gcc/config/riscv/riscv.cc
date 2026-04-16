@@ -356,6 +356,9 @@ poly_uint16 riscv_vector_chunks;
 /* The number of bytes in a vector chunk.  */
 unsigned riscv_bytes_per_vector_chunk;
 
+/* Whether we are currently registering builtins.  */
+bool riscv_registering_builtins;
+
 /* Index R is the smallest register class that contains register R.  */
 const enum reg_class riscv_regno_to_class[FIRST_PSEUDO_REGISTER] = {
   GR_REGS,	GR_REGS,	GR_REGS,	GR_REGS,
@@ -12343,11 +12346,11 @@ riscv_override_options_internal (struct gcc_options *opts)
   /* Convert -march and -mrvv-vector-bits to a chunks count.  */
   riscv_vector_chunks = riscv_convert_vector_chunks (opts);
 
-  /* Set scalar costing to a high value such that we always pick
-     vectorization.  Increase scalar costing by 100x.  */
+  /* Enable possible unprofitable vectorization.  */
   if (opts->x_riscv_max_vectorization)
     SET_OPTION_IF_UNSET (&global_options, &global_options_set,
-			 param_vect_scalar_cost_multiplier, 10000);
+			 param_vect_allow_possibly_not_worthwhile_vectorizations,
+			 1);
 
   if (opts->x_flag_cf_protection != CF_NONE)
     {
@@ -13458,7 +13461,17 @@ static bool
 riscv_vector_mode_supported_p (machine_mode mode)
 {
   if (TARGET_VECTOR)
-    return riscv_vector_mode_p (mode);
+    {
+      /* Avoid fractional LMUL modes for xtheadvector with the exception
+	 of builtin registration time.  During registration, all modes
+	 must be available so the order and numbering is consistent,
+	 see PR123279.  */
+      if (TARGET_XTHEADVECTOR && !riscv_registering_builtins
+	  && maybe_lt (GET_MODE_SIZE (mode), BYTES_PER_RISCV_VECTOR))
+	return false;
+
+      return riscv_vector_mode_p (mode);
+    }
 
   return false;
 }
@@ -14913,7 +14926,7 @@ riscv_bitint_type_info (int n, struct bitint_info *info)
     info->abi_limb_mode = DImode;
 
   info->big_endian = TARGET_BIG_ENDIAN;
-  info->extended = true;
+  info->extended = bitint_ext_full;
   return true;
 }
 
@@ -15906,7 +15919,7 @@ synthesize_ior_xor (rtx_code code, rtx operands[3])
 {
   /* Trivial cases that don't need synthesis.  */
   if (SMALL_OPERAND (INTVAL (operands[2]))
-     || ((TARGET_ZBS || TARGET_ZBKB)
+     || (TARGET_ZBS
 	 && single_bit_mask_operand (operands[2], word_mode)))
     return false;
 

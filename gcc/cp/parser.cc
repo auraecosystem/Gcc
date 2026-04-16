@@ -6091,6 +6091,11 @@ cp_parser_pack_index (cp_parser *parser, tree pack)
   if (TREE_CODE (pack) == TYPE_DECL)
     pack = TREE_TYPE (pack);
   pack = make_pack_expansion (pack);
+  if (!type_dependent_expression_p (index))
+    index = build_converted_constant_expr (size_type_node, index,
+					   tf_warning_or_error);
+  if (error_operand_p (index))
+    return error_mark_node;
   return make_pack_index (pack, index);
 }
 
@@ -6313,6 +6318,8 @@ cp_parser_splice_expression (cp_parser *parser, bool template_p,
       SET_SPLICE_EXPR_EXPRESSION_P (t);
       SET_SPLICE_EXPR_MEMBER_ACCESS_P (t, member_access_p);
       SET_SPLICE_EXPR_ADDRESS_P (t, address_p);
+      SET_SPLICE_EXPR_TEMPLATE_P (t, template_p);
+      SET_SPLICE_EXPR_TARGS_P (t, targs_p);
       return t;
     }
 
@@ -6325,38 +6332,17 @@ cp_parser_splice_expression (cp_parser *parser, bool template_p,
 
   /* Make sure this splice-expression produces an expression.  */
   if (!check_splice_expr (loc, expr.get_start (), t, address_p,
-			  member_access_p, /*complain=*/true))
+			  member_access_p, template_p, targs_p,
+			  /*complain=*/true))
     return error_mark_node;
 
-  if (template_p)
-    {
-      /* [expr.prim.splice] For a splice-expression of the form template
-	 splice-specifier, the splice-specifier shall designate a function
-	 template.  */
-      if (!targs_p
-	  && !really_overloaded_fn (t)
-	  && !dependent_splice_p (t))
-	{
-	  auto_diagnostic_group d;
-	  error_at (loc, "expected a reflection of a function template");
-	  inform_tree_category (t);
-	  return error_mark_node;
-	}
-      /* [expr.prim.splice] For a splice-expression of the form
-	 template splice-specialization-specifier, the splice-specifier of the
-	 splice-specialization-specifier shall designate a template.  Since
-	 we would have already complained, just check that we have a template.  */
-      gcc_checking_assert (really_overloaded_fn (t)
-			   || get_template_info (t)
-			   || TREE_CODE (t) == TEMPLATE_ID_EXPR
-			   || dependent_splice_p (t));
-    }
-  else if (/* No 'template' but there were template arguments?  */
-	   (targs_p
-	    /* No 'template' but the splice-specifier designates a function
-	       template?  */
-	    || really_overloaded_fn (t))
-	   && warning_enabled_at (loc, OPT_Wmissing_template_keyword))
+  if (!template_p
+      /* No 'template' but there were template arguments?  */
+      && (targs_p
+	  /* No 'template' but the splice-specifier designates a function
+	     template?  */
+	  || reflection_function_template_p (t))
+      && warning_enabled_at (loc, OPT_Wmissing_template_keyword))
     /* Were 'template' present, this would be valid code, so keep going.  */
     missing_template_diag (loc, diagnostics::kind::pedwarn);
 
@@ -6369,16 +6355,7 @@ cp_parser_splice_expression (cp_parser *parser, bool template_p,
     {
       /* Grab the unresolved expression then.  */
       t = unresolved;
-      gcc_assert (TREE_CODE (t) == FIELD_DECL
-		  || VAR_P (t)
-		  || TREE_CODE (t) == CONST_DECL
-		  || TREE_CODE (t) == FUNCTION_DECL
-		  || DECL_FUNCTION_TEMPLATE_P (OVL_FIRST (t))
-		  || variable_template_p (t)
-		  || BASELINK_P (t)
-		  || TREE_CODE (t) == SPLICE_EXPR
-		  || TREE_CODE (t) == TEMPLATE_ID_EXPR
-		  || TREE_CODE (t) == TREE_BINFO);
+      gcc_assert (valid_splice_for_member_access_p (t, /*decls_only_p=*/false));
       /* ??? We're not setting *idk here.  */
     }
   else if (address_p
@@ -10150,6 +10127,15 @@ cp_parser_reflect_expression (cp_parser *parser)
 	 ^^B <int> is a type alias though.  */
       if (TYPE_P (t) && !type_alias_p)
 	t = strip_typedefs (t);
+      /* [expr.reflect] If the type-id designates a placeholder type, R is
+	 ill-formed.  This check is here rather than in get_reflection so
+	 that we don't wrongly error for a return-type-requirement which is
+	 represented as a constrained auto.  */
+      if (is_auto (t))
+	{
+	  error_at (loc, "%<^^%> cannot be applied to a placeholder type");
+	  return error_mark_node;
+	}
       return get_reflection (loc, t);
     }
   /* Try an id-expression.  */
@@ -10185,6 +10171,8 @@ cp_parser_reflect_expression (cp_parser *parser)
 	&& variable_template_p (TREE_OPERAND (t, 0))
 	&& !concept_check_p (t))
       t = finish_template_variable (t);
+    else if (is_overloaded_fn (t))
+      t = baselink_for_fns (t);
     if (cp_parser_parse_definitely (parser))
       return get_reflection (loc, t);
   }
@@ -13740,6 +13728,27 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
        finish_function (which will try to emit the contracts).  */
     cp_parser_late_contracts (parser, fco);
 
+    /* Check that we have not caused captures that only relate to contracts.
+       [expr.prim.lambda.closure] / P10.  */
+    if (flag_contracts)
+      {
+	gcc_checking_assert (current_lambda_expr () == lambda_expr);
+	for (tree le = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr); le;
+	     le = TREE_CHAIN (le))
+	  {
+	    tree cap_fld = TREE_PURPOSE (le);
+	    if (TREE_CODE (cap_fld) == FIELD_DECL
+		&& DECL_CONTRACT_CAPTURE_P (cap_fld))
+	      {
+		auto_diagnostic_group d;
+		tree expr = TREE_VALUE (le);
+		location_t loc = DECL_SOURCE_LOCATION (cap_fld);
+		error_at (loc, "%qE is not implicitly captured by a contract"
+			  " assertion", expr);
+		inform (DECL_SOURCE_LOCATION (expr), "%q#E declared here", expr);
+	      }
+	  }
+      }
     finish_lambda_function (body);
   }
 
@@ -15849,16 +15858,17 @@ cp_parser_range_for (cp_parser *parser, tree scope, tree init, tree range_decl,
    builds up the range temporary.  */
 
 tree
-build_range_temp (tree range_expr, bool expansion_stmt_p /* = false */)
+build_range_temp (tree range_expr, tree expansion_stmt_decl /* = NULL_TREE */)
 {
   tree range_type, auto_node;
 
-  if (expansion_stmt_p)
+  if (expansion_stmt_decl)
     {
       /* Build const decltype(auto) __range = range_expr;
 	 - range_expr provided by the caller already is (range_expr).  */
-      auto_node = make_decltype_auto ();
-      range_type = cp_build_qualified_type (auto_node, TYPE_QUAL_CONST);
+      range_type = auto_node = make_decltype_auto ();
+      if (DECL_DECLARED_CONSTEXPR_P (expansion_stmt_decl))
+	range_type = cp_build_qualified_type (auto_node, TYPE_QUAL_CONST);
     }
   else
     {
@@ -16002,11 +16012,13 @@ warn_for_range_copy (tree decl, tree expr)
 
 /* Helper function for cp_convert_range_for and finish_expansion_stmt.
    Build the __range, __begin and __end declarations.  Return the
-   __begin VAR_DECL, set *END_P to the __end VAR_DECL.  */
+   __begin VAR_DECL, set *END_P to the __end VAR_DECL.  If
+   EXPANSION_STMT_DECL, don't create __end and instead store
+   begin_expr to END_P[0] and end_expr to END_P[1].  */
 
 tree
 cp_build_range_for_decls (location_t loc, tree range_expr, tree *end_p,
-			  bool expansion_stmt_p)
+			  tree expansion_stmt_decl)
 {
   tree iter_type, begin_expr, end_expr;
 
@@ -16018,30 +16030,34 @@ cp_build_range_for_decls (location_t loc, tree range_expr, tree *end_p,
     {
       tree range_temp;
 
-      if (!expansion_stmt_p
+      if (!expansion_stmt_decl
 	  && VAR_P (range_expr)
 	  && array_of_runtime_bound_p (TREE_TYPE (range_expr)))
 	/* Can't bind a reference to an array of runtime bound.  */
 	range_temp = range_expr;
       else
 	{
-	  if (expansion_stmt_p)
+	  if (expansion_stmt_decl)
 	    {
 	      /* Build constexpr decltype(auto) __for_range = (range_expr);  */
 	      location_t range_loc = cp_expr_loc_or_loc (range_expr, loc);
 	      range_expr
 		= finish_parenthesized_expr (cp_expr (range_expr, range_loc));
-	      range_temp = build_range_temp (range_expr, true);
+	      range_temp = build_range_temp (range_expr, expansion_stmt_decl);
 
 	      /* When P2686R4 is fully implemented, these 3 sets of TREE_STATIC
 		 (on range_temp, begin and end) should be removed as per
-		 CWG3044.  */
-	      TREE_STATIC (range_temp) = 1;
-	      TREE_PUBLIC (range_temp) = 0;
-	      DECL_COMMON (range_temp) = 0;
-	      DECL_INTERFACE_KNOWN (range_temp) = 1;
-	      DECL_DECLARED_CONSTEXPR_P (range_temp) = 1;
-	      TREE_READONLY (range_temp) = 1;
+		 CWG3044.  If expansion_stmt_decl is not constexpr, we don't
+		 need the static though.  */
+	      if (DECL_DECLARED_CONSTEXPR_P (expansion_stmt_decl))
+		{
+		  TREE_STATIC (range_temp) = 1;
+		  TREE_PUBLIC (range_temp) = 0;
+		  DECL_COMMON (range_temp) = 0;
+		  DECL_INTERFACE_KNOWN (range_temp) = 1;
+		  DECL_DECLARED_CONSTEXPR_P (range_temp) = 1;
+		  TREE_READONLY (range_temp) = 1;
+		}
 	    }
 	  else
 	    /* Build auto &&__for_range = range_expr;  */
@@ -16058,12 +16074,14 @@ cp_build_range_for_decls (location_t loc, tree range_expr, tree *end_p,
     }
 
   /* The new for initialization statement.  */
-  if (expansion_stmt_p && !TYPE_REF_P (iter_type))
+  if (expansion_stmt_decl
+      && DECL_DECLARED_CONSTEXPR_P (expansion_stmt_decl)
+      && !TYPE_REF_P (iter_type))
     iter_type = cp_build_qualified_type (iter_type, TYPE_QUAL_CONST);
   tree begin = build_decl (loc, VAR_DECL, for_begin__identifier, iter_type);
   TREE_USED (begin) = 1;
   DECL_ARTIFICIAL (begin) = 1;
-  if (expansion_stmt_p)
+  if (expansion_stmt_decl && DECL_DECLARED_CONSTEXPR_P (expansion_stmt_decl))
     {
       TREE_STATIC (begin) = 1;
       DECL_DECLARED_CONSTEXPR_P (begin) = 1;
@@ -16074,21 +16092,18 @@ cp_build_range_for_decls (location_t loc, tree range_expr, tree *end_p,
 		  /*is_constant_init*/false, NULL_TREE,
 		  LOOKUP_ONLYCONVERTING);
 
-  if (cxx_dialect >= cxx17)
+  if (expansion_stmt_decl)
     {
-      iter_type = cv_unqualified (TREE_TYPE (end_expr));
-      if (expansion_stmt_p && !TYPE_REF_P (iter_type))
-	iter_type = cp_build_qualified_type (iter_type, TYPE_QUAL_CONST);
+      end_p[0] = begin_expr;
+      end_p[1] = end_expr;
+      return begin;
     }
+
+  if (cxx_dialect >= cxx17)
+    iter_type = cv_unqualified (TREE_TYPE (end_expr));
   tree end = build_decl (loc, VAR_DECL, for_end__identifier, iter_type);
   TREE_USED (end) = 1;
   DECL_ARTIFICIAL (end) = 1;
-  if (expansion_stmt_p)
-    {
-      TREE_STATIC (end) = 1;
-      DECL_DECLARED_CONSTEXPR_P (end) = 1;
-      TREE_READONLY (end) = 1;
-    }
   pushdecl (end);
   cp_finish_decl (end, end_expr,
 		  /*is_constant_init*/false, NULL_TREE,
@@ -16144,7 +16159,7 @@ cp_convert_range_for (tree statement, tree range_decl, tree range_expr,
   if (range_decl == error_mark_node)
     range_expr = error_mark_node;
   tree begin
-    = cp_build_range_for_decls (input_location, range_expr, &end, false);
+    = cp_build_range_for_decls (input_location, range_expr, &end, NULL_TREE);
 
   finish_init_stmt (statement);
 
@@ -16601,6 +16616,8 @@ cp_parser_expansion_statement (cp_parser* parser, bool *if_p)
   /* A colon is used in expansion-statement.  */
   parser->colon_corrects_to_scope_p = false;
 
+  in_expansion_stmt = true;
+
   /* Parse the declaration.  */
   tree range_decl;
   cp_parser_simple_declaration (parser,
@@ -16609,6 +16626,7 @@ cp_parser_expansion_statement (cp_parser* parser, bool *if_p)
   if (range_decl == NULL_TREE)
     range_decl = error_mark_node;
   parser->colon_corrects_to_scope_p = saved_colon_corrects_to_scope_p;
+  in_expansion_stmt = save_in_expansion_stmt;
 
   cp_parser_require (parser, CPP_COLON, RT_COLON);
 
@@ -16676,6 +16694,20 @@ cp_parser_expansion_statement (cp_parser* parser, bool *if_p)
   TEMPLATE_FOR_DECL (r) = range_decl;
   TEMPLATE_FOR_EXPR (r) = expansion_init;
   TEMPLATE_FOR_BODY (r) = do_pushlevel (sk_block);
+
+  /* We don't know yet if range_decl will be initialized by constant
+     expression or not.  */
+  if (VAR_P (range_decl))
+    {
+      DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (range_decl) = 1;
+      if (decl_maybe_constant_var_p (range_decl)
+	  /* FIXME setting TREE_CONSTANT on refs breaks the back end.  */
+	  && !TYPE_REF_P (TREE_TYPE (range_decl)))
+	TREE_CONSTANT (range_decl) = true;
+      /* Make it value dependent.  */
+      retrofit_lang_decl (range_decl);
+      SET_DECL_DEPENDENT_INIT_P (range_decl, 1);
+    }
 
   /* Parse the body of the expansion-statement.  */
   parser->in_statement = IN_EXPANSION_STMT;
@@ -18249,7 +18281,7 @@ cp_parser_decomposition_declaration (cp_parser *parser,
 	if (cp_lexer_next_token_is (parser->lexer, CPP_ELLIPSIS))
 	  {
 	    location_t elloc = cp_lexer_peek_token (parser->lexer)->location;
-	    if (!processing_template_decl)
+	    if (!processing_template_decl && !in_expansion_stmt)
 	      error_at (elloc, "structured binding pack outside of template");
 	    else if (pack != -1)
 	      error_at (elloc,
@@ -19367,10 +19399,19 @@ cp_parser_decltype_expr (cp_parser *parser,
       /* [dcl.type.decltype] "if E is an unparenthesized splice-expression,
 	 decltype(E) is the type of the entity, object, or value designated
 	 by the splice-specifier of E"  */
-      if (cp_parser_nth_token_starts_splice_without_nns_p (parser, 1))
+      const bool unparenthesized_splice_expr_p = [&] {
+	if (!flag_reflection)
+	  return false;
+	/* Skip to the end of the ':]' and see if the closing ')' follows.  */
+	saved_token_sentinel toks (parser->lexer, STS_ROLLBACK);
+	return (cp_parser_skip_entire_splice_expr (parser)
+		&& cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN));
+      } ();
+      if (unparenthesized_splice_expr_p)
 	{
 	  cp_id_kind idk;
-	  expr = cp_parser_splice_expression (parser, /*template_p=*/false,
+	  const bool template_p = cp_parser_optional_template_keyword (parser);
+	  expr = cp_parser_splice_expression (parser, template_p,
 					      /*address_p=*/false,
 					      /*template_arg_p=*/false,
 					      /*member_access_p=*/false, &idk);
@@ -21307,7 +21348,7 @@ cp_parser_template_id (cp_parser *parser,
 	  return error_mark_node;
 	}
       else
-	gcc_assert (false);
+	gcc_unreachable ();
 
       template_id = lookup_template_function (templ, arguments);
       if (TREE_CODE (template_id) == TEMPLATE_ID_EXPR)
@@ -33553,9 +33594,7 @@ cp_parser_late_contract_condition (cp_parser *parser, tree fn, tree contract)
 
   /* If we have a current class object, we need to consider
      it const when processing the contract condition.  */
-  tree current_class_ref_copy = current_class_ref;
-  if (flag_contracts && current_class_ref_copy)
-    current_class_ref = view_as_const (current_class_ref_copy);
+  current_class_ref = view_as_const (current_class_ref);
 
   /* Parse the condition, ensuring that parameters or the return variable
      aren't flagged for use outside the body of a function.  */
@@ -33662,8 +33701,7 @@ cp_parser_contract_assert (cp_parser *parser, cp_token *token)
   /* If we have a current class object, see if we need to consider
      it const when processing the contract condition.  */
   tree current_class_ref_copy = current_class_ref;
-  if (current_class_ref_copy)
-    current_class_ref = view_as_const (current_class_ref_copy);
+  current_class_ref = view_as_const (current_class_ref);
 
   /* Parse the condition.  */
   begin_scope (sk_contract, current_function_decl);
@@ -33828,8 +33866,7 @@ cp_parser_function_contract_specifier (cp_parser *parser)
       /* If we have a current class object, see if we need to consider
        it const when processing the contract condition.  */
       tree current_class_ref_copy = current_class_ref;
-      if (current_class_ref_copy)
-      current_class_ref = view_as_const (current_class_ref_copy);
+      current_class_ref = view_as_const (current_class_ref);
 
       /* Parse the condition, ensuring that parameters or the return variable
        aren't flagged for use outside the body of a function.  */
@@ -45793,7 +45830,7 @@ cp_parser_omp_clause_proc_bind (cp_parser *parser, tree list,
   return c;
 
  invalid_kind:
-  cp_parser_error (parser, "invalid depend kind");
+  cp_parser_error (parser, "invalid proc_bind kind");
  resync_fail:
   cp_parser_skip_to_closing_parenthesis (parser, /*recovering=*/true,
 					 /*or_comma=*/false,
@@ -45860,7 +45897,7 @@ cp_parser_omp_clause_device_type (cp_parser *parser, tree list,
   return c;
 
  invalid_kind:
-  cp_parser_error (parser, "invalid depend kind");
+  cp_parser_error (parser, "expected %<host%>, %<nohost%> or %<any%>");
  resync_fail:
   cp_parser_skip_to_closing_parenthesis (parser, /*recovering=*/true,
 					 /*or_comma=*/false,
@@ -49493,7 +49530,7 @@ cp_parser_omp_loop_nest (cp_parser *parser, bool *if_p)
 	  TREE_VEC_ELT (omp_for_parse_state->condv, depth) = NULL_TREE;
 	  TREE_VEC_ELT (omp_for_parse_state->incrv, depth) = NULL_TREE;
 	  if (omp_for_parse_state->orig_declv)
-	    TREE_VEC_ELT (omp_for_parse_state->incrv, depth) = NULL_TREE;
+	    TREE_VEC_ELT (omp_for_parse_state->orig_declv, depth) = NULL_TREE;
 	  vec_safe_push (omp_for_parse_state->init_blockv, NULL_TREE);
 	  vec_safe_push (omp_for_parse_state->body_blockv, NULL_TREE);
 	  vec_safe_push (omp_for_parse_state->init_placeholderv, NULL_TREE);

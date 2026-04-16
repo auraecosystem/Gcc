@@ -522,6 +522,7 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
       TARGET_EXPR_ELIDING_P (in TARGET_EXPR)
       IF_STMT_VACUOUS_INIT_P (IF_STMT)
       TYPENAME_IS_RESOLVING_P (in TYPENAME_TYPE)
+      SPLICE_EXPR_TEMPLATE_P (in SPLICE_EXPR)
    4: IDENTIFIER_MARKED (IDENTIFIER_NODEs)
       TREE_HAS_CONSTRUCTOR (in INDIRECT_REF, SAVE_EXPR, CONSTRUCTOR,
 	  CALL_EXPR, or FIELD_DECL).
@@ -533,6 +534,7 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
       TARGET_EXPR_INTERNAL_P (in TARGET_EXPR)
       CONTRACT_CONST (in ASSERTION_, PRECONDITION_, POSTCONDITION_STMT)
       DECL_HAS_DEFAULT_ARGUMENT_P (in PARM_DECL)
+      SPLICE_EXPR_TARGS_P (in SPLICE_EXPR)
    5: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       FUNCTION_RVALUE_QUALIFIED (in FUNCTION_TYPE, METHOD_TYPE)
       CALL_EXPR_REVERSE_ARGS (in CALL_EXPR, AGGR_INIT_EXPR)
@@ -593,6 +595,7 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
       DECL_DECLARED_CONSTINIT_P (in VAR_DECL)
       TYPE_DECL_FOR_LINKAGE_PURPOSES_P (in TYPE_DECL)
    8: DECL_DECLARED_CONSTEXPR_P (in VAR_DECL, FUNCTION_DECL)
+      DECL_CONTRACT_CAPTURE_P (in FIELD_DECL)
 
    Usage of language-independent fields in a language-dependent manner:
 
@@ -1978,6 +1981,24 @@ enum reflect_kind : addr_space_t {
 #define SET_SPLICE_EXPR_ADDRESS_P(NODE, VAL) \
   (SPLICE_EXPR_ADDRESS_P (TREE_CODE (NODE) == SPLICE_EXPR \
 			  ? NODE : TREE_OPERAND (NODE, 0)) = (VAL))
+
+/* True if this SPLICE_EXPR was decorated with 'template'.  */
+#define SPLICE_EXPR_TEMPLATE_P(NODE) \
+   TREE_LANG_FLAG_3 (SPLICE_EXPR_CHECK (NODE))
+
+/* Helper macro to set SPLICE_EXPR_TEMPLATE_P.  */
+#define SET_SPLICE_EXPR_TEMPLATE_P(NODE, VAL) \
+  (SPLICE_EXPR_TEMPLATE_P (TREE_CODE (NODE) == SPLICE_EXPR \
+			   ? NODE : TREE_OPERAND (NODE, 0)) = (VAL))
+
+/* True if this SPLICE_EXPR has template arguments.  */
+#define SPLICE_EXPR_TARGS_P(NODE) \
+   TREE_LANG_FLAG_4 (SPLICE_EXPR_CHECK (NODE))
+
+/* Helper macro to set SPLICE_EXPR_TARGS_P.  */
+#define SET_SPLICE_EXPR_TARGS_P(NODE, VAL) \
+  (SPLICE_EXPR_TARGS_P (TREE_CODE (NODE) == SPLICE_EXPR \
+			? NODE : TREE_OPERAND (NODE, 0)) = (VAL))
 
 /* The expression in question for a SPLICE_SCOPE.  */
 #define SPLICE_SCOPE_EXPR(NODE) \
@@ -5367,6 +5388,13 @@ get_vec_init_expr (tree t)
 #define DECL_NORMAL_CAPTURE_P(NODE) \
   DECL_LANG_FLAG_7 (FIELD_DECL_CHECK (NODE))
 
+/* True when a field decl relates to a lambda capture that has currently been
+   made to satisfy a use within a contract check.  Reset to false when the
+   capture is required outside a contract check.  Used to diagnose cases where
+   a capture is only made within contract checks.  */
+#define DECL_CONTRACT_CAPTURE_P(NODE) \
+  DECL_LANG_FLAG_8 (FIELD_DECL_CHECK (NODE))
+
 /* Nonzero if TYPE is an anonymous union or struct type.  We have to use a
    flag for this because "A union for which objects or pointers are
    declared is not an anonymous union" [class.union].  */
@@ -7135,6 +7163,8 @@ enum cp_built_in_function {
   CP_BUILT_IN_EH_PTR_ADJUST_REF,
   CP_BUILT_IN_IS_STRING_LITERAL,
   CP_BUILT_IN_CONSTEXPR_DIAG,
+  CP_BUILT_IN_CURRENT_EXCEPTION,
+  CP_BUILT_IN_UNCAUGHT_EXCEPTIONS,
   CP_BUILT_IN_LAST
 };
 
@@ -8026,10 +8056,10 @@ extern tree clone_attrs				(tree);
 extern bool maybe_clone_body			(tree);
 
 /* In parser.cc */
-extern tree cp_build_range_for_decls (location_t, tree, tree *, bool);
+extern tree cp_build_range_for_decls (location_t, tree, tree *, tree);
 extern tree cp_convert_range_for (tree, tree, tree, cp_decomp *, bool,
 				  tree, bool);
-extern tree build_range_temp (tree, bool = false);
+extern tree build_range_temp (tree, tree = NULL_TREE);
 extern tree cp_perform_range_for_lookup	(tree, tree *, tree *,
 					 tsubst_flags_t = tf_warning_or_error);
 extern void cp_convert_omp_range_for (tree &, tree &, tree &,
@@ -9414,12 +9444,16 @@ extern bool consteval_only_p (tree) ATTRIBUTE_PURE;
 extern bool compare_reflections (tree, tree) ATTRIBUTE_PURE;
 extern bool valid_splice_type_p (const_tree) ATTRIBUTE_PURE;
 extern bool valid_splice_scope_p (const_tree) ATTRIBUTE_PURE;
-extern bool check_splice_expr (location_t, location_t, tree, bool, bool, bool)
+extern bool valid_splice_for_member_access_p (const_tree, bool = true)
   ATTRIBUTE_PURE;
+extern bool check_splice_expr (location_t, location_t, tree, bool, bool, bool,
+			       bool, bool) ATTRIBUTE_PURE;
 extern tree make_splice_scope (tree, bool);
 extern bool dependent_splice_p (const_tree) ATTRIBUTE_PURE;
 extern tree reflection_mangle_prefix (tree, char [3]);
 extern void check_consteval_only_fn (tree);
+extern bool reflection_function_template_p (tree) ATTRIBUTE_PURE;
+extern void dump_data_member_spec (pretty_printer *, tree);
 
 /* Inline bodies.  */
 
