@@ -1,4 +1,37 @@
 
+[rs6000] Error in computing the array rs6000_class_max_nregs for DMR regs
+
+Issue here is that LRA is generating insert/extract instructions to/from
+DMR registers before/after using the DMR registers in GER instructions.
+This is happening because IRA has assigned VSX registers to the pseudo
+registers (having TDOmode) used in the GER instructions. And because the
+constraints in GER instructions allow only DMR registers, LRA generates
+insert instructions to copy from the VSX registers to the DMR register
+before the GER insn, and extract instructions to copy from the DMR
+register to the VSX registers after the GER instruction.
+
+IRA is assigning VSX registers because of an issue in computing the
+values in the array rs6000_class_max_nregs[mode][reg_class]. This array
+returns the maximum number of consecutive registers of class 'reg_class'
+needed to hold a value of mode 'mode'. For TDO mode and DMR_REGS
+register class, this array held an incorrect value. This array is used
+in constructing another array contains_reg_of_mode[reg_class][mode].
+This array contains 1 if the corresponding register class contains a
+register of the given mode.
+
+This array is used in find_costs_and_classes() which sets up the valid
+register classes for a pseudo register with a given mode. Due to
+incorrect computation of rs6000_class_max_nregs[mode][reg_class] for
+TDOmode and DMR_REGS class, contains_reg_of_mode[DMR_REGS][TDOmode] is
+false. Due to this, find_costs_and_classes() does not assign DMR_REGS
+as a valid class for pseudos having mode TDO mode. This results in IRA
+assigning only VSX registers and not DMR registers to the pseudos
+having TDO mode.
+
+2026-04-22  Surya Kumari Jangala  <jskumari@linux.ibm.com>
+----------------
+
+
 -------------
 
 Author: Kishan Parmar <kishan@linux.ibm.com>
