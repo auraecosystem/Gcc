@@ -1,0 +1,14 @@
+==================== Branch work243-test, baseline ====================
+
+2026-04-23   Michael Meissner  <meissner@linux.ibm.com>
+
+Add ChangeLog.test and update REVISION.
+
+2026-04-23  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* ChangeLog.test: New file for branch.
+	* REVISION: Update.
+
+	Clone branch
