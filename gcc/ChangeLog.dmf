@@ -1,5 +1,91 @@
 ==================== Branch work243-dmf, patch #103 ====================
 
+Add support for 1,024 bit dense math registers.
+
+This patch is a prelimianry patch to add the full 1,024 bit dense math register
+(DMRs) for -mcpu=future.  The MMA 512-bit accumulators map onto the top of the
+DMR register.
+
+This patch only adds the new 1,024 bit register support.  It does not add
+support for any instructions that need 1,024 bit registers instead of 512 bit
+registers.
+
+I used the new mode 'TDOmode' to be the opaque mode used for 1,024 bit
+registers.  The 'wD' constraint added in previous patches is used for these
+registers.  I added support to do load and store of DMRs via the VSX registers,
+since there are no load/store dense math instructions.  I added the new keyword
+'__dm1024' to create 1,024 bit types that can be loaded into dense math
+registers.
+
+This was posted as version 6 of the dense math register patches:
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-04-24   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (UNSPEC_DM_INSERT512_UPPER): New unspec.
+	(UNSPEC_DM_INSERT512_LOWER): Likewise.
+	(UNSPEC_DM_EXTRACT512): Likewise.
+	(UNSPEC_DM_RELOAD_FROM_MEMORY): Likewise.
+	(UNSPEC_DM_RELOAD_TO_MEMORY): Likewise.
+	(movtdo): New define_expand and define_insn_and_split to implement 1,024
+	bit dense math registers.
+	(movtdo_insert512_upper): New insn.
+	(movtdo_insert512_lower): Likewise.
+	(movtdo_extract512): Likewise.
+	(reload_tdo_from_memory): Likewise.
+	(reload_tdo_to_memory): Likewise.
+	* config/rs6000/rs6000-builtin.cc (rs6000_type_string): Add dense math
+	register support.
+	(rs6000_init_builtins): Add support for __dm1024 keyword.
+	* config/rs6000/rs6000-call.cc (rs6000_return_in_memory): Add support
+	for TDOmode.
+	(rs6000_function_arg): Likewise.
+	* config/rs6000/rs6000-modes.def (TDOmode): New mode.
+	* config/rs6000/rs6000.cc (rs6000_hard_regno_nregs_internal): Add
+	support for TDOmode.
+	(rs6000_hard_regno_mode_ok_uncached): Likewise.
+	(rs6000_hard_regno_mode_ok): Likewise.
+	(rs6000_modes_tieable_p): Likewise.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Add support for TDOmode.  Setup reload
+	hooks for dense math TDO reload mode.
+	(reg_offset_addressing_ok_p): Add support for TDOmode.
+	(rs6000_emit_move): Likewise.
+	(rs6000_secondary_reload_simple_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_mangle_type): Add mangling for __dm1024 type.
+	(rs6000_dense_math_register_move_cost): Add support for TDOmode.
+	(rs6000_split_multireg_move): Likewise.
+	(rs6000_invalid_conversion): Likewise.
+	* config/rs6000/rs6000.h (VECTOR_ALIGNMENT_P): Add TDOmode.
+	(enum rs6000_builtin_type_index): Add dense math register type nodes.
+	(dm1024_type_node): Likewise.
+	(ptr_dm1024_type_node): Likewise.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dm-1024bit.c: New test.
+
+==================== Branch work243-dmf, patch #103 ====================
+
 Add support for dense math registers.
 
 This is the 7th version of the dense math patches.
