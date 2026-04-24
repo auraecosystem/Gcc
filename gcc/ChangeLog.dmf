@@ -1,3 +1,93 @@
+==================== Branch work243-dmf, patch #103 ====================
+
+Add support for dense math registers.
+
+This is the 7th version of the dense math patches.
+
+Version 6 of the dense math register patches were posted on April 21st,
+2026.
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+This patch (#4) combines version 6 patch #3 (which adds the basic dense math
+register support) and the parts of patch #4 (switch mmf.md to use the new wD
+constraint, use accumulator_operand, and add dense math zero/move support) that
+weren't previously added in version 7 patch #1.  Here are the changes from
+version 6 of the patches:
+
+	dense_math_operand			to dmf_operand
+	FIRST_DM_REGNO				to FIRST_DMF_REGNO
+	LAST_DM_REGNO				to LAST_DMF_REGNO
+	UNITS_PER_DM_WORD			to UNITS_PER_DMF_WORD
+	DM_REGNO_P				to DMF_REGNO_P
+	DM_REGS					to DMF_REGS
+	DM_REG_TYPE				to DMF_REG_TYPE
+	rs6000_dense_math_register_move_cost	to rs6000_dmf_register_move_cost
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-04-24   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (movxo): Convert to being a define_expand that
+	can handle both the original MMA support without dense math registes,
+	and adding dense math support.
+	(movxo_nodm): Rename original movxo insn, and restrict this insn to when
+	we do not have dense math registers.
+	(movxo_dm): New define_insn_and_split for dense math registers.
+	* config/rs6000/predicates.md (dmf_operand): New predicate.
+	(accumulator_operand): Add support for dense math registers.
+	* config/rs6000/rs6000.cc (enum rs6000_reg_type): Add dense math
+	register support.
+	(enum rs6000_reload_reg_typ): Likewise.
+	(LAST_RELOAD_REG_CLASS): Likewise.
+	(reload_reg_map): Likewise.
+	(rs6000_reg_names): Likewise.
+	(alt_reg_names): Likewise.
+	(rs6000_hard_regno_nregs_internal): Likewise.
+	(rs6000_hard_regno_mode_ok_uncached): Likewise.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_option_override_internal): Likewise.
+	(rs6000_secondary_reload_memory): Likewise.
+	(rs6000_secondary_reload_simple_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_secondary_reload_class): Likewise.
+	(print_operand): Likewise.
+	(rs6000_dmf_register_move_cost): New helper function.
+	(rs6000_register_move_cost): Add dense math register support.
+	(rs6000_memory_move_cost): Likewise.
+	(rs6000_compute_pressure_classes): Likewise.
+	(rs6000_debugger_regno): Likewise.
+	(rs6000_opt_masks): Likewise.
+	(rs6000_split_multireg_move): Likewise.
+	* config/rs6000/rs6000.h (UNITS_PER_DMF_WORD): New macro.
+	(FIRST_PSEUDO_REGISTER): Add dense math register support.
+	(FIXED_REGISTERS): Likewise.
+	(CALL_REALLY_USED_REGISTERS): Likewise.
+	(REG_ALLOC_ORDER): Likewise.
+	(DM_REGNO_P): New macro.
+	(enum reg_class): Add dense math register support.
+	(REG_CLASS_NAMES): Likewise.
+	(REGISTER_NAMES): Likewise.
+	(ADDITIONAL_REGISTER_NAMES): Likewise.
+	* config/rs6000/rs6000.md (FIRST_DMF_REGNO): New constant.
+	(LAST_DMF_REGNO): Likewise.
+
 ==================== Branch work243-dmf, patch #102 ====================
 
 Add the -mdense-math option.
