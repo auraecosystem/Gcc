@@ -1,3 +1,63 @@
+==================== Branch work243-dmf, patch #102 ====================
+
+Add the -mdense-math option.
+
+This is the 7th version of the dense math patches.
+
+Version 6 of the dense math register patches were posted on April 21st,
+2026.
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+This patch (patch #3) is the same as patch #2 in the V6 patches.
+
+This patch adds the -mdense-math option for -mcpu=future.  The next set of
+patches will support for using dense math registers with the MMA instructions.
+All this patch does is add the option.  A future patch will implement support
+for dense math registers, and another patch will then switch the MMA
+instructions to use dense math registers.
+
+For users, the following macros are defined:
+
+	__MMA_NO_DENSE_MATH__	ISA 3.1 MMA support.
+	__MMA_DENSE_MATH__	MMA with dense math registers.
+
+Within the compiler, the following macros are defined:
+
+	TARGET_MMA_NO_DENSE_MATH	ISA 3.1 MMA support.
+	TARGET_MMA_DENSE_MATH		MMA with dense math registers.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-04-24   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-c.cc (rs6000_define_or_undefine_macro): Define
+	__MMA_DENSE_MATH__ if we have MMA that uses dense math register
+	accumulators.  Define __MMA_NO_DENSE_MATH__ if we have MMA but we are
+	using ISA 3.1 where the accumulators are overlaid over VSX registers
+	0..32.  Define __DENSE_MATH__ if we have dense math registers.
+	* config/rs6000/rs6000.cc (rs6000_option_override_internal): Do not
+	allow -mdense-math unless -mcpu=future is used.
+	(rs6000_opt_masks): Add -mdense-math support.
+	* config/rs6000/rs6000.h (TARGET_MMA_DENSE_MATH): New macro.
+	(TARGET_MMA_NO_DENSE_MATH): Likewise.
+	* config/rs6000/rs6000.opt (-mdense-math): New option.
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Add -mdense-math.
+
 ==================== Branch work243-dmf, patch #101 ====================
 
 Switch to use wD constraint in mma.md.
