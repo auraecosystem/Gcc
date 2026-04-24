@@ -1,0 +1,11 @@
+2026-04-24  Kishan Parmar  <kishan@linux.ibm.com>
+
+Add ChangeLog.dmf and update REVISION.
+
+2026-04-24  Kishan Parmar  <kishan@linux.ibm.com>
+
+gcc/
+	* ChangeLog.mmaplus-new: New file for
+	* REVISION: Update.
+---
+
