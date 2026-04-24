@@ -1,3 +1,62 @@
+==================== Branch work243-dmf, patch #101 ====================
+
+Switch to use wD constraint in mma.md.
+
+This is part one of the dense math register patches for the PowerPC.
+This is the 7th version of the dense math patches.
+
+Version 6 of the dense math register patches were posted on April 21st,
+2026.
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+This patch changes mma.md to use the wD constraint and accumulator_operand
+predicate that were added in the previous patch instead of using the d constrant
+and vsx_register_operand predicate.  This is in anticipation of adding dense
+math registers in a future patch.
+
+In addition, I added a comment in front of each insn to indicate which
+instructions are being generated.
+
+Originaly, these changes were in patch #4 in the V6 patches.  I have removed
+these patches switching to use wD from the other part of the patch adding dense
+math register support.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-004-24  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (mma_<vv>): Use the wD constraint and
+	accumulator_operand predicate for all MMA instructions taking
+	accumulator operands.
+	(mma_<avv>): Likewise.
+	(mma_<pv>"): Likewise.
+	(mma_<apv>): Likewise.
+	(mma_<vvi4i4i8>): Likewise.
+	(mma_<avvi4i4i8>): Likewise.
+	(mma_<vvi4i4i2>"): Likewise.
+	(mma_<avvi4i4i2>): Likewise.
+	(mma_<vvi4i4>): Likewise.
+	(mma_<avvi4i4>): Likewise.
+	(mma_<pvi4i2>): Likewise.
+	(mma_<apvi4i2>): Likewise.
+	(mma_<vvi4i4i4>): Likewise.
+	(mma_<avvi4i4i4>): Likewise.
+
 ==================== Branch work243-dmf, patch #100 ====================
 
 Add wD constraint.
