@@ -402,7 +402,7 @@
   if (TARGET_VSX && VSX_REGNO_P (REGNO (op)))
     return 1;
 
-  if (TARGET_DENSE_MATH && DMR_REGNO_P (REGNO (op)))
+  if (TARGET_DENSE_MATH && DM_REGNO_P (REGNO (op)))
     return 1;
 
   return INT_REGNO_P (REGNO (op)) || FP_REGNO_P (REGNO (op));
