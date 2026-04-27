@@ -1,4 +1,31 @@
 
+ivopts: Fix up doloop support for enum and bitint types [PR125036]
+
+After r17-89-g78280307c78ead, ninter handles enum types so ivcannon
+will also use enum types and now ninter returns an enum type here.
+Also add_iv_candidate_for_doloop was expecting only integer types.
+This fixes the issue by allowing non integer types for what ninter
+returns and converts it into an integer type which is a full mode
+integer type.
+
+Bootstrapped and tested on powerpc64le-linux-gnu.
+
+	PR tree-optimization/125036
+
+gcc/ChangeLog:
+
+	* tree-ssa-loop-ivopts.cc (add_iv_candidate_for_doloop): Don't
+	assert on niniter being integer type. Convert to a full mode
+	integer type if non integer or non-full mode integer type.
+
+gcc/testsuite/ChangeLog:
+
+	* gcc.dg/torture/pr125036-1.c: New test.
+
+Signed-off-by: Andrew Pinski <andrew.pinski@oss.qualcomm.com>
+----------------
+
+
 [rs6000] Error in computing the array rs6000_class_max_nregs for DMR regs
 
 Issue here is that LRA is generating insert/extract instructions to/from
