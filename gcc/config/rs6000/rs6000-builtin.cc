@@ -1118,7 +1118,7 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
 	src_ptr = build1 (NOP_EXPR, src_type, src_ptr);
 
       // the following code will ensure we are sending *src as parameter
-      tree src = create_tmp_reg_or_ssa_name (TREE_TYPE (src_type));
+      tree src = make_ssa_name (TREE_TYPE (src_type));
       gimplify_assign (src, build_simple_mem_ref (src_ptr), &new_seq);
 
       // now we should call the internal builtin RS6000_BIF_DM_EXTRACT512_INTERNAL
@@ -1140,7 +1140,7 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
 	  // create call
 	  new_call = gimple_build_call (extract_decl, 2, src, const_arg);
 	  // create a tmp reg to denote lhs of call
-	  tree lhs = create_tmp_reg_or_ssa_name (vector_quad_type_node);
+	  tree lhs = make_ssa_name (vector_quad_type_node);
 
 	  // lhs = new_call
 	  gimple_call_set_lhs (new_call, lhs);
@@ -1160,7 +1160,7 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
 	    {
 	      tree dst = build2 (MEM_REF, unsigned_V16QI_type_node, dst_base,
 				 build_int_cst (dst_type, j * 16 + i * 64));
-	      tree dstssa = create_tmp_reg_or_ssa_name (unsigned_V16QI_type_node);
+	      tree dstssa = make_ssa_name (unsigned_V16QI_type_node);
 	      new_call = gimple_build_call (new_decl, 2, lhs,
 					    build_int_cstu (uint16_type_node, j));
 	      gimple_call_set_lhs (new_call, dstssa);

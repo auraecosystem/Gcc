@@ -334,8 +334,6 @@
 
 (define_int_attr pvi8i4i4      [(UNSPEC_DMF_PMDMXVI8GERX4      "pmdmxvi8gerx4")])
 
-(define_int_attr dpvi8i4i4     [(UNSPEC_DMF_PMDMXVI8GERX4PP    "pmdmxvi8gerx4pp")])
-
 (define_int_attr dpvi8i4i4	[(UNSPEC_DMF_PMDMXVI8GERX4PP	"pmdmxvi8gerx4pp")
 				 (UNSPEC_DMF_PMDMXVI8GERX4SPP	"pmdmxvi8gerx4spp")])
 
