@@ -3283,7 +3283,7 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	reg_size = UNITS_PER_FP_WORD;
 
       else if (c == DM_REGS)
-	reg_size = UNITS_PER_DMR_WORD;
+	reg_size = UNITS_PER_DM_WORD;
 
       else
 	reg_size = UNITS_PER_WORD;

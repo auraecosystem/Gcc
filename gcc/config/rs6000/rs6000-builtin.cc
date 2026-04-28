@@ -1322,7 +1322,7 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
 	  tree op_mem = build_simple_mem_ref (build1 (NOP_EXPR,
 						      TREE_TYPE (arg),
 						      arg));
-	  op[nopnds] = create_tmp_reg_or_ssa_name (lhs_type);
+	  op[nopnds] = make_ssa_name (lhs_type);
 	  gimplify_assign (op[nopnds], op_mem, &new_seq);
 	}
       else
