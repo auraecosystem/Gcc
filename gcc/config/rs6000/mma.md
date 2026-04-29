@@ -276,7 +276,7 @@
 	(match_operand:OO 1 "input_operand"))]
   ""
 {
-  if (TARGET_MMA)
+  if (TARGET_MMA || TARGET_DENSE_MATH)
     {
       rs6000_emit_move (operands[0], operands[1], OOmode);
       DONE;
@@ -301,7 +301,7 @@
 (define_insn_and_split "*movoo"
   [(set (match_operand:OO 0 "nonimmediate_operand" "=wa,ZwO,wa")
 	(match_operand:OO 1 "input_operand" "ZwO,wa,wa"))]
-  "TARGET_MMA
+  "TARGET_MMA || TARGET_DENSE_MATH
    && (gpc_reg_operand (operands[0], OOmode)
        || gpc_reg_operand (operands[1], OOmode))"
   "@
@@ -400,7 +400,7 @@
   [(match_operand:OO 0 "vsx_register_operand")
    (match_operand:V16QI 1 "mma_assemble_input_operand")
    (match_operand:V16QI 2 "mma_assemble_input_operand")]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DENSE_MATH"
 {
   rtx src = gen_rtx_UNSPEC (OOmode,
 			    gen_rtvec (2, operands[1], operands[2]),
@@ -417,7 +417,7 @@
 	(unspec:OO [(match_operand:V16QI 1 "mma_assemble_input_operand" "mwa")
 		    (match_operand:V16QI 2 "mma_assemble_input_operand" "mwa")]
 		   UNSPEC_VSX_ASSEMBLE))]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DENSE_MATH"
   "#"
   "&& reload_completed"
   [(const_int 0)]
@@ -433,7 +433,7 @@
   [(match_operand:V16QI 0 "mma_disassemble_output_operand")
    (match_operand:OO 1 "vsx_register_operand")
    (match_operand 2 "const_0_to_1_operand")]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DENSE_MATH"
 {
   rtx src;
   int regoff = INTVAL (operands[2]);
@@ -449,7 +449,7 @@
        (unspec:V16QI [(match_operand:OO 1 "vsx_register_operand" "wa")
                       (match_operand 2 "const_0_to_1_operand")]
                       UNSPEC_MMA_EXTRACT))]
-  "TARGET_MMA
+  "TARGET_MMA || TARGET_DENSE_MATH
    && vsx_register_operand (operands[1], OOmode)"
   "#"
   "&& reload_completed"
@@ -468,7 +468,7 @@
    (match_operand:V16QI 2 "mma_assemble_input_operand")
    (match_operand:V16QI 3 "mma_assemble_input_operand")
    (match_operand:V16QI 4 "mma_assemble_input_operand")]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DENSE_MATH"
 {
   rtx src = gen_rtx_UNSPEC_VOLATILE (XOmode,
 			    	     gen_rtvec (4, operands[1], operands[2],
@@ -489,7 +489,7 @@
 	   (match_operand:V16QI 3 "mma_assemble_input_operand" "mwa")
 	   (match_operand:V16QI 4 "mma_assemble_input_operand" "mwa")]
 	  UNSPECV_MMA_ASSEMBLE))]
-  "TARGET_MMA
+  "TARGET_MMA || TARGET_DENSE_MATH
    && fpr_reg_operand (operands[0], XOmode)"
   "#"
   "&& reload_completed"
@@ -507,7 +507,7 @@
   [(match_operand:V16QI 0 "mma_disassemble_output_operand")
    (match_operand:XO 1 "fpr_reg_operand")
    (match_operand 2 "const_0_to_3_operand")]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DENSE_MATH"
 {
   rtx src;
   int regoff = INTVAL (operands[2]);
@@ -523,7 +523,7 @@
        (unspec:V16QI [(match_operand:XO 1 "fpr_reg_operand" "d")
                       (match_operand 2 "const_0_to_3_operand")]
                       UNSPEC_MMA_EXTRACT))]
-  "TARGET_MMA
+  "TARGET_MMA || TARGET_DENSE_MATH
    && fpr_reg_operand (operands[1], XOmode)"
   "#"
   "&& reload_completed"
@@ -559,7 +559,7 @@
   [(set (match_operand:XO 0 "accumulator_operand")
 	(unspec_volatile:XO [(const_int 0)]
 			    UNSPECV_MMA_XXSETACCZ))]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DENSE_MATH"
 {
   if (TARGET_DENSE_MATH)
     {
