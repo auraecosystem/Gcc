@@ -567,8 +567,11 @@
   [(set_attr "type" "mma")])
 
 ;; We can't have integer constants in XOmode so we wrap this in an
-;; UNSPEC_VOLATILE.  If we have dense math registers, we can just use a normal
-;; UNSPEC instead of UNSPEC_VOLATILE.
+;; UNSPEC_VOLATILE.  If we have dense math registers, we can just use a
+;; normal UNSPEC instead of UNSPEC_VOLATILE.  An UNSPEC_VOLATILE limits
+;; optimization since insns can't be moved before the UNSPEC_VOLATILE.
+
+;; Instructions: xxmtacc and xxmfacc
 
 (define_expand "mma_xxsetaccz"
   [(set (match_operand:XO 0 "accumulator_operand")
