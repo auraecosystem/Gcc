@@ -1,11 +1,11 @@
-==================== Branch work244-dmf, patch #114 ====================
+==================== Branch work244-dmf, patch #134 ====================
 
 Add paddis support.
 
 This patch adds support for the paddis instruction that might be added to a
 future PowerPC processor.
 
-2026-04-27  Michael Meissner  <meissner@linux.ibm.com>
+2026-04-29  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -30,7 +30,7 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/prefixed-addis.c: New test.
 
-==================== Branch work244-dmf, patch #113 ====================
+==================== Branch work244-dmf, patch #123 ====================
 
 Support load/store vector with right length.
 
@@ -55,7 +55,7 @@ I added a check for 64-bit support before generating the instructions.
 The patches have been tested on both little and big endian systems.  Can I check
 it into the master branch?
 
-2026-04-27   Michael Meissner  <meissner@linux.ibm.com>
+2026-04-29   Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -74,7 +74,7 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/lxvrl.c: New test.
 
-==================== Branch work244-dmf, patch #112 ====================
+==================== Branch work244-dmf, patch #132 ====================
 
 Add xvrlw support.
 
@@ -82,7 +82,7 @@ This patch adds support for a possible new variant of the vector rotate left
 instruction that might be added to a future PowerPC.  This variant (xvrlw) can
 use any VSX register instead of requiring only Altivec registers.
 
-2026-04-27  Michael Meissner  <meissner@linux.ibm.com>
+2026-04-29  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -93,7 +93,7 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/vector-rotate-left.c: New test.
 
-==================== Branch work244-dmf, patch #111 ====================
+==================== Branch work244-dmf, patch #131 ====================
 
 Add saturate subtract support
 
@@ -105,7 +105,7 @@ having GCC automatically recognize cases where a saturating subtract could be
 generated.  This patch generates the saturating subtract instructions in the
 appropriate context.
 
-2026-04-27   Michael Meissner  <meissner@linux.ibm.com>
+2026-04-29   Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -119,7 +119,7 @@ gcc/testsuite/
 	* lib/target-supports.exp (check_effective_target_powerpc_future_ok):
 	New target test.
 
-==================== Branch work244-dmf, patch #110 ====================
+==================== Branch work244-dmf, patch #130 ====================
 
 Use vector pair load/store for memcpy with -mcpu=future
 
@@ -131,7 +131,7 @@ used.
 I have tested these patches on both big endian and little endian PowerPC
 servers, with no regressions.  Can I check these patchs into the trunk?
 
-2026-04-27  Michael Meissner  <meissner@linux.ibm.com>
+2026-04-29  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -148,11 +148,21 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/future-3.c: New test.
 
-==================== Branch work244-dmf, patch #109 ====================
+==================== Branch work244-dmf, patch #126 ====================
 
-On dense math systems use 'dm' instruction.
+On dense math systems use the 'dm' prefix on MMA instructions.
 
-2026-04-28  Michael Meissner  <meissner@linux.ibm.com>
+This is an optional patch that on dense math systems changes the XV* MMA
+instructions to DMXV*.  The assembler will generate the same object code for
+either instruction.  This is tell the user looking at assembly code that we are
+compiling MMA code to use dense math registers.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-04-29  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -165,41 +175,7 @@ gcc/
 	-mdense-math.
 	* config/rs6000/rs6000.h (PRINT_OPERAND_PUNCT_VALID_P): Allow %!.
 
-==================== Branch work244-dmf, patch #108 ====================
-
-Update comment.
-
-2026-04-28  Michael Meissner  <meissner@linux.ibm.com>
-
-	* config/rs6000/mma.md (mma_xxsetaccz): Update comment.
-
-==================== Branch work244-dmf, patch #107 ====================
-
-Allow xxmfacc and xxmtacc if -mdense-math.
-
-2026-04-28  Michael Meissner  <meissner@linux.ibm.com>
-
-gcc/
-
-	* config/rs6000/mma.md (mma_<acc>): Allow built-ins to be used if
-	-mdense-math.
-
-==================== Branch work244-dmf, patch #106 ====================
-
-Allow -mdense-math -mno-mma.
-
-2026-04-28  Michael Meissner  <meissner@linux.ibm.com>
-
-gcc/
-
-	* config/rs6000/mma.md (movoo): Allow -mdense-math -mno-mma.
-	(vsx_assemble_pair): Likewise.
-	(vsx_disassemble_pair): Likewise.
-	(mma_assemble_acc): Likewise.
-	(mma_disassemble_acc): Likewise.
-	(mma_xxsetaccz): Likewise.
-
-==================== Branch work244-dmf, patch #105 ====================
+==================== Branch work244-dmf, patch #125 ====================
 
 Add support for 1,024 bit dense math registers.
 
@@ -242,7 +218,7 @@ big endian compiler on power9 systems.  There were no regression in the
 tests.  Can I add the patches to the GCC trunk after the -mcpu=future
 patch is applied and GCC 17 has opened up?
 
-2026-04-27   Michael Meissner  <meissner@linux.ibm.com>
+2026-04-29   Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -290,7 +266,7 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/dm-1024bit.c: New test.
 
-==================== Branch work244-dmf, patch #104 ====================
+==================== Branch work244-dmf, patch #124 ====================
 
 Add support for dense math registers.
 
@@ -330,18 +306,33 @@ big endian compiler on power9 systems.  There were no regression in the
 tests.  Can I add the patches to the GCC trunk after the -mcpu=future
 patch is applied and GCC 17 has opened up?
 
-2026-04-27   Michael Meissner  <meissner@linux.ibm.com>
+2026-04-29   Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
-	* config/rs6000/mma.md (movxo): Convert to being a define_expand that
-	can handle both the original MMA support without dense math registes,
-	and adding dense math support.
+	* config/rs6000/mma.md (movoo): Allow -mdense-math -mno-mma.
+	(movxo): Convert to being a define_expand that can handle both the
+	original MMA support without dense math registers, and adding dense math
+	support.  Allow -mdense-math -mno-mma.
 	(movxo_nodm): Rename original movxo insn, and restrict this insn to when
 	we do not have dense math registers.
 	(movxo_dm): New define_insn_and_split for dense math registers.
+	(vsx_assemble_pair): Allow -mdense-math -mno-mma.
+	(vsx_disassemble_pair): Likewise.
+	(mma_assemble_acc): Likewise.
+	(mma_disassemble_acc): Likewise.
+	(mma_<acc>): Allow built-ins to be used if -mdense-math.
+	(mma_xxsetaccz): Convert into a define_expand to handle both non-dense
+	math and dense math registers.
+	(mma_xxsetaccz_nodm): Rename from mma_xxsetaccz and limit code to non
+	dense math systems.
+	(mma_xxsetaccz_dm): New insn for direct math register support.
 	* config/rs6000/predicates.md (dmf_register_operand): New predicate.
 	(accumulator_operand): Add support for dense math registers.
+	* config/rs6000/rs6000-builtin.cc (rs6000_gimple_fold_mma_builtin): Do
+	not issue xxmfacc (deprime) instruction if we have dense math registers.
+	* config/rs6000/rs6000-cpus.def (FUTURE_MASKS_SERVER): Add -mdense-math.
+	(POWERPC_MASKS): Likewise.
 	* config/rs6000/rs6000.cc (enum rs6000_reg_type): Add dense math
 	register support.
 	(enum rs6000_reload_reg_typ): Likewise.
@@ -354,7 +345,6 @@ gcc/
 	(rs6000_debug_reg_global): Likewise.
 	(rs6000_setup_reg_addr_masks): Likewise.
 	(rs6000_init_hard_regno_mode_ok): Likewise.
-	(rs6000_option_override_internal): Likewise.
 	(rs6000_secondary_reload_memory): Likewise.
 	(rs6000_secondary_reload_simple_move): Likewise.
 	(rs6000_preferred_reload_class): Likewise.
@@ -372,7 +362,7 @@ gcc/
 	(FIXED_REGISTERS): Likewise.
 	(CALL_REALLY_USED_REGISTERS): Likewise.
 	(REG_ALLOC_ORDER): Likewise.
-	(DM_REGNO_P): New macro.
+	(DMF_REGNO_P): New macro.
 	(enum reg_class): Add dense math register support.
 	(REG_CLASS_NAMES): Likewise.
 	(REGISTER_NAMES): Likewise.
@@ -381,7 +371,7 @@ gcc/
 	(LAST_DMF_REGNO): Likewise.
 
 
-==================== Branch work244-dmf, patch #103 ====================
+==================== Branch work244-dmf, patch #123 ====================
 
 Add the -mdense-math option.
 
@@ -424,7 +414,7 @@ big endian compiler on power9 systems.  There were no regression in the
 tests.  Can I add the patches to the GCC trunk after the -mcpu=future
 patch is applied and GCC 17 has opened up?
 
-2026-04-27   Michael Meissner  <meissner@linux.ibm.com>
+2026-04-29   Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -441,7 +431,7 @@ gcc/
 	* config/rs6000/rs6000.opt (-mdense-math): New option.
 	* doc/invoke.texi (RS/6000 and PowerPC Options): Add -mdense-math.
 
-==================== Branch work244-dmf, patch #102 ====================
+==================== Branch work244-dmf, patch #122 ====================
 
 Switch to use wD constraint in mma.md.
 
@@ -479,7 +469,7 @@ big endian compiler on power9 systems.  There were no regression in the
 tests.  Can I add the patches to the GCC trunk after the -mcpu=future
 patch is applied and GCC 17 has opened up?
 
-2026-004-27  Michael Meissner  <meissner@linux.ibm.com>
+2026-004-29  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -500,7 +490,7 @@ gcc/
 	(mma_<vvi4i4i4>): Likewise.
 	(mma_<avvi4i4i4>): Likewise.
 
-==================== Branch work244-dmf, patch #101 ====================
+==================== Branch work244-dmf, patch #121 ====================
 
 Add wD constraint.
 
@@ -557,7 +547,7 @@ big endian compiler on power9 systems.  There were no regression in the
 tests.  Can I add the patches to the GCC trunk after the -mcpu=future
 patch is applied and GCC 17 has opened up?
 
-2026-004-27  Michael Meissner  <meissner@linux.ibm.com>
+2026-004-29  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -570,6 +560,21 @@ gcc/
 	* config/rs6000/rs6000.h (enum r6000_reg_class_enum): Add element for
 	the 'wD' constraint.
 	* doc/md.texi (PowerPC constraints): Document the 'wD' constraint.
+
+==================== Branch work244-dmf, patch #114 has been reverted ====================
+==================== Branch work244-dmf, patch #113 has been reverted ====================
+==================== Branch work244-dmf, patch #112 has been reverted ====================
+==================== Branch work244-dmf, patch #111 has been reverted ====================
+==================== Branch work244-dmf, patch #110 has been reverted ====================
+==================== Branch work244-dmf, patch #109 has been reverted ====================
+==================== Branch work244-dmf, patch #108 has been reverted ====================
+==================== Branch work244-dmf, patch #107 has been reverted ====================
+==================== Branch work244-dmf, patch #106 has been reverted ====================
+==================== Branch work244-dmf, patch #105 has been reverted ====================
+==================== Branch work244-dmf, patch #104 has been reverted ====================
+==================== Branch work244-dmf, patch #103 has been reverted ====================
+==================== Branch work244-dmf, patch #102 has been reverted ====================
+==================== Branch work244-dmf, patch #101 has been reverted ====================
 
 ==================== Branch work244-dmf, baseline ====================
 
