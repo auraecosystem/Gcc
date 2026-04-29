@@ -148,6 +148,57 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/future-3.c: New test.
 
+==================== Branch work244-dmf, patch #109 ====================
+
+On dense math systems use 'dm' instruction.
+
+2026-04-28  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (mma_<vv>): If -mdesne-math, emit 'dmxv*' form of
+	the instruction instead of 'xv*'.
+	(mma_<avv>): Likewise.
+	(mma_<pv>): Likewise.
+	(mma_<apv>): Likewise.
+	* config/rs6000/rs6000.cc (print_operand): For %!, print 'dm' if
+	-mdense-math.
+	* config/rs6000/rs6000.h (PRINT_OPERAND_PUNCT_VALID_P): Allow %!.
+
+==================== Branch work244-dmf, patch #108 ====================
+
+Update comment.
+
+2026-04-28  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/mma.md (mma_xxsetaccz): Update comment.
+
+==================== Branch work244-dmf, patch #107 ====================
+
+Allow xxmfacc and xxmtacc if -mdense-math.
+
+2026-04-28  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (mma_<acc>): Allow built-ins to be used if
+	-mdense-math.
+
+==================== Branch work244-dmf, patch #106 ====================
+
+Allow -mdense-math -mno-mma.
+
+2026-04-28  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (movoo): Allow -mdense-math -mno-mma.
+	(vsx_assemble_pair): Likewise.
+	(vsx_disassemble_pair): Likewise.
+	(mma_assemble_acc): Likewise.
+	(mma_disassemble_acc): Likewise.
+	(mma_xxsetaccz): Likewise.
+
 ==================== Branch work244-dmf, patch #105 ====================
 
 Add support for 1,024 bit dense math registers.
