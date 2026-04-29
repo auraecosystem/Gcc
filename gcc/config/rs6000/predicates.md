@@ -186,47 +186,6 @@
   return VLOGICAL_REGNO_P (REGNO (op));
 })
 
-;; Return 1 if op is a dense math register
-(define_predicate "dmf_register_operand"
-  (match_operand 0 "register_operand")
-{
-  if (!TARGET_DENSE_MATH)
-    return 0;
-
-  if (!REG_P (op))
-    return 0;
-
-  if (!HARD_REGISTER_P (op))
-    return 1;
-
-  return DMF_REGNO_P (REGNO (op));
-})
-
-;; Return 1 if op is an accumulator.
-;;
-;; On power10 and power11 systems, the accumulators overlap with the
-;; FPRs and the register must be divisible by 4.
-;;
-;; On systems with dense math registers, the accumulators are separate
-;; registers and do not overlap with the FPR registers.
-(define_predicate "accumulator_operand"
-  (match_operand 0 "register_operand")
-{
-  if (SUBREG_P (op))
-    op = SUBREG_REG (op);
-
-  if (!REG_P (op))
-    return 0;
-
-  if (!HARD_REGISTER_P (op))
-    return 1;
-
-  int r = REGNO (op);
-  return (TARGET_DENSE_MATH
-	  ? DMF_REGNO_P (r)
-	  : FP_REGNO_P (r) && (r & 3) == 0);
-})
-
 ;; Return 1 if op is the carry register.
 (define_predicate "ca_operand"
   (match_operand 0 "register_operand")
@@ -376,53 +335,6 @@
     return 0;
 
   return SIGNED_INTEGER_34BIT_P (INTVAL (op));
-})
-
-;; Return 1 if op is a 64-bit constant that uses the paddis instruction
-(define_predicate "paddis_operand"
-  (match_code "const_int")
-{
-  if (!TARGET_PADDIS && TARGET_POWERPC64)
-    return 0;
-
-  /* If addi, addis, or paddi can handle the number, don't return true.  */
-  HOST_WIDE_INT value = INTVAL (op);
-  if (SIGNED_INTEGER_34BIT_P (value))
-    return false;
-
-  /* If the number is too large for padds, return false.  */
-  if (!SIGNED_INTEGER_32BIT_P (value >> 32))
-    return false;
-
-  /* If the bottom 32-bits are non-zero, paddis can't handle it.  */
-  if ((value & HOST_WIDE_INT_C(0xffffffff)) != 0)
-    return false;
-
-  return true;
-})
-
-;; Return 1 if op is a 64-bit constant that needs the paddis instruction and an
-;; addi/addis/paddi instruction combination.
-(define_predicate "paddis_paddi_operand"
-  (match_code "const_int")
-{
-  if (!TARGET_PADDIS && TARGET_POWERPC64)
-    return 0;
-
-  /* If addi, addis, or paddi can handle the number, don't return true.  */
-  HOST_WIDE_INT value = INTVAL (op);
-  if (SIGNED_INTEGER_34BIT_P (value))
-    return false;
-
-  /* If the number is too large for padds, return false.  */
-  if (!SIGNED_INTEGER_32BIT_P (value >> 32))
-    return false;
-
-  /* If the bottom 32-bits are zero, we can use paddis alone to handle it.  */
-  if ((value & HOST_WIDE_INT_C(0xffffffff)) == 0)
-    return false;
-
-  return true;
 })
 
 ;; Return 1 if op is a register that is not special.
@@ -1169,10 +1081,7 @@
   (if_then_else (match_code "const_int")
     (match_test "satisfies_constraint_I (op)
 		 || satisfies_constraint_L (op)
-		 || satisfies_constraint_eI (op)
-		 || satisfies_constraint_eU (op)
-		 || satisfies_constraint_eV (op)")
-
+		 || satisfies_constraint_eI (op)")
     (match_operand 0 "gpc_reg_operand")))
 
 ;; Return 1 if the operand is either a non-special register, or 0, or -1.

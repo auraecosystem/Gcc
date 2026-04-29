@@ -107,9 +107,6 @@
        (match_test "TARGET_P8_VECTOR")
        (match_operand 0 "s5bit_cint_operand")))
 
-(define_register_constraint "wD" "rs6000_constraints[RS6000_CONSTRAINT_wD]"
-  "Accumulator register.")
-
 (define_constraint "wE"
   "@internal Vector constant that can be loaded with the XXSPLTIB instruction."
   (match_test "xxspltib_constant_nosplit (op, mode)"))
@@ -221,16 +218,6 @@
 (define_constraint "eQ"
   "An IEEE 128-bit constant that can be loaded into VSX registers."
   (match_operand 0 "easy_vector_constant_ieee128"))
-
-(define_constraint "eU"
-  "@internal integer constant that can be loaded with paddis"
-  (and (match_code "const_int")
-       (match_operand 0 "paddis_operand")))
-
-(define_constraint "eV"
-  "@internal integer constant that can be loaded with paddis + paddi"
-  (and (match_code "const_int")
-       (match_operand 0 "paddis_paddi_operand")))
 
 ;; Floating-point constraints.  These two are defined so that insn
 ;; length attributes can be calculated exactly.
