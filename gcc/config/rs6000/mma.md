@@ -543,7 +543,22 @@
 ;; output as early clobber.  The prime and de-prime instructions are
 ;; not needed on systems with dense math registers.
 
-(define_insn "mma_<acc>"
+;; If we have dense math registers, xxmfacc/xxmtacc become normal moves.
+
+(define_expand "mma_<acc>"
+  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d")
+	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0")]
+		    MMA_ACC))]
+  "TARGET_MMA"
+{
+  if (TARGET_DENSE_MATH)
+    {
+      emit_move_insn (operands[0], operands[1]);
+      DONE;
+    }
+})
+
+(define_insn "*mma_<acc>"
   [(set (match_operand:XO 0 "fpr_reg_operand" "=&d")
 	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0")]
 		    MMA_ACC))]
