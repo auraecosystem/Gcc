@@ -148,6 +148,37 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/future-3.c: New test.
 
+==================== Branch work245-dmf, patch #108 ====================
+
+Add -mcpu=future dense math tests.
+
+This is part eight of the dense math register patches for the PowerPC.
+
+This patch adds dense math tests for -mcpu=future, cloning the mma-builtin-*.c
+tests.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-04-29  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dm-builtin-1.c: New test.
+	* gcc.target/powerpc/dm-builtin-10-pair.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-10-quad.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-2.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-3.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-4.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-5.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-6.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-7.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-8.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-9.c: Likewise.
+
+
 ==================== Branch work245-dmf, patch #107 ====================
 
 Update dense math comment.
