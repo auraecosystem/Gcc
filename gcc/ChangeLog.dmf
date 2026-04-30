@@ -189,11 +189,31 @@ patch is applied and GCC 17 has opened up?
 
 gcc/
 
-	* config/rs6000/mma.md (mma_<vv>): If -mdesne-math, emit 'dmxv*' form of
-	the instruction instead of 'xv*'.
+	* config/rs6000/mma.md (vvi4i4i8): Eliminate using the 'pm' prefix here,
+	so we can emit pmdm* on dense math systems.
+	(avvi4i4i8): Likewise.
+	(vvi4i4i2): Likewise.
+	(avvi4i4i2): Likewise.
+	(vvi4i4): Likewise.
+	(avvi4i4): Likewise.
+	(pvi4i2): Likewise.
+	(apvi4i2): Likewise.
+	(vvi4i4i4): Likewise.
+	(mma_<vv>): If -mdesne-math, emit 'dmxv*' form of the instruction
+	instead of 'xv*'.
 	(mma_<avv>): Likewise.
 	(mma_<pv>): Likewise.
 	(mma_<apv>): Likewise.
+	(mma_pm<vvi4i4i8>): If -mdense-math, emit 'pmdm*' instead of 'pm*'.
+	(mma_pm<avvi4i4i8>): Likewise.
+	(mma_pm<vvi4i4i2>): Likewise.
+	(mma_pm<avvi4i4i2>): Likewise.
+	(mma_pm<vvi4i4>): Likewise.
+	(mma_pm<avvi4i4>): Likewise.
+	(mma_pm<pvi4i2>): Likewise.
+	(mma_pm<apvi4i2>): Likewise.
+	(mma_pm<vvi4i4i4>): Likewise.
+	(mma_pm<avvi4i4i4>): Likewise.
 	* config/rs6000/rs6000.cc (print_operand): For %!, print 'dm' if
 	-mdense-math.
 	* config/rs6000/rs6000.h (PRINT_OPERAND_PUNCT_VALID_P): Allow %!.
