@@ -620,7 +620,7 @@
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")]
 		    MMA_VV))]
   "TARGET_MMA"
-  "%!<vv> %A0,%x1,%x2"
+  "<vv> %A0,%x1,%x2"
   [(set_attr "type" "mma")])
 
 ;; Instructions:
@@ -636,7 +636,7 @@
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")]
 		    MMA_AVV))]
   "TARGET_MMA"
-  "%!<avv> %A0,%x2,%x3"
+  "<avv> %A0,%x2,%x3"
   [(set_attr "type" "mma")])
 
 ;; Instruction: xvf64ger
@@ -647,7 +647,7 @@
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")]
 		    MMA_PV))]
   "TARGET_MMA"
-  "%!<pv> %A0,%x1,%x2"
+  "<pv> %A0,%x1,%x2"
   [(set_attr "type" "mma")])
 
 ;; Instructions: xvf64gerpp xvf64gerpn xvf64gernp xvf64gernn
@@ -659,7 +659,7 @@
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")]
 		    MMA_APV))]
   "TARGET_MMA"
-  "%!<apv> %A0,%x2,%x3"
+  "<apv> %A0,%x2,%x3"
   [(set_attr "type" "mma")])
 
 ;; Instruction: pmxvi4ger8
