@@ -148,6 +148,27 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/future-3.c: New test.
 
+==================== Branch work245-dmf, patch #107 ====================
+
+Update dense math comment.
+
+This is part seven of the dense math register patches for the PowerPC.
+
+This patch improves a comment on why we don't need to use xxfacc when creating
+an accumulator on a dense math system.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-04-29  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs000/rs6000-builtin.cc (rs6000_gimple_fold_mma_builtin):
+	Update comment.
+
 ==================== Branch work245-dmf, patch #106 ====================
 
 On dense math systems use the 'dm' prefix on MMA instructions.
