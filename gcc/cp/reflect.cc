@@ -238,9 +238,14 @@ get_reflection (location_t loc, tree t, reflect_kind kind/*=REFLECT_UNDEF*/)
 	t = dtor;
     }
 
-  /* Look through block scope externs.  */
+  /* Block-scope externs are invalid here as per the proposed resolution
+     of CWG 3065.  */
   if (VAR_OR_FUNCTION_DECL_P (t) && DECL_LOCAL_DECL_P (t))
-    t = DECL_LOCAL_DECL_ALIAS (t);
+    {
+      error_at (loc, "cannot take the reflection of a block-scope extern %qE",
+		t);
+      return error_mark_node;
+    }
 
   if (t == error_mark_node)
     return error_mark_node;
@@ -8517,10 +8522,31 @@ splice (tree refl)
       gcc_checking_assert (seen_error ());
       return error_mark_node;
     }
+  location_t loc = cp_expr_loc_or_input_loc (refl);
   if (!REFLECT_EXPR_P (refl))
     {
-      error_at (cp_expr_loc_or_input_loc (refl), "splice argument must be an "
+      error_at (loc, "splice argument must be an "
 		"expression of type %qs", "std::meta::info");
+      return error_mark_node;
+    }
+
+  if (compare_reflections (refl, get_null_reflection ()))
+    {
+      error_at (loc, "cannot splice a null reflection");
+      return error_mark_node;
+    }
+
+  /* This isn't checked in check_splice_expr, because reflect_kind isn't
+     available there and variable_of (parameters_of (...)[...]) can be
+     spliced.  */
+  if (REFLECT_EXPR_KIND (refl) == REFLECT_PARM)
+    {
+      auto_diagnostic_group d;
+      error_at (loc, "cannot use %qD function parameter reflection in a "
+		"splice expression", REFLECT_EXPR_HANDLE (refl));
+      if (DECL_CONTEXT (REFLECT_EXPR_HANDLE (refl)) == current_function_decl)
+	inform (loc,
+		"apply %<std::meta::variable_of%> on it before splicing");
       return error_mark_node;
     }
 
@@ -8601,6 +8627,10 @@ consteval_only_p (tree t)
 	  return true;
       return false;
     }
+
+  /* For dependent types we can't be sure if this type is consteval-only.  */
+  if (dependent_type_p (t))
+    return false;
 
   /* We need the complete type otherwise we'd have no fields for class
      templates and thus come up with zilch for things like
@@ -8847,6 +8877,8 @@ compare_reflections (tree lhs, tree rhs)
     }
   else if (lkind == REFLECT_ANNOTATION)
     return TREE_VALUE (lhs) == TREE_VALUE (rhs);
+  else if (lkind == REFLECT_BASE)
+    return lhs == rhs;
   else if (TYPE_P (lhs) && TYPE_P (rhs))
     {
       /* Given "using A = int;", "^^int != ^^A" should hold.  */
@@ -8885,7 +8917,8 @@ valid_splice_scope_p (const_tree t)
 {
   return (CLASS_TYPE_P (t)
 	  || TREE_CODE (t) == ENUMERAL_TYPE
-	  || TREE_CODE (t) == NAMESPACE_DECL);
+	  || TREE_CODE (t) == NAMESPACE_DECL
+	  || TREE_CODE (t) == SPLICE_SCOPE);
 }
 
 /* Return true if T is a valid result of the splice in a class member access,
@@ -8898,7 +8931,7 @@ valid_splice_for_member_access_p (const_tree t, bool decls_only_p/*=true*/)
       || VAR_P (t)
       || TREE_CODE (t) == CONST_DECL
       || TREE_CODE (t) == FUNCTION_DECL
-      || DECL_FUNCTION_TEMPLATE_P (OVL_FIRST (const_cast<tree> (t)))
+      || reflection_function_template_p (t)
       || variable_template_p (const_cast<tree> (t)))
     return true;
 
@@ -9303,9 +9336,10 @@ reflection_mangle_prefix (tree refl, char prefix[3])
 /* Returns true iff X is a reflection of a function template.  */
 
 bool
-reflection_function_template_p (tree x)
+reflection_function_template_p (const_tree x)
 {
-  return really_overloaded_fn (x);
+  return (DECL_FUNCTION_TEMPLATE_P
+	  (OVL_FIRST (MAYBE_BASELINK_FUNCTIONS (const_cast<tree> (x)))));
 }
 
 #include "gt-cp-reflect.h"

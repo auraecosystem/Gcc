@@ -1,3 +1,44 @@
+2026-04-30  Release Manager
+
+	* GCC 16.1.0 released.
+
+2026-04-21  Iain Buclaw  <ibuclaw@gdcproject.org>
+
+	* dmd/MERGE: Merge upstream dmd d1fbbb1a2f.
+	* expr.cc (ExprVisitor::visit (StringExp *)): Don't generate a
+	STRING_CST for a mutable array type.
+
+2026-04-20  Iain Buclaw  <ibuclaw@gdcproject.org>
+
+	PR d/123411
+	* types.cc (TypeVisitor::visit (TypeEnum *)): Only call layout_type on
+	the TYPE_MAIN_VARIANT of the enum.
+
+2026-04-20  Iain Buclaw  <ibuclaw@gdcproject.org>
+
+	PR d/124157
+	* expr.cc (ExprVisitor::visit (AssocArrayLiteralExp *)): Return AA
+	constructor with memory returned by _d_assocarrayliteralTX().
+
+2026-04-19  Iain Buclaw  <ibuclaw@gdcproject.org>
+
+	* d-attribs.cc (d_langhook_gnu_attributes): Add no_split_stack
+	attribute.
+	(d_handle_no_split_stack_attribute): New function.
+
+2026-04-18  Iain Buclaw  <ibuclaw@gdcproject.org>
+
+	PR d/124922
+	* d-codegen.cc (build_trap_call): New function.
+	(build_array_bounds_call): Use it.
+	(build_bounds_index_condition): Likewise.
+	(build_bounds_slice_condition): Likewise.
+	(d_build_call): Likewise.
+	* expr.cc (ExprVisitor::visit (HaltExp *)): Likewise.
+	(ExprVisitor::visit (AssertExp *)): Likewise.  Return zero instead of
+	void_node when assert contracts are disabled.
+	* d-tree.h (build_trap_call): New prototype.
+
 2026-04-14  Iain Buclaw  <ibuclaw@gdcproject.org>
 
 	* dmd/MERGE: Merge upstream dmd e145b91245.

@@ -129,6 +129,7 @@ bits_freestanding = \
 	${bits_srcdir}/alloc_traits.h \
 	${bits_srcdir}/atomic_base.h \
 	${bits_srcdir}/c++0x_warning.h \
+	${bits_srcdir}/binders.h \
 	${bits_srcdir}/boost_concept_check.h \
 	${bits_srcdir}/concept_check.h \
 	${bits_srcdir}/char_traits.h \
@@ -201,7 +202,6 @@ bits_headers = \
 	${bits_srcdir}/basic_ios.tcc \
 	${bits_srcdir}/basic_string.h \
 	${bits_srcdir}/basic_string.tcc \
-	${bits_srcdir}/binders.h \
 	${bits_srcdir}/charconv.h \
 	${bits_srcdir}/chrono.h \
 	${bits_srcdir}/chrono_io.h \
@@ -244,7 +244,9 @@ bits_headers = \
 	${bits_srcdir}/node_handle.h \
 	${bits_srcdir}/ostream.tcc \
 	${bits_srcdir}/ostream_insert.h \
+	${bits_srcdir}/ostream_print.h \
 	${bits_srcdir}/postypes.h \
+	${bits_srcdir}/print.h \
 	${bits_srcdir}/quoted_string.h \
 	${bits_srcdir}/random.h \
 	${bits_srcdir}/random.tcc \

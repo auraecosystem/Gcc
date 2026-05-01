@@ -1,3 +1,47 @@
+2026-04-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/125044
+	* sem_disp.adb (Check_Controlling_Formals): Apply the same massaging
+	to the result subtype as to the parameter subtypes.
+
+2026-04-30  Release Manager
+
+	* GCC 16.1.0 released.
+
+2026-04-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/124918
+	* gcc-interface/Makefile.in (TOOLS1_LIBS): Restore.
+	(../../gnatmake$(exeext)): Link with $(TOOLS1_LIBS).
+	(../../gnatlink$(exeext)): Likewise.
+
+2026-04-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/124918
+	* gcc-interface/Makefile.in (TGT_LIB): Move up.
+	(LIBBACKTRACE): Likewise.
+	(LIBIBERTY): Likewise.
+	(LIBGNAT): Likewise.
+	(LIBS): Likewise.
+	(TOOLS_LIBS): Use $(LIBS).
+	(TOOLS1_LIBS): Delete.
+	(../../gnatmake$(exeext)): Do not link with $(TOOLS1_LIBS).
+	(../../gnatlink$(exeext)): Likewise.
+
+2026-04-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/107392
+	* sem_res.adb: Add clauses for Ttypes.
+	(Resolve.Patch_Up_Value): Do not try to convert real literals that
+	do not fit in Universal_Integer.
+
+2026-04-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/107391
+	* urealp.adb (Decimal_Exponent_Hi): Check that the denominator is
+	in range before invoking UI_To_Int on it, and cope with failure.
+	(Decimal_Exponent_Lo): Likewise.
+
 2026-04-15  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR ada/105212

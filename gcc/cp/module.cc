@@ -2970,6 +2970,8 @@ static char const *const merge_kind_name[MK_hwm] =
 struct merge_key {
   cp_ref_qualifier ref_q : 2;
   unsigned coro_disc : 2;  /* Discriminator for coroutine transforms.  */
+  unsigned iobj_p : 1;
+  unsigned xobj_p : 1;
   unsigned index;
 
   tree ret;  /* Return type, if appropriate.  */
@@ -2978,7 +2980,7 @@ struct merge_key {
   tree constraints;  /* Constraints.  */
 
   merge_key ()
-    :ref_q (REF_QUAL_NONE), coro_disc (0), index (0),
+    :ref_q (REF_QUAL_NONE), coro_disc (0), iobj_p (0), xobj_p (0), index (0),
      ret (NULL_TREE), args (NULL_TREE),
      constraints (NULL_TREE)
   {
@@ -6872,6 +6874,8 @@ trees_out::core_vals (tree t)
 
     case PTRMEM_CST:
       WT (((lang_tree_node *)t)->ptrmem.member);
+      if (state)
+	state->write_location (*this, ((lang_tree_node *)t)->ptrmem.locus);
       break;
 
     case STATIC_ASSERT:
@@ -6933,6 +6937,9 @@ trees_out::core_vals (tree t)
     case TRAIT_EXPR:
       WT (((lang_tree_node *)t)->trait_expression.type1);
       WT (((lang_tree_node *)t)->trait_expression.type2);
+      if (state)
+	state->write_location
+	  (*this, ((lang_tree_node *)t)->trait_expression.locus);
       if (streaming_p ())
 	WU (((lang_tree_node *)t)->trait_expression.kind);
       break;
@@ -7443,7 +7450,8 @@ trees_in::core_vals (tree t)
       break;
 
     case PTRMEM_CST:
-      RT (((lang_tree_node *)t)->ptrmem.member);
+      RTU (((lang_tree_node *)t)->ptrmem.member);
+      ((lang_tree_node *)t)->ptrmem.locus = state->read_location (*this);
       break;
 
     case STATIC_ASSERT:
@@ -7493,6 +7501,8 @@ trees_in::core_vals (tree t)
     case TRAIT_EXPR:
       RT (((lang_tree_node *)t)->trait_expression.type1);
       RT (((lang_tree_node *)t)->trait_expression.type2);
+      ((lang_tree_node *)t)->trait_expression.locus
+	= state->read_location (*this);
       RUC (cp_trait_kind, ((lang_tree_node *)t)->trait_expression.kind);
       break;
 
@@ -10864,6 +10874,7 @@ trees_in::tree_node (bool is_use)
 	    int tag = insert (res);
 	    dump (dumper::TREE)
 	      && dump ("Created nttp object:%d %N", tag, name);
+	    vec_safe_push (post_load_decls, res);
 	  }
       }
       break;
@@ -11889,6 +11900,8 @@ trees_out::key_mergeable (int tag, merge_kind mk, tree decl, tree inner,
 
 	      key.ref_q = type_memfn_rqual (fn_type);
 	      key.coro_disc = get_coroutine_discriminator (inner);
+	      key.iobj_p = DECL_IOBJ_MEMBER_FUNCTION_P (inner);
+	      key.xobj_p = DECL_XOBJ_MEMBER_FUNCTION_P (inner);
 	      key.args = TYPE_ARG_TYPES (fn_type);
 
 	      if (tree reqs = get_constraints (inner))
@@ -12026,11 +12039,13 @@ trees_out::key_mergeable (int tag, merge_kind mk, tree decl, tree inner,
       if (streaming_p ())
 	{
 	  /* Check we have enough bits for the index.  */
-	  gcc_checking_assert (key.index < (1u << (sizeof (unsigned) * 8 - 4)));
+	  gcc_checking_assert (key.index < (1u << (sizeof (unsigned) * 8 - 6)));
 
 	  unsigned code = ((key.ref_q << 0)
 			   | (key.coro_disc << 2)
-			   | (key.index << 4));
+			   | (key.iobj_p << 4)
+			   | (key.xobj_p << 5)
+			   | (key.index << 6));
 	  u (code);
 	}
 
@@ -12109,6 +12124,8 @@ check_mergeable_decl (merge_kind mk, tree decl, tree ovl, merge_key const &key)
 	    if ((!key.ret
 		 || same_type_p (key.ret, fndecl_declared_return_type (m_inner)))
 		&& type_memfn_rqual (m_type) == key.ref_q
+		&& key.iobj_p == DECL_IOBJ_MEMBER_FUNCTION_P (m_inner)
+		&& key.xobj_p == DECL_XOBJ_MEMBER_FUNCTION_P (m_inner)
 		&& compparms (key.args, TYPE_ARG_TYPES (m_type))
 		&& get_coroutine_discriminator (m_inner) == key.coro_disc
 		/* Reject if old is a "C" builtin and new is not "C".
@@ -12149,6 +12166,20 @@ check_mergeable_decl (merge_kind mk, tree decl, tree ovl, merge_key const &key)
 		       && (TYPE_NAME (ENUM_UNDERLYING_TYPE (TREE_TYPE (m_inner)))
 			   == key.ret))
 		found = match;
+	    }
+	  /* With -freflection, typedef struct { } A is now represented the same
+	     as typedef struct A_ { } A except the TYPE_DECL for A_ is invisible
+	     to name lookup, so we won't be able to find and match it directly.
+	     But we will find the in-TU A (m_inner), through which we can obtain
+	     the in-TU A_ when d_inner is the streamed-in A_.  */
+	  else if (flag_reflection
+		   && TYPE_DECL_WAS_UNNAMED (d_inner)
+		   && DECL_ORIGINAL_TYPE (m_inner))
+	    {
+	      tree orig = TYPE_NAME (DECL_ORIGINAL_TYPE (m_inner));
+	      if (TYPE_DECL_WAS_UNNAMED (orig)
+		  && DECL_NAME (orig) == DECL_NAME (d_inner))
+		found = orig;
 	    }
 	  break;
 
@@ -12234,7 +12265,9 @@ trees_in::key_mergeable (int tag, merge_kind mk, tree decl, tree inner,
       unsigned code = u ();
       key.ref_q = cp_ref_qualifier ((code >> 0) & 3);
       key.coro_disc = (code >> 2) & 3;
-      key.index = code >> 4;
+      key.iobj_p = (code >> 4) & 1;
+      key.xobj_p = (code >> 5) & 1;
+      key.index = code >> 6;
 
       if (mk == MK_enum)
 	key.ret = tree_node ();
@@ -20510,6 +20543,17 @@ post_load_processing ()
 
       dump () && dump ("Post-load processing of %N", decl);
 
+      if (VAR_P (decl) && DECL_NTTP_OBJECT_P (decl))
+	{
+	  if (!DECL_SIZE (decl))
+	    {
+	      push_to_top_level ();
+	      cp_finish_decl (decl, DECL_INITIAL (decl), false, NULL_TREE, 0);
+	      pop_from_top_level ();
+	    }
+	  continue;
+	}
+
       gcc_checking_assert (DECL_MAYBE_IN_CHARGE_CDTOR_P (decl));
       expand_or_defer_fn (decl);
       /* As in module_state::read_cluster.  */
@@ -23131,13 +23175,22 @@ maybe_translate_include (cpp_reader *reader, line_maps *lmaps, location_t loc,
       /* Redirect importable <name> to <bits/stdc++.h>.  */
       /* ??? Generalize to use a .json.  */
       expanded_location eloc = expand_location (loc);
+      auto indir = [](const char *f, const char *d)
+      {
+	if (!filename_ncmp (f, d, strlen (d))) return true;
+	/* Also check canonical paths (c++/123879).  */
+	auto cf = lrealpath (f); auto cd = lrealpath (d);
+	bool r = cf && cd && !filename_ncmp (cf, cd, strlen (cd));
+	free (cf); free (cd);
+	return r;
+      };
       if (angle && is_importable_header (fname)
 	  /* Exclude <version> which often goes with import std.  */
 	  && strcmp (fname, "version") != 0
 	  /* Don't redirect #includes between headers under the same include
 	     path directory (i.e. between library headers); if the import
 	     brings in the current file we then get redefinition errors.  */
-	  && !strstr (eloc.file, _cpp_get_file_dir (file)->name)
+	  && !indir (eloc.file, _cpp_get_file_dir (file)->name)
 	  /* ??? These are needed when running a toolchain from the build
 	     directory, because libsupc++ headers aren't linked into
 	     libstdc++-v3/include with the other headers.  */

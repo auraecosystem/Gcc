@@ -1,3 +1,32 @@
+2026-04-30  Release Manager
+
+	* GCC 16.1.0 released.
+
+2026-04-21  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/117077
+	* trans-expr.cc (gfc_trans_scalar_assign): If the lhs and rhs
+	TYPE_MAIN_VARIANTs are not the same, convert the rhs to the lhs
+	type via a VIEW_CONVERT_EXPR.
+
+2026-04-19  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* invoke.texi (fc-prototypes): Correct spelling for opindex.
+	(fc-prototypes-external): Likewise.
+	* lang.opt.urls: Regenerate.
+
+2026-04-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/120140
+	* resolve.cc (resolve_elemental_dependencies): New function,
+	preceded by prototype for add_temp_assign_before_call.
+	(resolve_call): If an elemental subroutine call has at least
+	two actual erguments, call resolve_elemental_dependencies to
+	generate temporary expressions for the arguments if required.
+	(get_temp_from_expr): Add optional boolean argument, which if
+	set, makes the resulting temporary unconditionally allocatable.
+	(add_temp_assign_before_call): New function.
+
 2026-04-14  Harald Anlauf  <anlauf@gmx.de>
 
 	PR fortran/124807
