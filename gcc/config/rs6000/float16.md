@@ -486,7 +486,7 @@
 (define_expand "float<GPR:mode><FP16_HW:mode>2"
   [(set (match_operand:FP16_HW 0 "vsx_register_operand")
 	(float:FP16_HW
-	 (match_operand:GPR 1 "nonimmediate_operand")))]
+	 (match_operand:GPR 1 "vsx_register_operand")))]
   ""
 {
   rtx df_tmp = gen_reg_rtx (DFmode);
@@ -498,7 +498,7 @@
 (define_expand "floatuns<GPR:mode><FP16_HW:mode>2"
   [(set (match_operand:FP16_HW 0 "vsx_register_operand")
 	(unsigned_float:FP16_HW
-	 (match_operand:GPR 1 "nonimmediate_operand")))]
+	 (match_operand:GPR 1 "vsx_register_operand")))]
   ""
 {
   rtx df_tmp = gen_reg_rtx (DFmode);
