@@ -7183,8 +7183,7 @@ rs6000_expand_vector_init (rtx target, rtx vals)
       return;
     }
 
-  if (TARGET_DIRECT_MOVE
-      && (mode == V16QImode || mode == V8HImode || FP16_VECTOR_MODE_P (mode)))
+  if (TARGET_DIRECT_MOVE && (mode == V16QImode || mode == V8HImode))
     {
       rtx op[16];
       /* Force the values into word_mode registers.  */
