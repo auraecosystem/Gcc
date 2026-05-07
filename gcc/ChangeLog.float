@@ -1,3 +1,14 @@
+==================== Branch work245-float, patch #411 ====================
+
+Fix vector init bug with V8HFmode and V8BFmode.
+
+2026-05-07  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.cc (rs6000_expand_vector_init): Do not treat
+	V8HFmode and V8BFmode like V8HImode if the values are registers.
+
 ==================== Branch work245-float, patch #410 ====================
 
 Add _Float16 and __bfloat16 tests.
