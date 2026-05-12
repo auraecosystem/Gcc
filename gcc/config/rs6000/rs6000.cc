@@ -14832,6 +14832,12 @@ print_operand (FILE *file, rtx x, int code)
 				"local dynamic TLS references");
       return;
 
+      /* Print out 'dm' if dense math registers are available.  */
+    case '!':
+      if (TARGET_DENSE_MATH)
+	fputs ("dm", file);
+      return;
+
     default:
       output_operand_lossage ("invalid %%xn code");
     }
