@@ -1,17 +1,3 @@
-==================== Branch work246-sha, patch #311 ====================
-
-Add xvrlw test.
-
-This patch adds support for a possible new variant of the vector rotate left
-instruction that might be added to a future PowerPC.  This variant (xvrlw) can
-use any VSX register instead of requiring only Altivec registers.
-
-2026-05-07  Michael Meissner  <meissner@linux.ibm.com>
-
-gcc/testsuite/
-
-	* gcc.target/powerpc/vector-rotate-left.c: New test.
-
 ==================== Branch work246-sha, patch #310 ====================
 
 Add xvrlw support.
