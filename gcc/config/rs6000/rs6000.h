@@ -570,9 +570,6 @@ extern int rs6000_vector_align[];
 /* Whether we have XVRLW support.  */
 #define TARGET_XVRLW			TARGET_FUTURE
 
-/* Whether we have PADDIS support.  */
-#define TARGET_PADDIS			(TARGET_FUTURE && TARGET_POWERPC64)
-
 /* Whether the various reciprocal divide/square root estimate instructions
    exist, and whether we should automatically generate code for the instruction
    by default.  */
