@@ -5,16 +5,16 @@ Add paddis support.
 This patch adds support for the paddis instruction that might be added to a
 future PowerPC processor.
 
-2026-05-12  Michael Meissner  <meissner@linux.ibm.com>
+2026-05-15  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
 	* config/rs6000/constraints.md (eU): New constraint.
-	(eV): Likewise.
 	* config/rs6000/predicates.md (paddis_operand): New predicate.
 	(paddis_paddi_operand): Likewise.
-	(add_operand): Add paddis support.
-	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Add paddis support.
+	(add_cint_operand): Add paddis support.
+	(add_operand): Likewise.
+	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Likewise.
 	(num_insns_constant_multi): Likewise.
 	(print_operand): Add %B<n> for paddis support.
 	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
@@ -25,10 +25,13 @@ gcc/
 	(adddi3 splitter): New splitter for paddis.
 	(movdi_internal64): Add paddis support.
 	(movdi splitter): New splitter for paddis.
+	* doc/md.texi (PowerPC constraints): Add eU documentation.
 
 gcc/testsuite/
 
 	* gcc.target/powerpc/prefixed-addis.c: New test.
+
+==================== Branch work246-dmf, patch #114 was reverted ====================
 
 ==================== Branch work246-dmf, patch #113 ====================
 
