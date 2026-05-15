@@ -74,6 +74,19 @@ init_reflection ()
   pop_namespace ();
 }
 
+/* Ensure the type of DECL is fully resolved by performing return
+   type deduction and deferred noexcept instantiation.  */
+
+static void
+resolve_type_of_reflected_decl (tree decl)
+{
+  /* Quietly calling mark_used in an unevaluated context will perform
+     all necessary checks and instantiations while suppressing constraint
+     unsatisfaction and deletedness diagnostics.  */
+  cp_unevaluated u;
+  mark_used (decl, tf_none);
+}
+
 /* Create a REFLECT_EXPR expression of kind KIND around T.  */
 
 static tree
@@ -210,8 +223,7 @@ get_reflection (location_t loc, tree t, reflect_kind kind/*=REFLECT_UNDEF*/)
       t = resolve_nondeduced_context_or_error (t, tf_warning_or_error);
       /* The argument could have a deduced return type, so we need to
 	 instantiate it now to find out its type.  */
-      if (!mark_used (t))
-	return error_mark_node;
+      resolve_type_of_reflected_decl (t);
       /* Avoid -Wunused-but-set* warnings when a variable or parameter
 	 is just set and reflected.  */
       if (VAR_P (t) || TREE_CODE (t) == PARM_DECL)
@@ -2539,6 +2551,7 @@ has_type (tree r, reflect_kind kind)
     {
       if (DECL_CONSTRUCTOR_P (r) || DECL_DESTRUCTOR_P (r))
 	return false;
+      resolve_type_of_reflected_decl (r);
       if (undeduced_auto_decl (r))
 	return false;
       return true;
@@ -5537,6 +5550,8 @@ eval_can_substitute (location_t loc, const constexpr_ctx *ctx,
       if (fn == error_mark_node)
 	return boolean_false_node;
       fn = resolve_nondeduced_context_or_error (fn, tf_none);
+      fn = MAYBE_BASELINK_FUNCTIONS (fn);
+      resolve_type_of_reflected_decl (fn);
       if (fn == error_mark_node || undeduced_auto_decl (fn))
 	return boolean_false_node;
       return boolean_true_node;
@@ -6764,8 +6779,12 @@ members_of_representable_p (tree c, tree r)
 	  || TREE_CODE (r) == FIELD_DECL
 	  || TREE_CODE (r) == NAMESPACE_DECL)
 	return true;
-      if (VAR_OR_FUNCTION_DECL_P (r) && !undeduced_auto_decl (r))
-	return true;
+      if (VAR_OR_FUNCTION_DECL_P (r))
+	{
+	  resolve_type_of_reflected_decl (r);
+	  if (!undeduced_auto_decl (r))
+	    return true;
+	}
     }
   return false;
 }
@@ -7458,6 +7477,10 @@ extract_ref (location_t loc, const constexpr_ctx *ctx, tree T, tree r,
     {
       if (TYPE_REF_P (type))
 	type = TREE_TYPE (type);
+      if (FUNC_OR_METHOD_TYPE_P (type)
+	  || (TREE_CODE (type) == ARRAY_TYPE
+	      && TYPE_DOMAIN (type) == NULL_TREE))
+	return error_mark_node;
       type = build_cplus_array_type (type, NULL_TREE);
       return build_pointer_type (type);
     };
@@ -7467,7 +7490,11 @@ extract_ref (location_t loc, const constexpr_ctx *ctx, tree T, tree r,
     {
       /* The wording is saying that U is the type of r.  */
       tree U = TREE_TYPE (r);
-      if (is_convertible (adjust_type (U), adjust_type (T))
+      tree adju = adjust_type (U);
+      tree adjt = adjust_type (T);
+      if (adju != error_mark_node
+	  && adjt != error_mark_node
+	  && is_convertible (adju, adjt)
 	  && (!var_p || is_constant_expression (r)))
 	{
 	  if (TYPE_REF_P (TREE_TYPE (r)))
@@ -8566,47 +8593,26 @@ splice (tree refl)
   return refl;
 }
 
-/* A walker for consteval_only_p.  It cannot be a lambda, because we
-   have to call this recursively, sigh.  */
+/* A cache of the known boolean result of consteval_only_p_walker::walk
+   for class types.  */
 
-static tree
-consteval_only_type_r (tree *tp, int *walk_subtrees, void *data)
+static GTY((cache)) type_tree_cache_map *consteval_only_class_cache;
+
+struct consteval_only_p_walker
 {
-  tree t = *tp;
-  /* Types can contain themselves recursively, hence this.  */
-  auto visited = static_cast<hash_set<tree> *>(data);
+  /* The set of class types we've seen.  */
+  hash_set<tree> class_seen;
+  /* The number of class types we're recursively inside.  */
+  int class_depth = 0;
+  /* True if we've optimistically assumed an already-seen
+     consteval-unknown class type is not consteval.  */
+  bool optimistic_p = false;
 
-  if (!TYPE_P (t))
-    return NULL_TREE;
+  tristate walk (tree);
+};
 
-  if (REFLECTION_TYPE_P (t))
-    return t;
-
-  if (typedef_variant_p (t))
-    /* Tell cp_walk_subtrees to look through typedefs.  */
-    *walk_subtrees = 2;
-
-  if (RECORD_OR_UNION_TYPE_P (t))
-    {
-      /* Don't walk template arguments; A<info>::type isn't a consteval-only
-	 type.  */
-      *walk_subtrees = 0;
-      /* So we have to walk the fields manually.  */
-      for (tree member = TYPE_FIELDS (t);
-	   member; member = DECL_CHAIN (member))
-	if (TREE_CODE (member) == FIELD_DECL)
-	  if (tree r = cp_walk_tree (&TREE_TYPE (member),
-				     consteval_only_type_r, visited, visited))
-	    return r;
-    }
-
-  return NULL_TREE;
-}
-
-/* True if T is a consteval-only type as per [basic.types.general]:
-   "A type is consteval-only if it is either std::meta::info or a type
-   compounded from a consteval-only type", or something that has
-   a consteval-only type.  */
+/* True if T is a consteval-only type as per [basic.types.general]/12,
+   or is a declaration with such a type, or a TREE_VEC thereof.  */
 
 bool
 consteval_only_p (tree t)
@@ -8617,7 +8623,7 @@ consteval_only_p (tree t)
   if (!TYPE_P (t))
     t = TREE_TYPE (t);
 
-  if (!t)
+  if (!t || t == error_mark_node)
     return false;
 
   if (TREE_CODE (t) == TREE_VEC)
@@ -8632,16 +8638,86 @@ consteval_only_p (tree t)
   if (dependent_type_p (t))
     return false;
 
-  /* We need the complete type otherwise we'd have no fields for class
-     templates and thus come up with zilch for things like
-       template<typename T>
-       struct X : T { };
-     which could be consteval-only, depending on T.  */
-  t = complete_type (t);
+  consteval_only_p_walker walker;
+  return walker.walk (t).is_true ();
+}
 
-  /* Classes with std::meta::info members are also consteval-only.  */
-  hash_set<tree> visited;
-  return !!cp_walk_tree (&t, consteval_only_type_r, &visited, &visited);
+/* Recursive workhorse of consteval_only_p.  Returns true if T is definitely
+   consteval-only, false if it's definitely not, and unknown if we saw an
+   incomplete type and therefore don't know.  */
+
+tristate
+consteval_only_p_walker::walk (tree t)
+{
+  if (t == error_mark_node)
+    return false;
+
+  t = TYPE_MAIN_VARIANT (t);
+
+  if (REFLECTION_TYPE_P (t))
+    return true;
+  else if (INDIRECT_TYPE_P (t))
+    return walk (TREE_TYPE (t));
+  else if (TREE_CODE (t) == ARRAY_TYPE)
+    return walk (TREE_TYPE (t));
+  else if (FUNC_OR_METHOD_TYPE_P (t))
+    {
+      tristate r = walk (TREE_TYPE (t));
+      for (tree parm = TYPE_ARG_TYPES (t);
+	   parm != NULL_TREE && parm != void_list_node;
+	   parm = TREE_CHAIN (parm))
+	{
+	  if (r.is_true ())
+	    break;
+	  r = r || walk (TREE_VALUE (parm));
+	}
+      return r;
+    }
+  else if (RECORD_OR_UNION_TYPE_P (t))
+    {
+      if (tree *slot = hash_map_safe_get (consteval_only_class_cache, t))
+	return *slot == boolean_true_node;
+
+      if (!COMPLETE_TYPE_P (t) && LAMBDA_TYPE_P (t))
+	/* Defer until we've definitely gone through prune_lambda_captures.  */
+	return tristate::unknown ();
+
+      if (class_seen.add (t))
+	{
+	  /* Optimistically assume this already seen consteval-unknown class is
+	     not consteval-only, for sake of mutually recursive classes.  */
+	  optimistic_p = true;
+	  return false;
+	}
+      ++class_depth;
+
+      tristate r = COMPLETE_TYPE_P (t) ? false : tristate::unknown ();
+      for (tree member = TYPE_FIELDS (t); member; member = DECL_CHAIN (member))
+	if (TREE_CODE (member) == FIELD_DECL)
+	  {
+	    r = r || walk (TREE_TYPE (member));
+	    if (r.is_true ())
+	      break;
+	  }
+
+      if (r.is_true ())
+	hash_map_safe_put<hm_ggc> (consteval_only_class_cache,
+				   t, boolean_true_node);
+      else if (r.is_false ()
+	       /* The optimistic assumption above is at odds with caching
+		  'false' results for a nested class type.  */
+	       && (class_depth == 1 || !optimistic_p))
+	hash_map_safe_put<hm_ggc> (consteval_only_class_cache,
+				   t, boolean_false_node);
+
+      --class_depth;
+      return r;
+    }
+  else if (TYPE_PTRMEM_P (t))
+    return (walk (TYPE_PTRMEM_CLASS_TYPE (t))
+	    || walk (TYPE_PTRMEM_POINTED_TO_TYPE (t)));
+  else
+    return false;
 }
 
 /* A walker for check_out_of_consteval_use_r.  It cannot be a lambda, because
@@ -8660,6 +8736,8 @@ check_out_of_consteval_use_r (tree *tp, int *walk_subtrees, void *pset)
       || TREE_CODE (t) == INIT_EXPR
       /* And don't recurse on DECL_EXPRs.  */
       || TREE_CODE (t) == DECL_EXPR
+      /* Neither into USING_STMT.  */
+      || TREE_CODE (t) == USING_STMT
       /* Blocks can appear in the TREE_VEC operand of OpenMP
 	 depend/affinity/map/to/from OMP_CLAUSEs when using iterators.  */
       || TREE_CODE (t) == BLOCK)
@@ -8881,9 +8959,12 @@ compare_reflections (tree lhs, tree rhs)
     return lhs == rhs;
   else if (TYPE_P (lhs) && TYPE_P (rhs))
     {
-      /* Given "using A = int;", "^^int != ^^A" should hold.  */
-      if (typedef_variant_p (lhs) != typedef_variant_p (rhs))
-	return false;
+      /* Given
+	  using A = int;
+	  using B = int;
+	 ^^int != ^^A and ^^A != ^^B.  */
+      if (typedef_variant_p (lhs) || typedef_variant_p (rhs))
+	return lhs == rhs;
       /* This is for comparing function types.  E.g.,
 	  auto fn() -> int; type_of(^^fn) == ^^auto()->int;  */
       return same_type_p (lhs, rhs);

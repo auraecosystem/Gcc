@@ -12542,8 +12542,13 @@ trees_in::check_abi_tags (tree existing, tree decl, tree &eattr, tree &dattr)
       if (dtags)
 	dtags = TREE_VALUE (dtags);
 
-      /* We only error if mangling wouldn't consider the tags equivalent.  */
-      if (!equal_abi_tags (etags, dtags))
+      /* We only error if mangling wouldn't consider the tags equivalent.
+	 Since tags might have been inherited during mangling, ignore
+	 inherited tags if there's a mangled-ness mismatch.  */
+      bool ignore_inherited_p
+	= (DECL_ASSEMBLER_NAME_SET_P (STRIP_TEMPLATE (existing))
+	   != DECL_ASSEMBLER_NAME_SET_P (STRIP_TEMPLATE (decl)));
+      if (!equal_abi_tags (etags, dtags, ignore_inherited_p))
 	{
 	  auto_diagnostic_group d;
 	  if (dtags)
@@ -12621,7 +12626,7 @@ trees_in::is_matching_decl (tree existing, tree decl, bool is_typedef)
 	  goto mismatch;
 	}
 
-      tree e_type = TREE_TYPE (e_inner);
+      tree& e_type = TREE_TYPE (e_inner);
       tree d_type = TREE_TYPE (d_inner);
 
       for (tree e_args = TYPE_ARG_TYPES (e_type),
@@ -12660,18 +12665,13 @@ trees_in::is_matching_decl (tree existing, tree decl, bool is_typedef)
 	      dump (dumper::MERGE)
 		&& dump ("Propagating instantiated noexcept to %N", existing);
 	      gcc_checking_assert (existing == e_inner);
-	      TREE_TYPE (existing) = d_type;
+	      e_type = build_exception_variant (e_type, d_spec);
 
 	      /* Propagate to existing clones.  */
 	      tree clone;
 	      FOR_EACH_CLONE (clone, existing)
-		{
-		  if (TREE_TYPE (clone) == e_type)
-		    TREE_TYPE (clone) = d_type;
-		  else
-		    TREE_TYPE (clone)
-		      = build_exception_variant (TREE_TYPE (clone), d_spec);
-		}
+		TREE_TYPE (clone)
+		  = build_exception_variant (TREE_TYPE (clone), d_spec);
 	    }
 	}
       else if (!DECL_MAYBE_DELETED (d_inner)
@@ -12694,7 +12694,7 @@ trees_in::is_matching_decl (tree existing, tree decl, bool is_typedef)
 	  gcc_checking_assert (existing == e_inner);
 	  FNDECL_USED_AUTO (existing) = true;
 	  DECL_SAVED_AUTO_RETURN_TYPE (existing) = TREE_TYPE (e_type);
-	  TREE_TYPE (existing) = change_return_type (TREE_TYPE (d_type), e_type);
+	  e_type = change_return_type (TREE_TYPE (d_type), e_type);
 	}
       else if (d_undeduced && !e_undeduced)
 	/* EXISTING was deduced, leave it alone.  */;
@@ -13735,9 +13735,8 @@ trees_in::read_class_def (tree defn, tree maybe_template)
 		{
 		  CLASSTYPE_BEFRIENDING_CLASSES (type_dup)
 		    = CLASSTYPE_BEFRIENDING_CLASSES (type);
-		  if (!ANON_AGGR_TYPE_P (type))
-		    CLASSTYPE_TYPEINFO_VAR (type_dup)
-		      = CLASSTYPE_TYPEINFO_VAR (type);
+		  SET_CLASSTYPE_TYPEINFO_VAR (type_dup,
+					      CLASSTYPE_TYPEINFO_VAR (type));
 		}
 	      for (tree v = type; v; v = TYPE_NEXT_VARIANT (v))
 		TYPE_LANG_SPECIFIC (v) = ls;
@@ -13778,7 +13777,7 @@ trees_in::read_class_def (tree defn, tree maybe_template)
 		       to the as-base FIELD_DECL copy.  */
 		    gcc_checking_assert (ANON_AGGR_TYPE_FIELD (anon_type));
 		  else
-		    ANON_AGGR_TYPE_FIELD (anon_type) = decl;
+		    SET_ANON_AGGR_TYPE_FIELD (anon_type, decl);
 		}
 
 	      if (TREE_CODE (decl) == USING_DECL

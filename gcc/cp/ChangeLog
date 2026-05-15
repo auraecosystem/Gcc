@@ -1,3 +1,193 @@
+2026-05-14  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/125184
+	* reflect.cc (check_out_of_consteval_use_r): Don't walk children of
+	USING_STMTs.
+
+2026-05-14  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/125111
+	* reflect.cc (extract_ref): Throw instead of trying to build
+	arrays of functions, methods or arrays with NULL TYPE_DOMAIN.
+
+2026-05-14  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/124991
+	* cp-tree.h (struct lang_type): Document typeinfo_var member.
+	(get_classtype_typeinfo_var): New inline function.
+	(CLASSTYPE_TYPEINFO_VAR): Use it.
+	(set_classtype_typeinfo_var): New inline function.
+	(SET_CLASSTYPE_TYPEINFO_VAR): Define.
+	(get_anon_aggr_type_field): New inline function.
+	(ANON_AGGR_TYPE_FIELD): Use it.
+	(set_anon_aggr_type_field): New inline function.
+	(SET_ANON_AGGR_TYPE_FIELD): Define.
+	* decl.cc (fixup_anonymous_aggr): Use SET_ANON_AGGR_TYPE_FIELD
+	instead of ANON_AGGR_TYPE_FIELD.
+	* module.cc (trees_in::read_class_def): Use
+	SET_CLASSTYPE_TYPEINFO_VAR instead of setting
+	CLASSTYPE_TYPEINFO_VAR and do it even for ANON_AGGR_TYPE_P
+	types.  Use SET_ANON_AGGR_TYPE_FIELD instead of setting
+	ANON_AGGR_TYPE_FIELD.
+	* rtti.cc (get_tinfo_decl_direct): Use SET_CLASSTYPE_TYPEINFO_VAR
+	instead of setting CLASSTYPE_TYPEINFO_VAR.
+	* semantics.cc (finish_member_declaration): Use
+	SET_ANON_AGGR_TYPE_FIELD instead of setting ANON_AGGR_TYPE_FIELD.
+
+2026-05-13  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-05-13  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/125280
+	* reflect.cc (consteval_only_p): Don't complete_type.
+	(consteval_only_p_walker::walk): Return false for
+	error_mark_node.
+
+2026-05-12  Jason Merrill  <jason@redhat.com>
+
+	Backported from master:
+	2026-05-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/100903
+	* call.cc (build_over_call): Avoid -Wzero-as-null-pointer-constant
+	if the warning is disabled around the called function.
+
+2026-05-12  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-05-08  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/115181
+	PR c++/125043
+	PR c++/124979
+	* pt.cc (invalid_tparm_referent_p): Allow DECL_IGNORED_P in an
+	assert.
+
+2026-05-12  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-05-12  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/125208
+	* reflect.cc (compare_reflections): Use == when comparing two
+	aliases.
+	* tree.cc (cp_tree_equal) <case REFLECT_EXPR>: Use
+	compare_reflections.
+
+2026-05-07  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-05-07  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124770
+	* decl.cc (wrapup_namespace_globals): Give the odr-used
+	inline variable error only when !DECL_INITIAL.
+
+2026-05-07  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-05-07  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/125206
+	* tree.cc (strip_typedefs_expr) <case REFLECT_EXPR>: Always
+	return instead of recursing.
+
+2026-05-06  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-06  Patrick Palka  <ppalka@redhat.com>
+
+	PR c++/125179
+	* reflect.cc: (consteval_only_type_r): Remove this cp_walk_tree
+	callback and replace with ...
+	(consteval_only_walker): ... this recursive memoized
+	implementation.
+	(consteval_only_p): Define in terms of consteval_only_walker.
+
+2026-05-06  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-05  Patrick Palka  <ppalka@redhat.com>
+
+	PR c++/124957
+	* class.cc (check_tag): Set ABI_TAG_INHERITED on the TREE_LIST
+	of an inherited tag.  Adjust after ABI_TAG_IMPLICIT renaming.
+	* cp-tree.h (ABI_TAG_IMPLICIT): Rename to ...
+	(ABI_TAG_NOT_MANGLED): ... this.
+	(equal_abi_tags): Adjust forward declaration.
+	* mangle.cc (write_unqualified_name): Adjust equal_abi_tags call.
+	(sorted_abi_tags): New ignore_inherited_p parameter, for ignoring
+	ABI_TAG_INHERITED tags.  Adjust after ABI_TAG_INHERITED renaming.
+	(write_abi_tags): Adjust sorted_abi_tags call.
+	(equal_abi_tags): New ignore_inherited_p parameter.  Pass it to
+	sorted_abi_tags.
+	* module.cc (trees_in::check_abi_tags): Pass
+	ignore_inherited_p=true to equal_abi_tags iff there's a
+	mangled-ness mismatch.
+
+2026-05-01  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-01  Patrick Palka  <ppalka@redhat.com>
+
+	PR c++/125115
+	* module.cc (trees_in::is_matching_decl): Turn e_type into a
+	reference and use it instead of TREE_TYPE (e_inner).  Always
+	use build_exception_variant to propagate an already-instantiated
+	noexcept.
+
+2026-05-01  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-04-23  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124926
+	* pt.cc (tsubst_qualified_id): Rename name_lookup_p parameter to
+	reflecting_p.  Check !reflecting_p instead of name_lookup_p.  Do
+	not give the "instantiation yields a type" error when reflecting_p
+	is true.
+	(tsubst_expr) <case REFLECT_EXPR>: Adjust the call to
+	tsubst_qualified_id.
+
+2026-05-01  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-04-23  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124989
+	* pt.cc (tsubst_splice_expr): Turn off access checking for the
+	build_offset_ref call.
+
+2026-05-01  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-04-28  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/124756
+	* reflect.cc (get_reflection): Give an error when taking the
+	reflection of a block-scope extern.
+
+2026-05-01  Marek Polacek  <polacek@redhat.com>
+
+	Backported from master:
+	2026-05-01  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/125096
+	* pt.cc (tsubst_splice_scope): Don't return early for
+	dependent_splice_p.  Propagate cv-qualifiers from the
+	SPLICE_SCOPE to the result.
+	* reflect.cc (valid_splice_scope_p): Accept SPLICE_SCOPE.
+
 2026-04-30  Patrick Palka  <ppalka@redhat.com>
 
 	Backported from master:

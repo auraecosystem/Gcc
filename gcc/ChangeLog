@@ -1,3 +1,232 @@
+2026-05-14  Andi Kleen  <ak@gcc.gnu.org>
+
+	PR target/124316
+	* config/i386/i386.md (ptwrite): Add explicit mode to
+	instruction.
+
+2026-05-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backported from master:
+	2026-05-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/125194
+	* config/avr/avr.cc (avr_no_call_main_p): Remove variable...
+	(avr_file_end): ...and code that uses it.
+	(avr_insert_attributes): Same.  Add "used" to main attributes
+	when -mno-call-main.
+	* config/avr/gen-avr-mmcu-specs.cc (print_mcu): Emit code
+	for link_no_call_main specs.
+	* config/avr/specs.h (LINK_SPEC): Add %(link_no_call_main).
+
+2026-05-13  Xi Ruoyao  <xry111@xry111.site>
+
+	Backported from master:
+	2026-05-08  Xi Ruoyao  <xry111@xry111.site>
+
+	PR target/125049
+	* config/loongarch/predicates.md (ssp_operand): New
+	define_predicate.
+	(ssp_normal_operand): New define_predicate.
+	* config/loongarch/constraints.md (ZE): New define_constraint.
+	(ZF): New define_constraint.
+	* config/loongarch/loongarch.md (UNSPEC_SSP): New unspec.
+	(cbranch4): Add "@" to create gen_cbranch4(machine_mode, ...).
+	(@stack_protect_combined_set_normal_<mode>): New define_insn.
+	(@stack_protect_combined_set_extreme_<mode>): New define_insn.
+	(@stack_protect_combined_test_internal_<mode>): New define_insn.
+	(stack_protect_combined_set): New define_expand.
+	(stack_protect_combined_test): New define_expand.
+	* config/loongarch/loongarch-protos.h
+	(loongarch_output_asm_load_canary): Declare.
+	* config/loongarch/loongarch.cc (loongarch_print_operand): Allow
+	'v' to print d/w for DImode/SImode.
+	(loongarch_output_asm_load_canary): Implement.
+
+2026-05-13  Xi Ruoyao  <xry111@xry111.site>
+
+	Backported from master:
+	2026-05-08  Xi Ruoyao  <xry111@xry111.site>
+
+	* config/loongarch/loongarch.cc (loongarch_print_operand): Print
+	the symbol name for SYMBOL_REF with %c.
+
+2026-05-12  Artemiy Volkov  <artemiy.volkov@arm.com>
+
+	Backported from master:
+	2026-05-12  Artemiy Volkov  <artemiy.volkov@arm.com>
+
+	PR middle-end/125259
+	* match.pd: Fix the view_convert (BIT_FIELD_REF) pattern.
+
+2026-05-11  LIU Hao  <lh_mouse@126.com>
+
+	Backported from master:
+	2026-05-11  LIU Hao  <lh_mouse@126.com>
+
+	PR target/53929
+	* config/mingw/winnt.cc (mingw_pe_file_end): Use `ASM_OUTPUT_LABELREF`
+	to emit `name`.
+
+2026-05-11  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	Backported from master:
+	2026-05-01  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	* config/s390/s390.cc (s390_secondary_reload): Add cases for HF
+	vector modes.
+	* config/s390/s390.md: Add modes V{1,2,4,8}HF to mode iterator
+	ALL.
+
+2026-05-08  Richard Biener  <rguenther@suse.de>
+
+	Backported from master:
+	2026-05-05  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/125185
+	* tree-vect-slp.cc (vect_analyze_slp_reduc_chain): Guard
+	first vect_slp_linearize_chain call.
+
+2026-05-08  Richard Biener  <rguenther@suse.de>
+
+	Revert:
+	2025-04-30  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/120003
+	* tree-ssa-threadbackward.cc (back_threader::find_paths_to_names):
+	Allow block re-use but do not enlarge the path beyond such a
+	re-use.
+
+2026-05-08  Richard Biener  <rguenther@suse.de>
+
+	Backported from master:
+	2026-05-04  Richard Biener  <rguenther@suse.de>
+
+	PR middle-end/125146
+	* gimple-fold.cc (fold_stmt_1): Discard stmts in seq
+	after failed gimple_simplify as well.
+
+2026-05-08  Richard Biener  <rguenther@suse.de>
+
+	Backported from master:
+	2026-04-27  Richard Biener  <rguenther@suse.de>
+
+	PR tree-optimization/125025
+	* tree-ssa-loop-niter.cc (number_of_iterations_ne): Avoid
+	negation of most negative signed integer.
+	(number_of_iterations_lt): Likewise.
+
+2026-05-06  H.J. Lu  <hjl.tools@gmail.com>
+
+	Backported from master:
+	2026-05-05  H.J. Lu  <hjl.tools@gmail.com>
+
+	PR target/120587
+	PR target/125155
+	* config/or1k/or1k.cc (or1k_hard_regno_mode_ok): Allow condition
+	condition flag register in SImode.
+
+2026-05-06  Lulu Cheng  <chenglulu@loongson.cn>
+
+	Backported from master:
+	2026-05-06  Lulu Cheng  <chenglulu@loongson.cn>
+
+	PR target/125057
+	* config/loongarch/loongarch.cc
+	(loongarch_split_vector_move): Complete the split condition.
+	* config/loongarch/loongarch.h (LSX_REG_RTX_P): Delete.
+	(LASX_REG_RTX_P): Delete.
+	(GP_REG_RTX_P): Define macro.
+
+2026-05-06  Richard Biener  <rguenther@suse.de>
+
+	Backported from master:
+	2026-05-06  Richard Biener  <rguenther@suse.de>
+
+	* config/i386/x86-tune.def (avx512_two_epilogues): Enable
+	for m_ZNVER6.
+	(avx512_masked_epilogues): Likewise.
+
+2026-05-05  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-05-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/125180
+	* config/i386/i386.md (HI/SI test -> QI test splitter): Punt if
+	operands[2] is a volatile MEM.
+
+2026-05-04  Nathan Myers  <ncm@cantrip.org>
+
+	Backported from master:
+	2026-05-04  Nathan Myers  <ncm@cantrip.org>
+
+	* doc/invoke.texi: insert "result" in comment text
+
+2026-05-03  Collin Funk  <collin.funk1@gmail.com>
+
+	Backported from master:
+	2026-05-03  Collin Funk  <collin.funk1@gmail.com>
+
+	* glimits.h (__STDC_VERSION_LIMITS_H__): Only define the macro
+	if it was not already defined.
+
+2026-05-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/125079
+	* tree-ssa-strlen.cc (get_string_length): Don't overwrite
+	lenstmt variable with another stmt.
+
+2026-05-01  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	Revert:
+	2026-05-01  Daniel Barboza  <daniel.barboza@oss.qualcomm.com>
+
+	PR rtl-optimization/123967
+	* match.pd(`if (cond) (A | CST1) : (A & ~CST1)`)`: New pattern.
+
+2026-05-01  Daniel Barboza  <daniel.barboza@oss.qualcomm.com>
+
+	PR rtl-optimization/123967
+	* match.pd(`if (cond) (A | CST1) : (A & ~CST1)`)`: New pattern.
+
+2026-05-01  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-05-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/125079
+	* tree-ssa-strlen.cc (get_string_length): Transform
+	__strcat_chk (x, y, z) when we need strlen (x) afterwards into
+	l1 = strlen (x); l = __stpcpy_chk (x + l1, y, z - l1) - x;
+	where l is the strlen (x), instead of using z as last __stpcpy_chk
+	argument.
+
+2026-05-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	Backported from master:
+	2026-05-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	PR target/125117
+	* config/i386/i386-expand.cc (ix86_expand_movmem): Generate
+	last_4x_vec_label when min_size <= 4 * MOVE_MAX.
+
+2026-05-01  Soumya AR  <soumyaa@nvidia.com>
+
+	Backported from master:
+	2026-04-27  Soumya AR  <soumyaa@nvidia.com>
+
+	* config/aarch64/tuning_models/generic.h: Update br_mispredict_factor
+	to 7.
+
+2026-05-01  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	Backported from master:
+	2026-04-25  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	PR target/124984
+	* config/riscv/thead.cc (th_memidx_classify_address_index): Extract
+	constant multiplicand value from the right object.
+
 2026-04-30  Jakub Jelinek  <jakub@redhat.com>
 
 	Backported from master:
