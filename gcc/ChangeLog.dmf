@@ -18,13 +18,14 @@ gcc/
 	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Likewise.
 	(print_operand): Add %B<n> for paddis support.
 	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
+	(SIGNED_INTEGER_64BIT_P): Likewise.
 	* config/rs6000/rs6000.md (isa attribute): Add paddis support.
 	(enabled attribute); Likewise.
 	(add<mode>3): Likewise.
 	(adddi3 splitter): New splitter for paddis.
 	(movdi_internal64): Add paddis support.
 	(movdi splitter): New splitter for paddis.
-	* doc/md.texi (PowerPC constraints): Add eU documentation.
+	* doc/md.texi (PowerPC constraints): Add eU and eV documentation.
 
 gcc/testsuite/
 
