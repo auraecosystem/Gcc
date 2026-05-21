@@ -497,8 +497,8 @@ const char *rs6000_type_string (tree type_node)
     return "__vector_pair";
   else if (type_node == vector_quad_type_node)
     return "__vector_quad";
-  else if (type_node == dm1024_type_node)
-    return "__dm1024";
+  else if (type_node == dmr1024_type_node)
+    return "__dmr1024";
 
   return "unknown";
 }
@@ -789,16 +789,16 @@ rs6000_init_builtins (void)
      1,024, use 512.  TDOmode loads and stores are always broken up into 2
      vector pair loads or stores.  In addition, we don't have support for
      aligning the stack to 1,024 bits.  */
-  dm1024_type_node = make_node (OPAQUE_TYPE);
-  SET_TYPE_MODE (dm1024_type_node, TDOmode);
-  TYPE_SIZE (dm1024_type_node) = bitsize_int (GET_MODE_BITSIZE (TDOmode));
-  TYPE_PRECISION (dm1024_type_node) = GET_MODE_BITSIZE (TDOmode);
-  TYPE_SIZE_UNIT (dm1024_type_node) = size_int (GET_MODE_SIZE (TDOmode));
-  SET_TYPE_ALIGN (dm1024_type_node, 512);
-  TYPE_USER_ALIGN (dm1024_type_node) = 0;
-  lang_hooks.types.register_builtin_type (dm1024_type_node, "__dm1024");
-  t = build_qualified_type (dm1024_type_node, TYPE_QUAL_CONST);
-  ptr_dm1024_type_node = build_pointer_type (t);
+  dmr1024_type_node = make_node (OPAQUE_TYPE);
+  SET_TYPE_MODE (dmr1024_type_node, TDOmode);
+  TYPE_SIZE (dmr1024_type_node) = bitsize_int (GET_MODE_BITSIZE (TDOmode));
+  TYPE_PRECISION (dmr1024_type_node) = GET_MODE_BITSIZE (TDOmode);
+  TYPE_SIZE_UNIT (dmr1024_type_node) = size_int (GET_MODE_SIZE (TDOmode));
+  SET_TYPE_ALIGN (dmr1024_type_node, 512);
+  TYPE_USER_ALIGN (dmr1024_type_node) = 0;
+  lang_hooks.types.register_builtin_type (dmr1024_type_node, "__dmr1024");
+  t = build_qualified_type (dmr1024_type_node, TYPE_QUAL_CONST);
+  ptr_dmr1024_type_node = build_pointer_type (t);
 
   tdecl = add_builtin_type ("__bool char", bool_char_type_node);
   TYPE_NAME (bool_char_type_node) = tdecl;
@@ -1112,7 +1112,7 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
       push_gimplify_context (true);
       tree dst_ptr = gimple_call_arg (stmt, 0);
       tree src_ptr = gimple_call_arg (stmt, 1);
-      tree src_type = build_pointer_type (dm1024_type_node);
+      tree src_type = build_pointer_type (dmr1024_type_node);
 
       if (TREE_TYPE (src_ptr) != src_type)
 	src_ptr = build1 (NOP_EXPR, src_type, src_ptr);
@@ -1295,7 +1295,7 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
   switch (insn_data[rs6000_builtin_info[new_fncode].icode].operand[0].mode)
     {
     case TDOmode:
-      lhs_type = dm1024_type_node;
+      lhs_type = dmr1024_type_node;
       break;
     case XOmode:
       lhs_type = vector_quad_type_node;

@@ -553,7 +553,7 @@ static typemap type_map[] =
     { "pv16qi",		"ptr_V16QI" },
     { "pv1poi",		"ptr_vector_pair" },
     { "pv1pxi",		"ptr_vector_quad" },
-    { "pv1tdoi",	"ptr_dm1024" },
+    { "pv1tdoi",	"ptr_dmr1024" },
     { "pv1ti",		"ptr_V1TI" },
     { "pv2df",		"ptr_V2DF" },
     { "pv2di",		"ptr_V2DI" },
@@ -584,7 +584,7 @@ static typemap type_map[] =
     { "v16qi",		"V16QI" },
     { "v1poi",		"vector_pair" },
     { "v1pxi",		"vector_quad" },
-    { "v1tdoi",		"dm1024" },
+    { "v1tdoi",		"dmr1024" },
     { "v1ti",		"V1TI" },
     { "v2df",		"V2DF" },
     { "v2di",		"V2DI" },
@@ -1070,7 +1070,7 @@ match_type (typeinfo *typedata, int voidok)
        vd	vector double
        v256	__vector_pair
        v512	__vector_quad
-       dm1024  __dmr
+       dmr1024  __dmr
 
      For simplicity, We don't support "short int" and "long long int".
      We don't currently support a <basetype> of "_Float16".  "signed"
@@ -1252,7 +1252,7 @@ match_type (typeinfo *typedata, int voidok)
       handle_pointer (typedata);
       return 1;
     }
-  else if (!strcmp (token, "dm1024"))
+  else if (!strcmp (token, "dmr1024"))
     {
       typedata->isvector = 1;
       typedata->base = BT_DMR;

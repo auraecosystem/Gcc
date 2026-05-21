@@ -1,7 +1,7 @@
 /* { dg-do compile } */
 /* { dg-options "-mdejagnu-cpu=future -O2" } */
 
-/* Test basic load/store for __dm1024 type.  */
+/* Test basic load/store for __dmr1024 type.  */
 
 #ifndef CONSTRAINT
 #if defined(USE_D)
@@ -19,10 +19,10 @@
 #endif
 const char constraint[] = CONSTRAINT;
 
-void foo_mem_asm (__dm1024 *p, __dm1024 *q)
+void foo_mem_asm (__dmr1024 *p, __dmr1024 *q)
 {
   /* 2 LXVP instructions.  */
-  __dm1024 vq = *p;
+  __dmr1024 vq = *p;
 
   /* 2 DMXXINSTDMR512 instructions to transfer VSX to dense math register.  */
   __asm__ ("# foo (" CONSTRAINT ") %A0" : "+" CONSTRAINT (vq));
@@ -32,12 +32,12 @@ void foo_mem_asm (__dm1024 *p, __dm1024 *q)
   *q = vq;
 }
 
-void foo_mem_asm2 (__dm1024 *p, __dm1024 *q)
+void foo_mem_asm2 (__dmr1024 *p, __dmr1024 *q)
 {
   /* 2 LXVP instructions.  */
-  __dm1024 vq = *p;
-  __dm1024 vq2;
-  __dm1024 vq3;
+  __dmr1024 vq = *p;
+  __dmr1024 vq2;
+  __dmr1024 vq3;
 
   /* 2 DMXXINSTDMR512 instructions to transfer VSX to dense math register.  */
   __asm__ ("# foo1 (" CONSTRAINT ") %A0" : "+" CONSTRAINT (vq));
@@ -50,7 +50,7 @@ void foo_mem_asm2 (__dm1024 *p, __dm1024 *q)
   *q = vq2;
 }
 
-void foo_mem (__dm1024 *p, __dm1024 *q)
+void foo_mem (__dmr1024 *p, __dmr1024 *q)
 {
   /* 2 LXVP, 2 STXVP instructions, no dense math transfer.  */
   *q = *p;
