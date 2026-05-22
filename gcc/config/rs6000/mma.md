@@ -712,7 +712,7 @@
 			    UNSPECV_MMA_XXSETACCZ))]
   "TARGET_MMA"
 {
-  return TARGET_DENSE_MATH ? "dmsetdmrz %A0" : "xxsetaccz %A0";
+  return TARGET_DENSE_MATH ? "dmsetaccz %A0" : "xxsetaccz %A0";
 }
   [(set_attr "type" "mma")])
 
