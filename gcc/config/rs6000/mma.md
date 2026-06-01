@@ -481,9 +481,9 @@
    #
    #
    #
-   dmxxinstdmr512 %0,%1,%Y1,0
+   dmxxinstdmr512 %0,%x1,%Y1,0
    dmmr %0,%1
-   dmxxextfdmr512 %0,%Y0,%1,0"
+   dmxxextfdmr512 %x0,%Y0,%1,0"
   "&& reload_completed
    && !dmr_operand (operands[0], XOmode)
    && !dmr_operand (operands[1], XOmode)"
@@ -1016,7 +1016,7 @@
 		    (match_operand 2 "const_0_to_1_operand" "n")]
 		   UNSPEC_DM_EXTRACT512))]
   "TARGET_DENSE_MATH"
-  "dmxxextfdmr512 %0,%Y0,%1,%2"
+  "dmxxextfdmr512 %x0,%Y0,%1,%2"
   [(set_attr "type" "mma")])
 
 ;; Reload DMR registers from memory
