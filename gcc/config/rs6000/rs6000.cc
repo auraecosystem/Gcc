@@ -14680,7 +14680,30 @@ print_operand (FILE *file, rtx x, int code)
     case 'Y':
       /* Like 'L', for third word of TImode/PTImode  */
       if (REG_P (x))
-	fputs (reg_names[REGNO (x) + 2], file);
+	 {
+	   /* Check if this is a VSX register being used in a VSX context.
+	      If so, convert to VSX numbering and add 2.  */
+	   if (VSX_REGNO_P (REGNO (x)))
+	     {
+	       int reg = REGNO (x);
+	       int vsx_reg = (FP_REGNO_P (reg)
+			      ? reg - 32
+			      : reg - FIRST_ALTIVEC_REGNO + 32);
+	       vsx_reg += 2;  /* Add 2 to VSX register number */
+
+#ifdef TARGET_REGNAMES
+	       if (TARGET_REGNAMES)
+		 fprintf (file, "%%vs%d", vsx_reg);
+	       else
+#endif
+		 fprintf (file, "%d", vsx_reg);
+	     }
+	   else
+	     {
+	       /* Non-VSX register: use original behavior (add 2 to hardware reg) */
+	       fputs (reg_names[REGNO (x) + 2], file);
+	     }
+	 }
       else if (MEM_P (x))
 	{
 	  machine_mode mode = GET_MODE (x);
