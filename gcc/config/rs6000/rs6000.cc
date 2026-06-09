@@ -6245,17 +6245,17 @@ num_insns_constant_gpr (HOST_WIDE_INT value)
     return 1;
 
   /* PADDIS support.  */
-  else if (TARGET_PADDIS && SIGNED_INTEGER_64BIT_P (value))
+  else if (TARGET_PADDIS)
     {
-      if ((value & HOST_WIDE_INT_C(0xffffffff)) == 0)
+      rtx num = GEN_INT (value);
+      if (paddis_operand (num, VOIDmode))
 	return 1;	/* paddis alone.  */
 
-      /* Don't do paddi + paddis if we can do addis and rldicl.  */
-      if (!rs6000_is_valid_and_mask (GEN_INT (value), DImode))
-	return 2;	/* paddi + paddis.  */
+      if (paddis_paddi_operand (num, VOIDmode))
+	return 2;	/* paddis + paddi/addi.  */
     }
 
-  else if (TARGET_POWERPC64)
+  if (TARGET_POWERPC64)
     {
       int num_insns = 0;
       rs6000_emit_set_long_const (nullptr, value, &num_insns);
