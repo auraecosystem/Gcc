@@ -853,7 +853,7 @@ enum data_align { align_abi, align_opt, align_both };
    /* vrsave vscr sfp */			   \
    0, 0, 0,					   \
    /* DMR registers.  */			   \
-   0, 0, 0, 0, 0, 0, 0, 0			   \
+   1, 1, 1, 1, 1, 1, 1, 1			   \
 }
 
 #define TOTAL_ALTIVEC_REGS	(LAST_ALTIVEC_REGNO - FIRST_ALTIVEC_REGNO + 1)
