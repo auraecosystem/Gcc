@@ -1516,7 +1516,28 @@ gcc/testsuite/
 	PR target/117487
 	* gcc.target/powerpc/pr117487.c: New test.
 
-==================== Branch work247-dmf, patch #114 ====================
+==================== Branch work247-dmf, patch #116 ====================
+
+Update paddis support.
+
+This patch fixes the previous patch for paddis.
+
+2026-06-09  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/predicates.md (paddis_paddi_operand): Only handle
+	postive values.  Simplify test for addis/rldicl.
+	(add_cint_operand): Do not allow paddis+paddi operands here.
+	(reg_or_add_cint_operand): Add paddis/paddi support here.
+	* config/rs6000/rs6000.md (add<mode>3, define_expand): Use op0/op1/op2
+	instead of operands[0]/operands[1]/operands[2].  If the add could be done via
+	paddis + paddi/addi, split it here.
+	(*add<mode>3, define_insn): Remove paddis+paddi support.
+	(add<mode>3 splitter for paddis+paddi): Delete.
+	(spliter to load constant int with paddis+paddi): Simplify code.
+
+==================== Branch work247-dmf, patch #115 ====================
 
 Add paddis support.
 
