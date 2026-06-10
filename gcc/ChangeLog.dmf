@@ -1,4 +1,4 @@
-==================== Branch work247-dmf, patch #114 ====================
+==================== Branch work247-dmf, patch #120 ====================
 
 Add paddis support.
 
@@ -13,23 +13,29 @@ gcc/
 	(eV): Likewise.
 	* config/rs6000/predicates.md (paddis_operand): New predicate.
 	(paddis_paddi_operand): Likewise.
-	(add_operand): Add paddis support.
-	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Add paddis support.
-	(num_insns_constant_multi): Likewise.
+	(add_cint_operand): Add paddis support.
+	(reg_or_add_cint_operand): Add support for adds that can be done with
+	paddis and paddi/addi.
+	(add_operand): Add support for adds that can be done with paddis, but
+	not paddis + paddi/addi..
+	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Add support for adds
+	that can be done with paddis and also paddis combined with paddi/addi.
 	(print_operand): Add %B<n> for paddis support.
 	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
-	(SIGNED_INTEGER_32BIT_P): Likewise.
+	(SIGNED_INTEGER_64BIT_P): Likewise.
 	* config/rs6000/rs6000.md (isa attribute): Add paddis support.
 	(enabled attribute); Likewise.
-	(add<mode>3): Likewise.
-	(adddi3 splitter): New splitter for paddis.
-	(movdi_internal64): Add paddis support.
-	(movdi splitter): New splitter for paddis.
+	(add<mode>3 define_expand): Likewise.
+	(*add<mode>3 define_insn): Likewise.
+	(movdi_internal64): Add paddis and paddis+paddi support.
+	(movdi splitter): New splitter for paddis + paddi/addi.
+	* doc/md.texi (PowerPC constraints): Add eU and eV documentation.
 
 gcc/testsuite/
 
 	* gcc.target/powerpc/prefixed-addis.c: New test.
 
+==================== Branch work247-dmf, patch #115 was reverted ====================
 ==================== Branch work247-dmf, patch #114 was reverted ====================
 
 ==================== Branch work247-dmf, patch #113 ====================
