@@ -433,13 +433,16 @@
   if (!SIGNED_INTEGER_64BIT_P (value))
     return false;
 
+  /* Don't worry about negative values at the moment.  */
+  if (value < 0)
+    return false;
+
   /* If paddi alone can handle the number, don't return true.  */
   if (SIGNED_INTEGER_34BIT_P (value))
     return false;
 
   /* If we can do the add or generate the constant via addis/rldicl, fail.  */
-  if (num_insns_constant (op, mode) == 2
-      && rs6000_is_valid_and_mask (op, mode))
+  if (rs6000_is_valid_and_mask (op, mode))
     return false;
 
   /* Only return true if we need both paddi and paddis.  */
@@ -647,14 +650,14 @@
 			   + (mode == SImode ? 0x80000000 : 0x80008000))
 		    	< (unsigned HOST_WIDE_INT) 0x100000000ll")
 	    (match_operand 0 "cint34_operand")
-	    (match_operand 0 "paddis_operand")
-	    (match_operand 0 "paddis_paddi_operand"))))
+	    (match_operand 0 "paddis_operand"))))
 
 ;; Return 1 if op is a constant integer valid for addition
 ;; or non-special register.
 (define_predicate "reg_or_add_cint_operand"
   (if_then_else (match_code "const_int")
-    (match_operand 0 "add_cint_operand")
+    (ior (match_operand 0 "add_cint_operand")
+	 (match_operand 0 "paddis_paddi_operand"))
     (match_operand 0 "gpc_reg_operand")))
 
 ;; Return 1 if op is a constant integer valid for subtraction
@@ -1207,8 +1210,7 @@
     (match_test "satisfies_constraint_I (op)
 		 || satisfies_constraint_L (op)
 		 || satisfies_constraint_eI (op)
-		 || satisfies_constraint_eU (op)
-		 || satisfies_constraint_eV (op)")
+		 || satisfies_constraint_eU (op)")
     (match_operand 0 "gpc_reg_operand")))
 
 ;; Return 1 if the operand is either a non-special register, or 0, or -1.
