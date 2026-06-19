@@ -1,3 +1,14 @@
+==================== Branch work247-float, patch #211 ====================
+
+Add BF to HF and HF to BF conversions
+
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (trunchfbf2): New insn.
+	(expandbfhf2): Likewise.
+
 ==================== Branch work247-float, patch #210 ====================
 
 Add _Float16 and __bfloat16 tests.
