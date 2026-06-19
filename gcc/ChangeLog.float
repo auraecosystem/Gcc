@@ -1,19 +1,8 @@
-==================== Branch work247-float, patch #211 ====================
-
-Add BF to HF and HF to BF conversions
-
-2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
-
-gcc/
-
-	* config/rs6000/float16.md (trunchfbf2): New insn.
-	(expandbfhf2): Likewise.
-
-==================== Branch work247-float, patch #210 ====================
+==================== Branch work247-float, patch #230 ====================
 
 Add _Float16 and __bfloat16 tests.
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/testsuite/
 
@@ -28,11 +17,11 @@ gcc/testsuite/
 	(check_ppc_bfloat16_runtime_available): Likewise.
 	(is-effective-target): Add new _Float16 and __bfloat16 targets.
 
-==================== Branch work247-float, patch #209 ====================
+==================== Branch work247-float, patch #229 ====================
 
 Add --with-powerpc-float16 and --with-powerpc-float16-disable-warning.
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -44,7 +33,7 @@ gcc/
 	(ISA_2_7_MASKS_SERVER): Likewise.
 	(POWERPC_MASKS): Likewise.
 
-==================== Branch work247-float, patch #208 ====================
+==================== Branch work247-float, patch #228 ====================
 
 Optimize __bfloat16 scalar code.
 
@@ -90,7 +79,7 @@ BFmode because GCC will not generate these patterns unless the user
 uses -Ofast.  Without -Ofast, it will always convert BFmode into
 SFmode.
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -113,11 +102,11 @@ gcc/
 	* config/rs6000/rs6000-protos.h (bfloat16_operation_as_v4sf): New
 	declaration.
 
-==================== Branch work247-float, patch #200 ====================
+==================== Branch work247-float, patch #227 ====================
 
 Add 16-bit floating point vectorization.
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -151,11 +140,11 @@ gcc/
 	(fp16_vectorization): New declaration.
 	* config/rs6000/t-rs6000 (float16.o): Add build rules.
 
-==================== Branch work247-float, patch #206 ====================
+==================== Branch work247-float, patch #226 ====================
 
 Add BF/HF neg, abs operands and logical insns.
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -176,11 +165,11 @@ gcc/
 	(boolc<mode>3): Likewise.
 	(boolcc<mode>): Likewise.
 
-==================== Branch work247-float, patch #205 ====================
+==================== Branch work247-float, patch #225 ====================
 
 Add conversions between 16-bit floating point and other scalar modes.
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -195,7 +184,7 @@ gcc/
 	(fix_trunc<FP16_HW:mode><GPR:mode>): Likewise.
 	(fixuns_trunc<FP16_HW:mode><GPR:mode>2): Likewise.
 
-==================== Branch work247-float, patch #204 ====================
+==================== Branch work247-float, patch #224 ====================
 
 Add conversions between __bfloat16 and float/double.
 
@@ -234,7 +223,7 @@ float/double value.  GCC will generation.
 	xscvdpsp   0,0          Convert float scalar to float memory format
 	xvcvspbf16 0,0          Convert vector float to vector __bfloat16
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -254,6 +243,8 @@ gcc/
 	(shift_bf_16bits): Likewise.
 	(trunc<mode>bf): New insns to convert SFmode/DFmode to BFmode.
 	(vsx_xscvdpspn_sf): Likewise.
+	(trunchfbf2): New insn to convert BFmode to HFmode.
+	(extendbfhf2): New insn to convert HFmode to BFmode.
 	(cvt_fp16_to_v4sf_<mode): Likewise.
 	(cvt_fp16_to_v4sf_<mode>_le): Likewise.
 	(cvt_fp16_to_v4sf_<mode>_be): Likewise.
@@ -266,14 +257,14 @@ gcc/
 	* config/rs6000/rs6000.cc (rs6000_init_hard_regno_mode_ok): Mark that we
 	use VSX arithmetic support for V8BFmode if we are a power10 or later.
 
-==================== Branch work247-float, patch #203 ====================
+==================== Branch work247-float, patch #223 ====================
 
 Add conversions between _Float16 and float/double.
 
 This patch adds support to generate xscvhpdp and xscvdphp on Power9 systems and
 later, to convert between _Float16 and float scalar values.
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -286,14 +277,14 @@ gcc/
 	* config/rs6000/rs6000.cc (rs6000_init_hard_regno_mode_ok): Mark that we
 	use VSX arithmetic support for V8HFmode if we are a power9 or later.
 
-==================== Branch work247-float, patch #202 ====================
+==================== Branch work247-float, patch #222 ====================
 
 Add HF/BF emulation functions to libgcc.
 
 This patch adds the necessary support in libgcc to allow using the machine
 independent 16-bit floating point support.
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 libgcc/
 
@@ -338,7 +329,7 @@ libgcc/
 	supports _Float16 and __bfloat16 types.
 	* configure: Regenerate.
 
-==================== Branch work247-float, patch #201 ====================
+==================== Branch work247-float, patch #221 ====================
 
 Add initial 16-bit floating point support.
 
@@ -354,7 +345,7 @@ usable, the next patch will also need to be installed. That patch will add
 support in libgcc for 16-bit floating point support.
 
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -423,7 +414,7 @@ gcc/
 	* config/rs6000/rs6000.opt (-mloat16): New option.
 	* doc/invoke.texi (RS/6000 and PowerPC Options): Document -mfloat16.
 
-==================== Branch work247-float, patch #200 ====================
+==================== Branch work247-float, patch #220 ====================
 
 Add infrastructure for _Float16 and __bfloat16 types.
 
@@ -473,7 +464,7 @@ will be added in the next patch.
     V4HFmode -- 64-bit vector mode _Float16 used in some insns
 
 
-2026-06-04  Michael Meissner  <meissner@linux.ibm.com>
+2026-06-18  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -555,6 +546,18 @@ gcc/
 	V8HFmode and V8BFmode support.
 	(vsx_extract_<mode>_store_p9): Add V8HFmode and V8BFmode.
 	(vsx_extract_<mode>_p8): Likewise.
+
+==================== Branch work247-float, patch #210 was reverted ====================
+==================== Branch work247-float, patch #209 was reverted ====================
+==================== Branch work247-float, patch #208 was reverted ====================
+==================== Branch work247-float, patch #207 was reverted ====================
+==================== Branch work247-float, patch #206 was reverted ====================
+==================== Branch work247-float, patch #205 was reverted ====================
+==================== Branch work247-float, patch #204 was reverted ====================
+==================== Branch work247-float, patch #203 was reverted ====================
+==================== Branch work247-float, patch #202 was reverted ====================
+==================== Branch work247-float, patch #201 was reverted ====================
+==================== Branch work247-float, patch #200 was reverted ====================
 
 ==================== Branch work247-float, baseline ====================
 
