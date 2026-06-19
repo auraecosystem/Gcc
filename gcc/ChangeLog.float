@@ -1,3 +1,21 @@
+==================== Branch work247-float, patch #231 ====================
+
+Optimization convertion between __bfloat16 and _Float16.
+
+2026-06-19  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (cvt_fp16_to_v4sf): Rename from
+	cvt_fp16_to_v4sf_insn.
+	(cvt_v4sf_to_fp16): New mode attribute.
+	(UNSPEC_CVT_V4SF_TO_FP16): New unspec.
+	(trunchfbf2): Rework to do the conversion from vector to vector, and not
+	converting to double as an intermediate.  Move ode down in float16.md.
+	(extendbfhf2): Likewise.
+	(trunchfbf2_mem): New insn to optimization load and conversion.
+	(extendbfhf2_mem): Likewise.
+
 ==================== Branch work247-float, patch #230 ====================
 
 Add _Float16 and __bfloat16 tests.
