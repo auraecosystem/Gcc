@@ -353,6 +353,41 @@
   "TARGET_XSCVDPSPN"
   "xscvdpspn %x0,%x1"
   [(set_attr "type" "fp")])
+
+;; Convert HFmode to BFmode
+(define_insn_and_split "trunchfbf2"
+  [(set (match_operand:BF 0 "vsx_register_operand" "=wa")
+	(float_truncate:BF
+	 (match_operand:HF 1 "vsx_register_operand" "wa")))]
+  "TARGET_BFLOAT16_HW"
+  "#"
+  "&& can_create_pseudo_p ()"
+  [(pc)]
+{
+  rtx tmp = gen_reg_rtx (DFmode);
+
+  emit_insn (gen_extendhfdf2 (tmp, operands[1]));
+  emit_insn (gen_truncdfbf2 (operands[0], tmp));
+  DONE;
+})
+
+;; Convert BFmode to HFmode
+(define_insn_and_split "expandbfhf2"
+  [(set (match_operand:HF 0 "vsx_register_operand" "=wa")
+	(float_extend:HF
+	 (match_operand:BF 1 "vsx_register_operand" "wa")))]
+  "TARGET_BFLOAT16_HW"
+  "#"
+  "&& can_create_pseudo_p ()"
+  [(pc)]
+{
+  rtx tmp = gen_reg_rtx (DFmode);
+
+  emit_insn (gen_extendbfdf2 (tmp, operands[1]));
+  emit_insn (gen_truncdfhf2 (operands[0], tmp));
+  DONE;
+})
+   
 
 ;; Convert the even elements of a vector 16-bit floating point to
 ;; V4SFmode.  Deal with little endian vs. big endian element ordering
