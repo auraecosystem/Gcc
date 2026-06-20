@@ -1,3 +1,24 @@
+==================== Branch work247-test, patch #907 ====================
+
+Update float16 changes
+
+2026-06-19  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (cvt_fp16_to_v4sf): Rename from
+	cvt_fp16_to_v4sf_insn.
+	(cvt_v4sf_to_fp16): New mode attribute.
+	(fp16_names): Spacing.
+	(UNSPEC_CVT_V4SF_TO_FP16): New UNSPEC.
+	(trunchfbf2): Rework.
+	(expandbfhf2):  Rework.
+	(cvt_fp16_to_v4sf_<mode>_le): Rename cvt_fp16_to_v4sf.
+	(cvt_fp16_to_v4sf_<mode>_be): Likewise.
+	(trunchfbf2_mem): New insn.
+	(extendbfhf2_mem): Likewise.
+
+
 ==================== Branch work247-dmf, patch #120 ====================
 
 Add paddis support.
