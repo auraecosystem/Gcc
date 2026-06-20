@@ -40,10 +40,17 @@
 
 ;; Mode attribute giving the instruction to convert the even
 ;; V8HFmode or V8BFmode elements to V4SFmode
-(define_mode_attr cvt_fp16_to_v4sf_insn [(BF   "xvcvbf16spn")
-					 (HF   "xvcvhpsp")
-					 (V8BF "xvcvbf16spn")
-					 (V8HF "xvcvhpsp")])
+(define_mode_attr cvt_fp16_to_v4sf [(BF   "xvcvbf16spn")
+				    (HF   "xvcvhpsp")
+				    (V8BF "xvcvbf16spn")
+				    (V8HF "xvcvhpsp")])
+
+;; Mode attribute giving the instruction to convert the V4SFmode
+;; elements to the even V8HFmode or V8BFmode elements
+(define_mode_attr cvt_v4sf_to_fp16 [(BF   "xvcvspbf16")
+				    (HF   "xvcvsphp")
+				    (V8BF "xvcvspbf16")
+				    (V8HF "xvcvsphp")])
 
 ;; Mode attribute giving the vector mode for a 16-bit floating point
 ;; scalar in both upper and lower case.
@@ -65,13 +72,13 @@
 
 ;; Standard names for the unary/binary/ternary operators
 (define_code_attr fp16_names [(abs   "abs")
-                             (fma   "fma")
-                             (plus  "add")
-                             (minus "sub")
-                             (mult  "mul")
-                             (neg   "neg")
-                             (smax  "smax")
-                             (smin  "smin")])
+			      (fma   "fma")
+			      (plus  "add")
+			      (minus "sub")
+			      (mult  "mul")
+			      (neg   "neg")
+			      (smax  "smax")
+			      (smin  "smin")])
 
 ;; UNSPEC constants
 (define_c_enum "unspec"
@@ -80,7 +87,8 @@
    UNSPEC_XVCVSPBF16_BF
    UNSPEC_XVCVSPHP_V8HF
    UNSPEC_XVCVSPBF16_V8BF
-   UNSPEC_CVT_FP16_TO_V4SF])
+   UNSPEC_CVT_FP16_TO_V4SF
+   UNSPEC_CVT_V4SF_TO_FP16])
 
 ;; _Float16 and __bfloat16 moves
 (define_expand "mov<mode>"
@@ -354,40 +362,6 @@
   "xscvdpspn %x0,%x1"
   [(set_attr "type" "fp")])
 
-;; Convert HFmode to BFmode
-(define_insn_and_split "trunchfbf2"
-  [(set (match_operand:BF 0 "vsx_register_operand" "=wa")
-	(float_truncate:BF
-	 (match_operand:HF 1 "vsx_register_operand" "wa")))]
-  "TARGET_BFLOAT16_HW"
-  "#"
-  "&& can_create_pseudo_p ()"
-  [(pc)]
-{
-  rtx tmp = gen_reg_rtx (DFmode);
-
-  emit_insn (gen_extendhfdf2 (tmp, operands[1]));
-  emit_insn (gen_truncdfbf2 (operands[0], tmp));
-  DONE;
-})
-
-;; Convert BFmode to HFmode
-(define_insn_and_split "expandbfhf2"
-  [(set (match_operand:HF 0 "vsx_register_operand" "=wa")
-	(float_extend:HF
-	 (match_operand:BF 1 "vsx_register_operand" "wa")))]
-  "TARGET_BFLOAT16_HW"
-  "#"
-  "&& can_create_pseudo_p ()"
-  [(pc)]
-{
-  rtx tmp = gen_reg_rtx (DFmode);
-
-  emit_insn (gen_extendbfdf2 (tmp, operands[1]));
-  emit_insn (gen_truncdfhf2 (operands[0], tmp));
-  DONE;
-})
-   
 
 ;; Convert the even elements of a vector 16-bit floating point to
 ;; V4SFmode.  Deal with little endian vs. big endian element ordering
@@ -421,7 +395,7 @@
 		     (const_int 5)
 		     (const_int 7)]))))]
   "!WORDS_BIG_ENDIAN"
-  "<cvt_fp16_to_v4sf_insn> %x0,%x1"
+  "<cvt_fp16_to_v4sf> %x0,%x1"
   [(set_attr "type" "vecfloat")])
 
 (define_insn "*cvt_fp16_to_v4sf_<mode>_be"
@@ -434,7 +408,19 @@
 		     (const_int 4)
 		     (const_int 6)]))))]
   "WORDS_BIG_ENDIAN"
-  "<cvt_fp16_to_v4sf_insn> %x0,%x1"
+  "<cvt_fp16_to_v4sf> %x0,%x1"
+  [(set_attr "type" "vecfloat")])
+
+;; Convert a V4SFmode vector a 16-bit floating point value.  We only
+;; care about the 2nd element.  This is used to convert BFmode to
+;; HFmode or HFmode to BFmode.
+
+(define_insn "cvt_v4sf_to_fp16_<mode>"
+  [(set (match_operand:FP16_HW 0 "vsx_register_operand")
+	(unspec:FP16_HW [(match_operand:V4SF 1 "vsx_register_operand")]
+			UNSPEC_CVT_V4SF_TO_FP16))]
+  ""
+  "<cvt_v4sf_to_fp16> %x0,%x1"
   [(set_attr "type" "vecfloat")])
 
 ;; Duplicate and convert a 16-bit floating point scalar to V4SFmode.
@@ -486,6 +472,123 @@
   "TARGET_BFLOAT16_HW"
   "xvcvspbf16 %x0,%x1"
   [(set_attr "type" "vecfloat")])
+
+
+;; Convert HFmode to BFmode
+;; The instructions generated are:
+;;	XXSPLTIW  tmp1,r1
+;;	XVCVHPSP  tmp1,tmp1
+;;	XVCVSPHPN r0,tmp1
+
+(define_insn_and_split "trunchfbf2"
+  [(set (match_operand:BF 0 "vsx_register_operand" "=wa")
+	(float_truncate:BF
+	 (match_operand:HF 1 "vsx_register_operand" "wa")))
+   (clobber (match_scratch:V4SF 2 "=wa"))]
+  "TARGET_BFLOAT16_HW"
+  "#"
+  "&& 1"
+  [(pc)]
+{
+  rtx tmp_v4sf = operands[2];
+
+  if (GET_CODE (tmp_v4sf) == SCRATCH)
+    tmp_v4sf = gen_reg_rtx (V4SFmode);
+
+  rtx tmp_v8hf = gen_lowpart (V8HFmode, tmp_v4sf);
+
+  emit_insn (gen_xxspltw_hf (tmp_v4sf, operands[1]));
+  emit_insn (gen_cvt_fp16_to_v4sf_v8hf (tmp_v4sf, tmp_v8hf));
+  emit_insn (gen_cvt_v4sf_to_fp16_bf (operands[0], tmp_v4sf));
+  DONE;
+}
+  [(set_attr "length" "12")
+   (set_attr "type" "vecfloat")])
+
+;; Optimize converting HFmode to BFmode if the BFmode is coming from
+;; memory.  We can eliminate the XXSPLTW instruction since the load
+;; zeros out the other elements.
+
+(define_insn_and_split "*trunchfbf2_mem"
+  [(set (match_operand:BF 0 "vsx_register_operand" "=wa")
+	(float_truncate:BF
+	 (match_operand:HF 1 "memory_operand" "Z")))
+   (clobber (match_scratch:V4SF 2 "=wa"))]
+  "TARGET_BFLOAT16_HW"
+  "#"
+  "&& reload_completed"
+  [(pc)]
+{
+  rtx tmp_v4sf = operands[2];
+  unsigned int r = reg_or_subregno (tmp_v4sf);
+  rtx tmp_v8hf = gen_rtx_REG (V8HFmode, r);
+  rtx tmp_hf = gen_rtx_REG (HFmode, r);
+
+  emit_move_insn (tmp_hf, operands[1]);
+  emit_insn (gen_cvt_fp16_to_v4sf_v8hf (tmp_v4sf, tmp_v8hf));
+  emit_insn (gen_cvt_v4sf_to_fp16_bf (operands[0], tmp_v4sf));
+  DONE;
+}
+  [(set_attr "length" "12")
+   (set_attr "type" "vecfloat")])
+
+;; Convert BFmode to HFmode
+;; The instructions generated are:
+;;	XXSPLTIW  tmp1,r1
+;;	XVCVBF16SP  tmp1,tmp1
+;;	XVCVSPBF16N r0,tmp1
+
+(define_insn_and_split "expandbfhf2"
+  [(set (match_operand:HF 0 "vsx_register_operand" "=wa")
+	(float_extend:HF
+	 (match_operand:BF 1 "vsx_register_operand" "wa")))
+   (clobber (match_scratch:V4SF 2 "=wa"))]
+  "TARGET_BFLOAT16_HW"
+  "#"
+  "&& 1"
+  [(pc)]
+{
+  rtx tmp_v4sf = operands[2];
+
+  if (GET_CODE (tmp_v4sf) == SCRATCH)
+    tmp_v4sf = gen_reg_rtx (V4SFmode);
+
+  rtx tmp_v8bf = gen_lowpart (V8BFmode, tmp_v4sf);
+
+  emit_insn (gen_xxspltw_bf (tmp_v4sf, operands[1]));
+  emit_insn (gen_cvt_fp16_to_v4sf_v8bf (tmp_v4sf, tmp_v8bf));
+  emit_insn (gen_cvt_v4sf_to_fp16_hf (operands[0], tmp_v4sf));
+  DONE;
+}
+  [(set_attr "length" "12")
+   (set_attr "type" "vecfloat")])
+
+;; Optimize converting BFmode to HFmode if the HFmode is coming from
+;; memory.  We can eliminate the XXSPLTW instruction since the load
+;; zeros out the other elements.
+
+(define_insn_and_split "*extendbfhf2_mem"
+  [(set (match_operand:HF 0 "vsx_register_operand" "=wa")
+	(float_extend:HF
+	 (match_operand:BF 1 "memory_operand" "Z")))
+   (clobber (match_scratch:V4SF 2 "=wa"))]
+  "TARGET_BFLOAT16_HW"
+  "#"
+  "&& reload_completed"
+  [(pc)]
+{
+  rtx tmp_v4sf = operands[2];
+  unsigned int r = reg_or_subregno (tmp_v4sf);
+  rtx tmp_v8bf = gen_rtx_REG (V8BFmode, r);
+  rtx tmp_bf = gen_rtx_REG (BFmode, r);
+
+  emit_move_insn (tmp_bf, operands[1]);
+  emit_insn (gen_cvt_fp16_to_v4sf_v8bf (tmp_v4sf, tmp_v8bf));
+  emit_insn (gen_cvt_v4sf_to_fp16_hf (operands[0], tmp_v4sf));
+  DONE;
+}
+  [(set_attr "length" "12")
+   (set_attr "type" "vecfloat")])
 
 ;; Convert between HFmode/BFmode and 128-bit binary floating point and
 ;; decimal floating point types.  We use convert_move since some of the
