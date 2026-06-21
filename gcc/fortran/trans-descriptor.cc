@@ -1635,6 +1635,30 @@ gfc_copy_descriptor (stmtblock_t *block, tree dest, tree src, tree ptr,
   gfc_conv_descriptor_data_set (block, dest, ptr);
 }
 
+void
+gfc_copy_assumed_rank_descriptor (stmtblock_t *block, tree dest, tree src)
+{
+  tree rank, dim_field, dim_size, copy_size, dst_ptr, src_ptr;
+
+  gfc_conv_descriptor_data_set (block, dest,
+				gfc_conv_descriptor_data_get (src));
+  gfc_conv_descriptor_offset_set (block, dest,
+				  gfc_conv_descriptor_offset_get (src));
+  gfc_conv_descriptor_dtype_set (block, dest,
+				 gfc_conv_descriptor_dtype_get (src));
+  rank = fold_convert (size_type_node, gfc_conv_descriptor_rank_get (src));
+  dim_field = gfc_get_descriptor_dimension (src);
+  dim_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (dim_field)));
+  copy_size = fold_build2_loc (input_location, MULT_EXPR,
+			       size_type_node, rank, dim_size);
+  dst_ptr = gfc_build_addr_expr (pvoid_type_node,
+				 gfc_get_descriptor_dimension (dest));
+  src_ptr = gfc_build_addr_expr (pvoid_type_node, dim_field);
+  gfc_add_expr_to_block (block, build_call_expr_loc (input_location,
+			 builtin_decl_explicit (BUILT_IN_MEMCPY),
+			 3, dst_ptr, src_ptr, copy_size));
+}
+
 
 void
 gfc_conv_remap_descriptor (stmtblock_t *block, tree dest, int dest_rank,

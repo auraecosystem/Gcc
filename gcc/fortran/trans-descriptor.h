@@ -92,6 +92,7 @@ void gfc_copy_sequence_descriptor (stmtblock_t *, tree, tree, int);
 void gfc_copy_descriptor (stmtblock_t *, tree, tree, gfc_expr *, bool);
 void gfc_copy_descriptor (stmtblock_t *, tree, tree, tree, int);
 void gfc_copy_descriptor (stmtblock_t *, tree, tree, bool);
+void gfc_copy_assumed_rank_descriptor (stmtblock_t *, tree, tree);
 
 void gfc_conv_remap_descriptor (stmtblock_t *, tree, int, tree, gfc_typespec *,
 				bool, gfc_array_ref *, bool);

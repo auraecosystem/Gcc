@@ -8380,25 +8380,7 @@ is_pointer (gfc_expr *e)
 void
 gfc_resize_assumed_rank_dim_field (gfc_se *se, stmtblock_t *block, tree desc)
 {
-  tree rank, dim_field, dim_size, copy_size, dst_ptr, src_ptr;
-
-  gfc_conv_descriptor_data_set (block, desc,
-				gfc_conv_descriptor_data_get (se->expr));
-  gfc_conv_descriptor_offset_set (block, desc,
-				  gfc_conv_descriptor_offset_get (se->expr));
-  gfc_conv_descriptor_dtype_set (block, desc,
-				 gfc_conv_descriptor_dtype_get (se->expr));
-  rank = fold_convert (size_type_node, gfc_conv_descriptor_rank_get (se->expr));
-  dim_field = gfc_get_descriptor_dimension (se->expr);
-  dim_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (dim_field)));
-  copy_size = fold_build2_loc (input_location, MULT_EXPR,
-			       size_type_node, rank, dim_size);
-  dst_ptr = gfc_build_addr_expr (pvoid_type_node,
-				 gfc_get_descriptor_dimension (desc));
-  src_ptr = gfc_build_addr_expr (pvoid_type_node, dim_field);
-  gfc_add_expr_to_block (block, build_call_expr_loc (input_location,
-			 builtin_decl_explicit (BUILT_IN_MEMCPY),
-			 3, dst_ptr, src_ptr, copy_size));
+  gfc_copy_assumed_rank_descriptor (block, desc, se->expr);
 }
 
 /* Convert an array for passing as an actual parameter.  */
