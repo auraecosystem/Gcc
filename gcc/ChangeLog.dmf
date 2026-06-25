@@ -1,3 +1,627 @@
+==================== Branch work250-dmf, patch #114 ====================
+
+Add paddis support.
+
+This patch adds support for the paddis instruction that might be added to a
+future PowerPC processor.
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/constraints.md (eU): New constraint.
+	(eV): Likewise.
+	* config/rs6000/predicates.md (paddis_operand): New predicate.
+	(paddis_paddi_operand): Likewise.
+	(add_cint_operand): Add paddis support.
+	(reg_or_add_cint_operand): Add support for adds that can be done with
+	paddis and paddi/addi.
+	(add_operand): Add support for adds that can be done with paddis, but
+	not paddis + paddi/addi..
+	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Add support for adds
+	that can be done with paddis and also paddis combined with paddi/addi.
+	(print_operand): Add %B<n> for paddis support.
+	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
+	(SIGNED_INTEGER_64BIT_P): Likewise.
+	* config/rs6000/rs6000.md (isa attribute): Add paddis support.
+	(enabled attribute); Likewise.
+	(add<mode>3 define_expand): Likewise.
+	(*add<mode>3 define_insn): Likewise.
+	(movdi_internal64): Add paddis and paddis+paddi support.
+	(movdi splitter): New splitter for paddis + paddi/addi.
+	* doc/md.texi (PowerPC constraints): Add eU and eV documentation.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/prefixed-addis.c: New test.
+
+==================== Branch work250-dmf, patch #113 ====================
+
+Support load/store vector with right length.
+
+This patch adds support for new instructions that may be added to the PowerPC
+architecture in the future to enhance the load and store vector with length
+instructions.
+
+The current instructions (lxvl, lxvll, stxvl, and stxvll) are inconvient to use
+since the count for the number of bytes must be in the top 8 bits of the GPR
+register, instead of the bottom 8 bits.  This meant that code generating these
+instructions typically had to do a shift left by 56 bits to get the count into
+the right position.  In a future version of the PowerPC architecture, new
+variants of these instructions might be added that expect the count to be in
+the bottom 8 bits of the GPR register.  These patches add this support to GCC
+if the user uses the -mcpu=future option.
+
+I discovered that the code in rs6000-string.cc to generate ISA 3.1 lxvl/stxvl
+future lxvll/stxvll instructions would generate these instructions on 32-bit.
+However the patterns for these instructions is only done on 64-bit systems.  So
+I added a check for 64-bit support before generating the instructions.
+
+The patches have been tested on both little and big endian systems.  Can I check
+it into the master branch?
+
+2026-06-25   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-string.cc (expand_block_move): Do not generate
+	lxvl and stxvl on 32-bit.
+	* config/rs6000/vsx.md (lxvl): If -mcpu=future, generate the lxvl with
+	the shift count automaticaly used in the insn.
+	(lxvrl): New insn for -mcpu=future.
+	(lxvrll): Likewise.
+	(stxvl): If -mcpu=future, generate the stxvl with the shift count
+	automaticaly used in the insn.
+	(stxvrl): New insn for -mcpu=future.
+	(stxvrll): Likewise.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/lxvrl.c: New test.
+
+==================== Branch work250-dmf, patch #112 ====================
+
+Add xvrlw support.
+
+This patch adds support for a possible new variant of the vector rotate left
+instruction that might be added to a future PowerPC.  This variant (xvrlw) can
+use any VSX register instead of requiring only Altivec registers.
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/altivec.md (xvrlw): New insn.
+	* config/rs6000/rs6000.h (TARGET_XVRLW): New macro.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/vector-rotate-left.c: New test.
+
+==================== Branch work250-dmf, patch #111 ====================
+
+Add saturate subtract support
+
+This patch adds support for saturating subtract instructions that might be added
+to a future PowerPC.  I think I had originally submitted patches that added a
+new built-in function to generate the subfus and subdus instructions.  Segher
+suggested that instead of generating a built-in function, that I should just
+having GCC automatically recognize cases where a saturating subtract could be
+generated.  This patch generates the saturating subtract instructions in the
+appropriate context.
+
+2026-06-25   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.md (gtu_geu): New code iterator.
+	(subfus<mode>3_<code>): New insns.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/saturate-subtract-1.c: New test.
+	* gcc.target/powerpc/saturate-subtract-2.c: Likewise.
+	* lib/target-supports.exp (check_effective_target_powerpc_future_ok):
+	New target test.
+
+==================== Branch work250-dmf, patch #110 ====================
+
+Use vector pair load/store for memcpy with -mcpu=future
+
+In the development for the power10 processor, GCC did not enable using the load
+vector pair and store vector pair instructions when optimizing things like
+memory copy.  This patch enables using those instructions if -mcpu=future is
+used.
+
+I have tested these patches on both big endian and little endian PowerPC
+servers, with no regressions.  Can I check these patchs into the trunk?
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-cpus.def (FUTURE_MASKS_SERVER): Enable using load
+	vector pair and store vector pair instructions for memory copy
+	operations.
+	(POWERPC_MASKS): Make the option for enabling using load vector pair and
+	store vector pair operations set and reset when the PowerPC processor is
+	changed.
+	* config/rs6000/rs6000.cc (rs6000_machine_from_flags): Disable
+	-mblock-ops-vector-pair from influencing .machine selection.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/future-3.c: New test.
+
+==================== Branch work250-dmf, patch #107 ====================
+
+Add -mcpu=future dense math tests.
+
+This is part seven of the dense math register patches for the PowerPC.
+
+This patch adds dense math tests for -mcpu=future, cloning the mma-builtin-*.c
+tests.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dm-builtin-1.c: New test.
+	* gcc.target/powerpc/dm-builtin-10-pair.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-10-quad.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-2.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-3.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-4.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-5.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-6.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-7.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-8.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-9.c: Likewise.
+
+
+==================== Branch work250-dmf, patch #106 ====================
+
+On dense math systems use the 'dm' prefix on MMA instructions.
+
+This is part six of the dense math register patches for the PowerPC.
+
+This is an optional patch that on dense math systems changes the XV* MMA
+instructions to DMXV*.  The assembler will generate the same object code for
+either instruction.  This is tell the user looking at assembly code that we are
+compiling MMA code to use dense math registers.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (vvi4i4i8): Eliminate using the 'pm' prefix here,
+	so we can emit pmdm* on dense math systems.
+	(avvi4i4i8): Likewise.
+	(vvi4i4i2): Likewise.
+	(avvi4i4i2): Likewise.
+	(vvi4i4): Likewise.
+	(avvi4i4): Likewise.
+	(pvi4i2): Likewise.
+	(apvi4i2): Likewise.
+	(vvi4i4i4): Likewise.
+	(mma_<vv>): If -mdesne-math, emit 'dmxv*' form of the instruction
+	instead of 'xv*'.
+	(mma_<avv>): Likewise.
+	(mma_<pv>): Likewise.
+	(mma_<apv>): Likewise.
+	(mma_pm<vvi4i4i8>): If -mdense-math, emit 'pmdm*' instead of 'pm*'.
+	(mma_pm<avvi4i4i8>): Likewise.
+	(mma_pm<vvi4i4i2>): Likewise.
+	(mma_pm<avvi4i4i2>): Likewise.
+	(mma_pm<vvi4i4>): Likewise.
+	(mma_pm<avvi4i4>): Likewise.
+	(mma_pm<pvi4i2>): Likewise.
+	(mma_pm<apvi4i2>): Likewise.
+	(mma_pm<vvi4i4i4>): Likewise.
+	(mma_pm<avvi4i4i4>): Likewise.
+	* config/rs6000/rs6000.cc (print_operand): For %!, print 'dm' if
+	-mdense-math.
+	* config/rs6000/rs6000.h (PRINT_OPERAND_PUNCT_VALID_P): Allow %!.
+
+==================== Branch work250-dmf, patch #105 ====================
+
+Add support for 1,024 bit dense math registers.
+
+This is part five of the dense math register patches for the PowerPC.
+This is the 7th version of the dense math patches.
+
+Version 6 of the dense math register patches were posted on April 21st,
+2026.
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+This patch is functionally the same as the version 6 patch, except I made the
+same name changes as I discussed in the previous patch.
+
+This patch (#5) is a prelimianry patch to add the full 1,024 bit dense math
+register (DMFs) for -mcpu=future.  The MMA 512-bit accumulators map onto the top
+of the DMR register.
+
+This patch only adds the new 1,024 bit register support.  It does not add
+support for any instructions that need 1,024 bit registers instead of 512 bit
+registers.
+
+I used the new mode 'TDOmode' to be the opaque mode used for 1,024 bit
+registers.  The 'wD' constraint added in previous patches is used for these
+registers.  I added support to do load and store of DMRs via the VSX registers,
+since there are no load/store dense math instructions.  I added the new keyword
+'__dm1024' to create 1,024 bit types that can be loaded into dense math
+registers.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-06-25   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (UNSPEC_DMF_INSERT512_UPPER): New unspec.
+	(UNSPEC_DMF_INSERT512_LOWER): Likewise.
+	(UNSPEC_DMF_EXTRACT512): Likewise.
+	(UNSPEC_DMF_RELOAD_FROM_MEMORY): Likewise.
+	(UNSPEC_DMF_RELOAD_TO_MEMORY): Likewise.
+	(movtdo): New define_expand and define_insn_and_split to implement 1,024
+	bit dense math registers.
+	(movtdo_insert512_upper): New insn.
+	(movtdo_insert512_lower): Likewise.
+	(movtdo_extract512): Likewise.
+	(reload_tdo_from_memory): Likewise.
+	(reload_tdo_to_memory): Likewise.
+	* config/rs6000/rs6000-builtin.cc (rs6000_type_string): Add dense math
+	register support.
+	(rs6000_init_builtins): Add support for __dm1024 keyword.
+	* config/rs6000/rs6000-call.cc (rs6000_return_in_memory): Add support
+	for TDOmode.
+	(rs6000_function_arg): Likewise.
+	* config/rs6000/rs6000-modes.def (TDOmode): New mode.
+	* config/rs6000/rs6000.cc (rs6000_hard_regno_mode_ok_uncached): Add
+	support for TDOmode.
+	(rs6000_hard_regno_mode_ok): Likewise.
+	(rs6000_modes_tieable_p): Likewise.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Add support for TDOmode.  Setup reload
+	hooks for dense math TDO reload mode.
+	(reg_offset_addressing_ok_p): Add support for TDOmode.
+	(rs6000_emit_move): Likewise.
+	(rs6000_secondary_reload_simple_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_mangle_type): Add mangling for __dm1024 type.
+	(rs6000_dmf_register_move_cost): Add support for TDOmode.
+	(rs6000_split_multireg_move): Likewise.
+	(rs6000_invalid_conversion): Likewise.
+	* config/rs6000/rs6000.h (VECTOR_ALIGNMENT_P): Add TDOmode.
+	(enum rs6000_builtin_type_index): Add dense math register type nodes.
+	(dm1024_type_node): Likewise.
+	(ptr_dm1024_type_node): Likewise.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dm-1024bit.c: New test.
+
+==================== Branch work250-dmf, patch #104 ====================
+
+Add support for dense math registers.
+
+This is part four of the dense math register patches for the PowerPC.
+This is the 7th version of the dense math patches.
+
+Version 6 of the dense math register patches were posted on April 21st,
+2026.
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+This patch (#4) combines version 6 patch #3 (which adds the basic dense math
+register support) and the parts of patch #4 (switch mmf.md to use the new wD
+constraint, use accumulator_operand, and add dense math zero/move support) that
+weren't previously added in version 7 patch #1.  Here are the changes from
+version 6 of the patches:
+
+	dense_math_operand			to dmf_register_operand
+	FIRST_DM_REGNO				to FIRST_DMF_REGNO
+	LAST_DM_REGNO				to LAST_DMF_REGNO
+	UNITS_PER_DM_WORD			to UNITS_PER_DMF_WORD
+	DM_REGNO_P				to DMF_REGNO_P
+	DM_REGS					to DMF_REGS
+	DM_REG_TYPE				to DMF_REG_TYPE
+	rs6000_dense_math_register_move_cost	to rs6000_dmf_register_move_cost
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-06-25   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (movoo): Allow -mdense-math -mno-mma.
+	(movxo): Convert to being a define_expand that can handle both the
+	original MMA support without dense math registers, and adding dense math
+	support.  Allow -mdense-math -mno-mma.
+	(movxo_nodm): Rename original movxo insn, and restrict this insn to when
+	we do not have dense math registers.
+	(movxo_dm): New define_insn_and_split for dense math registers.
+	(vsx_assemble_pair): Allow -mdense-math -mno-mma.
+	(vsx_disassemble_pair): Likewise.
+	(mma_assemble_acc): Likewise.
+	(mma_disassemble_acc): Likewise.
+	(mma_<acc>): Allow built-ins to be used if -mdense-math.
+	(mma_xxsetaccz): Convert into a define_expand to handle both non-dense
+	math and dense math registers.
+	(mma_xxsetaccz_nodm): Rename from mma_xxsetaccz and limit code to non
+	dense math systems.
+	(mma_xxsetaccz_dm): New insn for direct math register support.
+	* config/rs6000/predicates.md (dmf_register_operand): New predicate.
+	(accumulator_operand): Add support for dense math registers.
+	* config/rs6000/rs6000-builtin.cc (rs6000_gimple_fold_mma_builtin): Do
+	not issue xxmfacc (deprime) instruction if we have dense math registers.
+	* config/rs6000/rs6000-cpus.def (FUTURE_MASKS_SERVER): Add -mdense-math.
+	(POWERPC_MASKS): Likewise.
+	* config/rs6000/rs6000.cc (enum rs6000_reg_type): Add dense math
+	register support.
+	(enum rs6000_reload_reg_typ): Likewise.
+	(LAST_RELOAD_REG_CLASS): Likewise.
+	(reload_reg_map): Likewise.
+	(rs6000_reg_names): Likewise.
+	(alt_reg_names): Likewise.
+	(rs6000_hard_regno_nregs_internal): Likewise.
+	(rs6000_hard_regno_mode_ok_uncached): Likewise.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_secondary_reload_memory): Likewise.
+	(rs6000_secondary_reload_simple_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_secondary_reload_class): Likewise.
+	(print_operand): Likewise.
+	(rs6000_dmf_register_move_cost): New helper function.
+	(rs6000_register_move_cost): Add dense math register support.
+	(rs6000_memory_move_cost): Likewise.
+	(rs6000_compute_pressure_classes): Likewise.
+	(rs6000_debugger_regno): Likewise.
+	(rs6000_opt_masks): Likewise.
+	(rs6000_split_multireg_move): Likewise.
+	* config/rs6000/rs6000.h (UNITS_PER_DMF_WORD): New macro.
+	(FIRST_PSEUDO_REGISTER): Add dense math register support.
+	(FIXED_REGISTERS): Likewise.
+	(CALL_REALLY_USED_REGISTERS): Likewise.
+	(REG_ALLOC_ORDER): Likewise.
+	(DMF_REGNO_P): New macro.
+	(enum reg_class): Add dense math register support.
+	(REG_CLASS_NAMES): Likewise.
+	(REGISTER_NAMES): Likewise.
+	(ADDITIONAL_REGISTER_NAMES): Likewise.
+	* config/rs6000/rs6000.md (FIRST_DMF_REGNO): New constant.
+	(LAST_DMF_REGNO): Likewise.
+
+
+==================== Branch work250-dmf, patch #103 ====================
+
+Add the -mdense-math option.
+
+This is part three of the dense math register patches for the PowerPC.
+This is the 7th version of the dense math patches.
+
+Version 6 of the dense math register patches were posted on April 21st,
+2026.
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+This patch (patch #3) is the same as patch #2 in the V6 patches.
+
+This patch adds the -mdense-math option for -mcpu=future.  The next set of
+patches will support for using dense math registers with the MMA instructions.
+All this patch does is add the option.  A future patch will implement support
+for dense math registers, and another patch will then switch the MMA
+instructions to use dense math registers.
+
+For users, the following macros are defined:
+
+	__MMA_NO_DENSE_MATH__	ISA 3.1 MMA support.
+	__MMA_DENSE_MATH__	MMA with dense math registers.
+
+Within the compiler, the following macros are defined:
+
+	TARGET_MMA_NO_DENSE_MATH	ISA 3.1 MMA support.
+	TARGET_MMA_DENSE_MATH		MMA with dense math registers.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-06-25   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-c.cc (rs6000_define_or_undefine_macro): Define
+	__MMA_DENSE_MATH__ if we have MMA that uses dense math register
+	accumulators.  Define __MMA_NO_DENSE_MATH__ if we have MMA but we are
+	using ISA 3.1 where the accumulators are overlaid over VSX registers
+	0..32.  Define __DENSE_MATH__ if we have dense math registers.
+	* config/rs6000/rs6000.cc (rs6000_option_override_internal): Do not
+	allow -mdense-math unless -mcpu=future is used.
+	(rs6000_opt_masks): Add -mdense-math support.
+	* config/rs6000/rs6000.h (TARGET_MMA_DENSE_MATH): New macro.
+	(TARGET_MMA_NO_DENSE_MATH): Likewise.
+	* config/rs6000/rs6000.opt (-mdense-math): New option.
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Add -mdense-math.
+
+==================== Branch work250-dmf, patch #102 ====================
+
+Switch to use wD constraint in mma.md.
+
+This is part two of the dense math register patches for the PowerPC.
+This is the 7th version of the dense math patches.
+
+Version 6 of the dense math register patches were posted on April 21st,
+2026.
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+This patch changes mma.md to use the wD constraint and accumulator_operand
+predicate that were added in the previous patch instead of using the d constrant
+and vsx_register_operand predicate.  This is in anticipation of adding dense
+math registers in a future patch.
+
+In addition, I added a comment in front of each insn to indicate which
+instructions are being generated.
+
+Originaly, these changes were in patch #4 in the V6 patches.  I have removed
+these patches switching to use wD from the other part of the patch adding dense
+math register support.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (mma_<vv>): Use the wD constraint and
+	accumulator_operand predicate for all MMA instructions taking
+	accumulator operands.
+	(mma_<avv>): Likewise.
+	(mma_<pv>"): Likewise.
+	(mma_<apv>): Likewise.
+	(mma_<vvi4i4i8>): Likewise.
+	(mma_<avvi4i4i8>): Likewise.
+	(mma_<vvi4i4i2>"): Likewise.
+	(mma_<avvi4i4i2>): Likewise.
+	(mma_<vvi4i4>): Likewise.
+	(mma_<avvi4i4>): Likewise.
+	(mma_<pvi4i2>): Likewise.
+	(mma_<apvi4i2>): Likewise.
+	(mma_<vvi4i4i4>): Likewise.
+	(mma_<avvi4i4i4>): Likewise.
+
+==================== Branch work250-dmf, patch #101 ====================
+
+Add wD constraint.
+
+This is part one of the dense math register patches for the PowerPC.
+This is the 7th version of the dense math patches.
+
+Version 6 of the dense math register patches were posted on April 21st,
+2026.
+
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713355.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+ * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+This patch needs the -mcpu=future patch posted on April 8th, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/712532.html
+
+This particular patch did not change from version 6.
+
+This patch adds a new constraint ('wD') that matches the accumulator registers
+used by the MMA instructions.  Possible future PowerPC machines are thinking
+about having a new set of 8 dense math accumulators that will be 1,024 bits in
+size.  The 'wD' constaint was chosen because the VSX constraints start with 'w'.
+The 'wd' constraint was already used, so I chose 'wD' to be similar.
+
+To change code to possibly use dense math registers, the 'd' constraint should
+be changed to 'wD', and the predicate 'fpr_reg_operand' should be changed to
+'accumulator_operand'.
+
+On current power10/power11 systems, the accumulators overlap with the 32
+traditional FPR registers (i.e. VSX vector registers 0..31).  Each accumulator
+uses 4 adjacent FPR/VSX registers for a 512 bit logical register.
+
+Possible future PowerPC machines would have these 8 accumulator registers be
+separate registers, called dense math registers.  It is anticipated that when in
+dense math register mode, the MMA instructions would use the accumulators
+instead of the adjacent VSX registers.  I.e. in power10/power11 mode,
+accumulator 1 will overlap with vector registers 4-7, but in dense math register
+mode, accumulator 1 will be a separate register.
+
+Code compiled for power10/power11 systems will continue to work on the potential
+future machine with dense math register support but the compiler will have fewer
+vector registers available for allocation because it believe the accumulators
+are using vector registers.  For example, the file mma-double-test.c in the
+gcc.target/powerpc testsuite directory has 8 more register spills to/from the
+stack for power10/power11 code then when compiled with dense math register
+support.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/constraints.md (wD): New constraint.
+	* config/rs6000/predicates.md (accumulator_operand): New predicate.
+	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Print the register
+	class for the 'wD' constraint.
+	(rs6000_init_hard_regno_mode_ok): Set up the 'wD' register constraint
+	class.
+	* config/rs6000/rs6000.h (enum r6000_reg_class_enum): Add element for
+	the 'wD' constraint.
+	* doc/md.texi (PowerPC constraints): Document the 'wD' constraint.
+
 ==================== Branch work250-dmf, baseline ====================
 
 2026-06-25   Michael Meissner  <meissner@linux.ibm.com>
