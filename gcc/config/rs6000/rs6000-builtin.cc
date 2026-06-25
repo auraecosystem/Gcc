@@ -1156,9 +1156,16 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
 	  return true;
 	}
 
-      /* If we're disassembling an accumulator into a different type, we need
-	 to emit a xxmfacc instruction now, since we cannot do it later.  */
-      if (fncode == RS6000_BIF_DISASSEMBLE_ACC)
+      /* On a system without dense math registers, if we're disassembling an
+	 accumulator into a different type, we need to emit a xxmfacc
+	 instruction now, since we cannot do it later.
+
+	 On a dense math system, we use the explicit moves (dmxxinstdmr512 and
+	 dmxxextfdmr512) to move values between VSX registers and the separate
+	 dense math accumulators.  This means, we don't have to sprinkle
+	 xxmfacc's into the code to make sure the overlaid accumulators are
+	 ready to issue MMA instructions.  */
+      if (fncode == RS6000_BIF_DISASSEMBLE_ACC && !TARGET_DENSE_MATH)
 	{
 	  new_decl = rs6000_builtin_decls[RS6000_BIF_XXMFACC_INTERNAL];
 	  new_call = gimple_build_call (new_decl, 1, src);
