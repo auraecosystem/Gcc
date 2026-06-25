@@ -526,10 +526,6 @@ extern int rs6000_vector_align[];
 #define TARGET_MMA_DENSE_MATH		(TARGET_MMA && TARGET_DENSE_MATH)
 #define TARGET_MMA_NO_DENSE_MATH	(TARGET_MMA && !TARGET_DENSE_MATH)
 
-/* Enable XXEVAL support if we support prefixed instructions and at least
-   power10.  */
-#define TARGET_XXEVAL  (TARGET_POWER10 && TARGET_PREFIXED)
-
 /* In switching from using target_flags to using rs6000_isa_flags, the options
    machinery creates OPTION_MASK_<xxx> instead of MASK_<xxx>.  The MASK_<xxxx>
    options that have not yet been replaced by their OPTION_MASK_<xxx>
@@ -597,9 +593,6 @@ extern int rs6000_vector_align[];
 
 /* Whether we have XVRLW support.  */
 #define TARGET_XVRLW			TARGET_FUTURE
-
-/* Whether we have PADDIS support.  */
-#define TARGET_PADDIS			(TARGET_FUTURE && TARGET_POWERPC64)
 
 /* Whether the various reciprocal divide/square root estimate instructions
    exist, and whether we should automatically generate code for the instruction
@@ -2525,13 +2518,6 @@ typedef struct GTY(()) machine_function
 
 #define SIGNED_INTEGER_16BIT_P(VALUE)	SIGNED_INTEGER_NBIT_P (VALUE, 16)
 #define SIGNED_INTEGER_34BIT_P(VALUE)	SIGNED_INTEGER_NBIT_P (VALUE, 34)
-
-#if HOST_BITS_PER_WIDE_INT > 64
-#define SIGNED_INTEGER_64BIT_P(VALUE)	SIGNED_INTEGER_NBIT_P (VALUE, 64)
-
-#else
-#define SIGNED_INTEGER_64BIT_P(VALUE)	1
-#endif
 
 /* Like SIGNED_INTEGER_16BIT_P and SIGNED_INTEGER_34BIT_P, but with an extra
    argument that gives a length to validate a range of addresses, to allow for
