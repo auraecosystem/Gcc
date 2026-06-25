@@ -2374,6 +2374,7 @@
 
   return constant_generates_xxspltiw (&vsx_const);
 })
+<<<<<<< HEAD
 
 ;; Return 1 if this is a 16-bit floating point operand that can be used
 ;; in an add, subtract, or multiply operation that uses the vector
@@ -2450,3 +2451,5 @@
 
   return false;
 })
+=======
+>>>>>>> 657f8abb6c6 (Add initial 16-bit floating point support.)
