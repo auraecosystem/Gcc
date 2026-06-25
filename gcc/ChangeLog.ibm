@@ -1501,8 +1501,6 @@ gcc/
 	(vsx_extract_<mode>_store_p9): Add V8HFmode and V8BFmode.
 	(vsx_extract_<mode>_p8): Likewise.
 
-==================== Branch ibm/gcc-17-future, dmf patch #120 ====================
-
 Add paddis support.
 
 This patch adds support for the paddis instruction that might be added to a
@@ -2125,6 +2123,8 @@ gcc/
 	* config/rs6000/rs6000.h (enum r6000_reg_class_enum): Add element for
 	the 'wD' constraint.
 	* doc/md.texi (PowerPC constraints): Document the 'wD' constraint.
+
+==================== Branch ibm/gcc-17-future, baseline ====================
 
 2026-06-25   Michael Meissner  <meissner@linux.ibm.com>
 
