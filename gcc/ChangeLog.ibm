@@ -2126,8 +2126,6 @@ gcc/
 	the 'wD' constraint.
 	* doc/md.texi (PowerPC constraints): Document the 'wD' constraint.
 
-==================== Branch ibm/gcc-17-future, baseline ====================
-
 2026-06-25   Michael Meissner  <meissner@linux.ibm.com>
 
 Add ChangeLog.bugs and update REVISION.
