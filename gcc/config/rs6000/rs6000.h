@@ -2524,6 +2524,13 @@ typedef struct GTY(()) machine_function
 #define SIGNED_INTEGER_16BIT_P(VALUE)	SIGNED_INTEGER_NBIT_P (VALUE, 16)
 #define SIGNED_INTEGER_34BIT_P(VALUE)	SIGNED_INTEGER_NBIT_P (VALUE, 34)
 
+#if HOST_BITS_PER_WIDE_INT > 64
+#define SIGNED_INTEGER_64BIT_P(VALUE)	SIGNED_INTEGER_NBIT_P (VALUE, 64)
+
+#else
+#define SIGNED_INTEGER_64BIT_P(VALUE)	1
+#endif
+
 /* Like SIGNED_INTEGER_16BIT_P and SIGNED_INTEGER_34BIT_P, but with an extra
    argument that gives a length to validate a range of addresses, to allow for
    splitting insns into several insns, each of which has an offsettable
