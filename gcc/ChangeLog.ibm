@@ -1492,7 +1492,7 @@ gcc/
 	(vsx_extract_<mode>_store_p9): Add V8HFmode and V8BFmode.
 	(vsx_extract_<mode>_p8): Likewise.
 
-==================== Branch ibm/gcc-17-future, dmf patch #114 ====================
+==================== Branch ibm/gcc-17-future, dmf patch #120 ====================
 
 Add paddis support.
 
@@ -1517,17 +1517,18 @@ gcc/
 	(print_operand): Add %B<n> for paddis support.
 	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
 	(SIGNED_INTEGER_64BIT_P): Likewise.
-	* config/rs6000/rs6000.md (isa attribute): Add paddis support.
-	(enabled attribute); Likewise.
-	(add<mode>3 define_expand): Likewise.
+	* config/rs6000/rs6000.md (add<mode>3 define_expand): Add paddis
+	support.
 	(*add<mode>3 define_insn): Likewise.
-	(movdi_internal64): Add paddis and paddis+paddi support.
+	(movdi_internal64): Likewise.
 	(movdi splitter): New splitter for paddis + paddi/addi.
 	* doc/md.texi (PowerPC constraints): Add eU and eV documentation.
 
 gcc/testsuite/
 
 	* gcc.target/powerpc/prefixed-addis.c: New test.
+
+==================== Branch ibm/gcc-17-future, dmf patch #114 was reverted ====================
 
 ==================== Branch ibm/gcc-17-future, dmf patch #113 ====================
 
