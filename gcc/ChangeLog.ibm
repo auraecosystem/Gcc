@@ -1501,7 +1501,7 @@ gcc/
 	(vsx_extract_<mode>_store_p9): Add V8HFmode and V8BFmode.
 	(vsx_extract_<mode>_p8): Likewise.
 
-==================== Branch ibm/gcc-17-future, dmf patch #114 ====================
+==================== Branch ibm/gcc-17-future, dmf patch #120 ====================
 
 Add paddis support.
 
