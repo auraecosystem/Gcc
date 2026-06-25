@@ -259,7 +259,7 @@ sub gen_logical_addsubf
       "vxor_vnand"  => 249,
       "vandc_vnand" => 253,
       "vand_vnand"  => 254,
-    );
+y    );
 
     KIND: foreach $kind ('scalar','vector') {
       @outer_ops = @logicals;
