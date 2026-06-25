@@ -1,4 +1,4 @@
-==================== Branch work250-dmf, patch #114 ====================
+==================== Branch work250-dmf, patch #120 ====================
 
 Add paddis support.
 
@@ -23,17 +23,18 @@ gcc/
 	(print_operand): Add %B<n> for paddis support.
 	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
 	(SIGNED_INTEGER_64BIT_P): Likewise.
-	* config/rs6000/rs6000.md (isa attribute): Add paddis support.
-	(enabled attribute); Likewise.
-	(add<mode>3 define_expand): Likewise.
+	* config/rs6000/rs6000.md (add<mode>3 define_expand): Add paddis
+	support.
 	(*add<mode>3 define_insn): Likewise.
-	(movdi_internal64): Add paddis and paddis+paddi support.
+	(movdi_internal64): Likewise.
 	(movdi splitter): New splitter for paddis + paddi/addi.
 	* doc/md.texi (PowerPC constraints): Add eU and eV documentation.
 
 gcc/testsuite/
 
 	* gcc.target/powerpc/prefixed-addis.c: New test.
+
+==================== Branch work250-dmf, patch #114 was reverted ====================
 
 ==================== Branch work250-dmf, patch #113 ====================
 
