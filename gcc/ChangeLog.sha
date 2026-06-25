@@ -1,4 +1,26 @@
-==================== Branch work250-sha, patch #408 ====================
+==================== Branch work250-sha, patch #430 ====================
+
+Add xvrlw support.
+
+This patch adds support for a possible new variant of the vector rotate left
+instruction that might be added to a future PowerPC.  This variant (xvrlw) can
+use any VSX register instead of requiring only Altivec registers.
+
+As a potential test, add other variants of vxvrl<x> enabled with the -mxvrld option.
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/altivec.md (xvrlw): New insn.
+	(test_xvrl<VI_char>): Add test insns.
+	* config/rs6000/rs6000.h (TARGET_XVRLD): New macro.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/vector-rotate-left.c: New test.
+
+==================== Branch work250-sha, patch #428 ====================
 
 PR target/117251: Add tests
 
@@ -23,7 +45,7 @@ gcc/testsuite/
 	* gcc.target/powerpc/p10-vector-fused-1.c: New test.
 	* gcc.target/powerpc/p10-vector-fused-2.c: Likewise.
 
-==================== Branch work250-sha, patch #407 ====================
+==================== Branch work250-sha, patch #427 ====================
 
 PR target/117251: Improve vector fusion #7
 
@@ -82,7 +104,7 @@ gcc/
 	* config/rs6000/genfusion.pl (gen_logical_addsubf): Add support
 	to generate vector/vector fusion if XXEVAL is supported.
 
-==================== Branch work250-sha, patch #406 ====================
+==================== Branch work250-sha, patch #426 ====================
 
 PR target/117251: Improve vector fusion #6
 
@@ -150,7 +172,7 @@ gcc/
 	* config/rs6000/genfusion.pl (gen_logical_addsubf): Add support
 	to generate vector/vector fusion if XXEVAL is supported.
 
-==================== Branch work250-sha, patch #405 ====================
+==================== Branch work250-sha, patch #425 ====================
 
 PR target/117251: Improve vector fusion #5
 
@@ -218,7 +240,7 @@ gcc/
 	* config/rs6000/genfusion.pl (gen_logical_addsubf): Add support
 	to generate vector/vector fusion if XXEVAL is supported.
 
-==================== Branch work250-sha, patch #404 ====================
+==================== Branch work250-sha, patch #424 ====================
 
 PR target/117251: Improve vector fusion #4
 
@@ -280,7 +302,7 @@ gcc/
 	* config/rs6000/genfusion.pl (gen_logical_addsubf): Add support
 	to generate vector/vector fusion if XXEVAL is supported.
 
-==================== Branch work250-sha, patch #403 ====================
+==================== Branch work250-sha, patch #423 ====================
 
 PR target/117251: Improve vector fusion #3
 
@@ -348,7 +370,7 @@ gcc/
 	* config/rs6000/genfusion.pl (gen_logical_addsubf): Add support
 	to generate vector/vector fusion if XXEVAL is supported.
 
-==================== Branch work250-sha, patch #402 ====================
+==================== Branch work250-sha, patch #422 ====================
 
 PR target/117251: Improve vector fusion #2
 
@@ -416,7 +438,7 @@ gcc/
 	* config/rs6000/genfusion.pl (gen_logical_addsubf): Add support
 	to generate vector/vector fusion if XXEVAL is supported.
 
-==================== Branch work250-sha, patch #401 ====================
+==================== Branch work250-sha, patch #421 ====================
 
 PR target/117251: Improve vector fusion #1
 
@@ -469,9 +491,9 @@ gcc/
 	supported.
 	* config/rs6000/predicates.md (vector_fusion_operand): New
 	predicate.
-	* config/rs6000/rs6000.h (TARGET_XXEVAL): New macro.
-	* config/rs6000/rs6000.md (isa attribute): Add xxeval.
+	* config/rs6000/rs6000.md (isa attribute): Add p10p.
 	(enabled attribute): Add support for XXEVAL support.
+	* config/rs6000/rs6000.h (TARGET_XXEVAL): New macro.
 
 ==================== Branch work250-sha, explanation ====================
 
@@ -615,6 +637,15 @@ These patches add the following fusion patterns:
 	xxleqv  => xxlnand      xxlnor  => xxlnand
 	xxlor   => xxlnand      xxlxor  => xxlnand
 	xxlandc => xxlnand      xxland  => xxlnand
+
+==================== Branch work250-sha, patch #408 was reverted ====================
+==================== Branch work250-sha, patch #407 was reverted ====================
+==================== Branch work250-sha, patch #406 was reverted ====================
+==================== Branch work250-sha, patch #405 was reverted ====================
+==================== Branch work250-sha, patch #404 was reverted ====================
+==================== Branch work250-sha, patch #403 was reverted ====================
+==================== Branch work250-sha, patch #402 was reverted ====================
+==================== Branch work250-sha, patch #401 was reverted ====================
 
 ==================== Branch work250-sha, baseline ====================
 
