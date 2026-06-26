@@ -1,3 +1,14 @@
+==================== Branch work250-sha, patch #431 ====================
+
+Add future test support.
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/testsuite/
+
+	* lib/target-supports.exp (check_effective_target_powerpc_future_ok):
+	New target support.
+
 ==================== Branch work250-sha, patch #430 ====================
 
 Add xvrlw support.
