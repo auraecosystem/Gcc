@@ -1854,6 +1854,10 @@ bitint_large_huge::handle_load (gimple *stmt, tree idx)
   edge eh_edge = NULL;
   gimple *g;
 
+  if (TREE_CODE (rhs1) == BIT_FIELD_REF
+      && integer_zerop (TREE_OPERAND (rhs1, 2)))
+    rhs1 = TREE_OPERAND (rhs1, 0);
+
   if (eh)
     {
       edge_iterator ei;
@@ -7131,6 +7135,11 @@ gimple_lower_bitint (void)
 							   vtype, c));
 			}
 		      gsi_insert_on_edge (e, g);
+		      if (min_prec == prec)
+			{
+			  edge_insertions = true;
+			  break;
+			}
 		    }
 		  if (ext == 0)
 		    {
