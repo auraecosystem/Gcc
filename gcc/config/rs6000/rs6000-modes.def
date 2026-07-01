@@ -91,3 +91,4 @@ OPAQUE_MODE (XO, 64);
 
 /* Mode used by __dmf.  */
 OPAQUE_MODE (TDO, 128);
+
