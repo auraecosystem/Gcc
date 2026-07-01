@@ -1,0 +1,1287 @@
+======== Patch #9 ========
+
+Add _Float16 and __bfloat16 support.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/altivec.md (VM): Add support for V8HFmode and
+        V8BFmode.
+	(VM2): Likewise.
+	(VI_char): Likewise.
+	(VI_scalar): Likewise.
+	(VI_unit): Likewise.
+	(VP_small): Likewise.
+	(VP_small_lc): Likewise.
+	(VU_char): Likewise.
+	* config/rs6000/rs6000-modes.def (HFmode): Add new mode.
+	(BFmode): Likewise.
+	(V8BFmode): Likewise.
+	(V8HFmode): Likewise.
+	* config/rs6000/rs6000-p8swap.cc (rs6000_gen_stvx): Remove #ifdef for
+	HAVE_V8HFmode.  Add support for V8BFmode.
+	(rs6000_gen_lvx): Likewise.
+	(replace_swapped_load_constant): Likewise.
+	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Add support for
+	V8HFmode and V8BFmode.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(output_vec_const_move): Likewise.
+	(reg_offset_addressing_ok_p): Likewise.
+	(rs6000_const_vec): Likewise.
+	(rs6000_emit_move): Likewise.
+	* config/rs6000/rs6000.h (ALTIVEC_VECTOR_MODE): Likewise.
+	* config/rs6000/rs6000.md (FMOVE128_GPR): Likewise.
+	(wd): Likewise.
+	(du_or_d): Likewise.
+	(BOOL_128): Likewise.
+	(BOOL_REGS_OUTPUT): Likewise.
+	(BOOL_REGS_OP1): Likewise.
+	(BOOL_REGS_OP2): Likewise.
+	(BOOL_REGS_UNARY): Likewise.
+	(RELOAD): Likewise.
+	* config/rs6000/vector.md (VEC_L): Likewise.
+	(VEC_M): Likewise.
+	(VEC_E): Likewise.
+	(VEC_base): Likewise.
+	(VEC_base_l): Likewise.
+	* config/rs6000/vsx.md (VECTOR_16BIT): New mode iterator.
+	(VSX_L): Add support for V8HFmode and V8BFmode.
+	(VSX_M): Likewise.
+	(VSX_XXBR): Likewise.
+	(VSm): Likewise.
+	(VSr): Likewise.
+	(VSisa): Likewise.
+	(??r): Likewise.
+	(nW): Likewise.
+	(VSv): Likewise.
+	(VSX_EXTRACT_I): Likewise.
+	(VSX_EXTRACT_I2): Likewise.
+	(VSX_EXTRACT_I4): Likewise.
+	(VSX_EXTRACT_WIDTH): Likewise.
+	(VSX_EXTRACT_PREDICATE): Likewise.
+	(VSX_EX): Likewise.
+	(VM3): Likewise.
+	(VM3_char): Likewise.
+	(vsx_le_perm_load_<mode>): Rename from vsx_le_perm_load_v8hi and add
+	V8HFmode and V8BFmode.
+	(vsx_le_perm_store_<mode>): Rename from vsx_le_perm_store_v8hi and add
+	V8HFmode and V8BFmode.
+	(splitter for vsx_le_perm_store_<mode>): Likewise.
+	(vsx_ld_elemrev_<mode>): Rename from vsx_ld_elemrev_v8hi and add
+	V8HFmode and V8BFmode support.
+	(vsx_ld_elemrev_<mode>_internal): Rename from
+	vsx_ld_elemrev_v8hi_internal and add V8HFmode and V8BFmode support.
+	(vsx_st_elemrev_<mode>): Rename from vsx_st_elemrev_v8hi and add
+	V8HFmode and V8BFmode support.
+	(vsx_st_elemrev_<mode>_internal): Rename from
+	vsx_st_elemrev_v8hi_internal and add V8HFmode and V8BFmode support.
+	(xxswapd_<mode>): Rename from xxswapd_v8hi and add V8HFmode and V8BFmode
+	support.
+	(vsx_lxvd2x8_le_<MODE>): Rename from vsx_lxvd2x8_le_V8HI and add
+	V8HFmode and V8BFmode support.
+	(vsx_stxvd2x8_le_<MODE>): Rename from vsx_stxvd2x8_le_V8HI and add
+	V8HFmode and V8BFmode support.
+	(vsx_extract_<mode>_store_p9): Add V8HFmode and V8BFmode.
+	(vsx_extract_<mode>_p8): Likewise.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config.gcc (powerpc*-*-*): Add support for the configuration option
+	--with-powerpc-float16 and --with-powerpc-float16-disable-warning.
+	* config/rs6000/rs6000-cpus.def (TARGET_16BIT_FLOATING_POINT): Likewise.
+	(ISA_2_7_MASKS_SERVER): Likewise.
+	(POWERPC_MASKS): Add -mfloat16.
+	* config/rs6000/constraints.md (eZ): New constraint for -0.0.
+	* config/rs6000/float16.md: New file to add basic 16-bit floating point
+	support.
+	* config/rs6000/predicates.md (easy_fp_constant): Add support for HFmode
+	and BFmode constants.
+	(easy_vector_constant): Add support for V8HFmode and V8BFmode to load up
+	the vector -0.0 constant.
+	(minus_zero_constant): New predicate.
+	(fp16_xxspltiw_constant): Likewise.
+	* config/rs6000/rs6000-builtin.cc (rs6000_type_string): Add support for
+	16-bit floating point types.
+	(rs6000_init_builtins): Create the bfloat16_type_node if needed.
+	* config/rs6000/rs6000-c.cc (rs6000_target_modify_macros): Define
+	__FLOAT16__ and __BFLOAT16__ if 16-bit floating pont is enabled.
+	* config/rs6000/rs6000-call.cc (init_cumulative_args): Warn if a
+	function returns a 16-bit floating point value unless -Wno-psabi is
+	used or if this warning is disabled via the configuration option
+	--with-powerpc-float16-disable-warning.
+	(rs6000_function_arg): Warn if a 16-bit floating point value is passed
+	to a function unless -Wno-psabi is ued or if this warning is disabled
+	via the configuration option --with-powerpc-float16-disable-warning.
+	* config/rs6000/rs6000-protos.h (vec_const_128bit_type): Add mode field
+	to detect initializing 16-bit floating constants.
+	* config/rs6000/rs6000.cc (rs6000_hard_regno_mode_ok_uncached): Add
+	support for 16-bit floating point.
+	(rs6000_modes_tieable_p): Don't allow 16-bit floating point modes to tie
+	with other modes.
+	(rs6000_debug_reg_global): Add BFmode and HFmode.
+	(rs6000_setup_reg_addr_masks): Add support for 16-bit floating point
+	types.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_option_override_internal): Add a check whether -mfloat16 can be
+	used.
+	(easy_altivec_constant): Add suport for 16-bit floating point.
+	(xxspltib_constant_p): Likewise.
+	(rs6000_expand_vector_init): Likewise.
+	(rs6000_expand_vector_set): Likewise.
+	(rs6000_expand_vector_extract): Likewise.
+	(rs6000_split_vec_extract_var): Likewise.
+	(reg_offset_addressing_ok_p): Likewise.
+	(rs6000_legitimate_offset_address_p): Likewise.
+	(legitimate_lo_sum_address_p): Likewise.
+	(rs6000_secondary_reload_simple_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_can_change_mode_class): Likewise.
+	(rs6000_output_move_128bit): Likewise.
+	(rs6000_load_constant_and_splat): Likewise.
+	(rs6000_scalar_mode_supported_p): Likewise.
+	(rs6000_libgcc_floating_mode_supported_p): Return true for HFmode and
+	BFmode if -mfloat16.
+	(rs6000_floatn_mode): Enable _Float16 if -mfloat16.
+	(rs6000_opt_masks): Add -mfloat16.
+	(constant_fp_to_128bit_vector): Add support for 16-bit floating point.
+	(vec_const_128bit_to_bytes): Likewise.
+	(constant_generates_xxspltiw): Likewise.
+	* config/rs6000/rs6000.h (FP16_SCALAR_MODE_P): Ne macro.
+	(FP16_VECTOR_MODE_P): Likewise.
+	(TARGET_BFLOAT16_HW): New macro.
+	(TARGET_FLOAT16_HW): Likewise.
+	(TARGET_BFLOAT16_HW_VECTOR): Likewise.
+	(TARGET_FLOAT16_HW_VECTOR): Likewise.
+	* config/rs6000/rs6000.md (wd): Add BFmode and HFmode.
+	(toplevel): Include float16.md.
+	* config/rs6000/rs6000.opt (-mloat16): New option.
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Document -mfloat16.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+libgcc/
+
+	* config.host (powerpc*-*-linux*): Add HF/BF emulation functions to
+	PowerPC libgcc.
+	* config/rs6000/sfp-machine.h (_FP_NANFRAC_H): New macro.
+	(_FP_NANFRAC_B): Likewise.
+	(_FP_NANSIGN_H): Likewise.
+	(_FP_NANSIGN_B): Likewise.
+	(DFtype2): Add HF/BF emulation function declarations.
+	(SFtype2): Likewise.
+	(DItype2): Likewise.
+	(UDItype2): Likewise.
+	(SItype2): Likewise.
+	(USItype2): Likewise.
+	(HFtype2): Likewise.
+	(__eqhf2): Likewise.
+	(__extendhfdf2): Likewise.
+	(__extendhfsf2): Likewise.
+	(__fixhfdi): Likewise.
+	(__fixhfsi): Likewise.
+	(__fixunshfdi): Likewise.
+	(__fixunshfsi): Likewise.
+	(__floatdihf): Likewise.
+	(__floatsihf): Likewise.
+	(__floatundihf): Likewise.
+	(__floatunsihf): Likewise.
+	(__truncdfhf2): Likewise.
+	(__truncsfhf2): Likewise.
+	(BFtype2): Likewise.
+	(__extendbfsf2): Likewise.
+	(__floatdibf): Likewise.
+	(__floatsibf): Likewise.
+	(__floatundibf): Likewise.
+	(__floatunsibf): Likewise.
+	(__truncdfbf2): Likewise.
+	(__truncsfbf2): Likewise.
+	(__truncbfhf2): Likewise.
+	(__trunchfbf2): Likewise.
+	* config/rs6000/t-float16: New file.
+	* configure.ac (powerpc*-*-linux*): Check if the PowerPC compiler
+	supports _Float16 and __bfloat16 types.
+	* configure: Regenerate.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (FP16_HW): New mode iterator.
+	(extendhf<mode>2): Add support converting between HFmode and
+	SFmode/DFmoded if we are on power9 or later.
+	(trunc<mode>hf2): Likewise.
+	* config/rs6000/rs6000-c.cc (rs6000_target_modify_macros): Define
+	__FLOAT16_HW__ if we have hardware support for _Float16.
+	* config/rs6000/rs6000.cc (rs6000_init_hard_regno_mode_ok): Mark that we
+	use VSX arithmetic support for V8HFmode if we are a power9 or later.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (FP16_HW): Add BFmode.
+	(VFP16_HW): New mode iterator.
+	(cvt_fp16_to_v4sf): New mode attribute.
+	(cvt_v4sf_to_fp16): Likewise.
+	(FP16_VECTOR4): Likewise.
+	(UNSPEC_BF_SHIFT_LEFT_16BIT): New unspec.
+	(UNSPEC_XXSPLTW_FP16): Likewise.
+	(UNSPEC_XVCVSPBF16_BF): Likewise.
+	(UNSPEC_CVT_V4SF_TO_FP16): Likewise.
+	(extendbf<mode>2): New insns to convert between BFmode and
+	SFmode/DFmode.
+	(xscvdpspn_sf): Likewise.
+	(xscvspdpn_sf): Likewise.
+	(convert_bf_to_sf_store): New insn for converting BFmdoe to SFmode and
+	then storing it.
+	(shift_bf_16bits): Likewise.
+	(trunc<mode>bf): New insns to convert SFmode/DFmode to BFmode.
+	(vsx_xscvdpspn_sf): Likewise.
+	(cvt_fp16_to_v4sf_<mode): Likewise.
+	(cvt_fp16_to_v4sf_<mode>_le): Likewise.
+	(cvt_fp16_to_v4sf_<mode>_be): Likewise.
+	(cvt_v4sf_to_fp16_<mode>): Likewise.
+	(dup_<mode>_to_v4s): Likewise.
+	(xxspltw_<mode>): Likewise.
+	(xvcvbf16spn_bf): Likewise.
+	(xvcvspbf16_bf): Likewise.
+	(trunchfbf2): New insn to convert BFmode to HFmode.
+	(trunchfbf2_mem): Optimize converting BFmode from memory to HFmode.
+	(extendbfhf2): New insn to convert HFmode to BFmode.
+	(extendbfhf2_mem): Optimize converting HFmode from memory to BFmode.
+	* config/rs6000/rs6000-c.cc (rs6000_target_modify_macros): Define
+	__BFLOAT16_HW__ if we have hardware support for __bfloat16.
+	* config/rs6000/rs6000.cc (rs6000_init_hard_regno_mode_ok): Mark that we
+	use VSX arithmetic support for V8BFmode if we are a power10 or later.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (fp16_float_convert): New mode iterator.
+	(extend<FP16_HW:mode><fp16_float_convert:mode>2): New insns to convert
+	between the 2 16-bit floating point modes and other floating point
+	scalars other than SFmode/DFmode by converting first to DFmode.
+	(trunc<fp16_float_convert:mode><FP16_HW:mode>2): Likewise.
+	(float<GPR:mode><FP16_HW:mode>2): New insns to convert beween the 2
+	16-bit floating point modes and signed/unsigned integers.
+	(floatuns<GPR:mode><FP16_HW:mode>2): Likewise.
+	(fix_trunc<FP16_HW:mode><GPR:mode>): Likewise.
+	(fixuns_trunc<FP16_HW:mode><GPR:mode>2): Likewise.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (neg<mode>2): Add BFmode/HFmode negate,
+	absolute value and negative absolute value operations.  Add logical
+	insns operating on BFmode/HFmode.
+	(abs<mode>2): Likewise.
+	(nabs<mode>2): Likewise.
+	(and<mode>3): Likewise.
+	(ior<mode>): Likewise.
+	(xor<mode>3): Likewise.
+	(nor<mode>3): Likewise.
+	(andn<mode>3): Likewise.
+	(eqv<mode>3): Likewise.
+	(nand<mode>3): Likewise.
+	(iorn<mode>3): Likewise.
+	(bool<mode>3): Likewise.
+	(boolc<mode>3): Likewise.
+	(boolcc<mode>): Likewise.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config.gcc (powerpc*-*-*): Add float16.o.
+	* config/rs6000/float16.cc: New file to add 16-bit floating point
+	vectorization.
+	* config/rs6000/float16.md: (FP16_BINARY_OP): New mode iterator.
+	(fp16_names): New mode attribute.
+	(UNSPEC_XVCVSPHP_V8HF): New unspec.
+	(UNSPEC_XVCVSPBF16_V8BF): Likewise.
+	(UNSPEC_CVT_FP16_TO_V4SF): Likewise.
+	(<fp16_names><mode>): New insns to support vectorization of 16-bit
+	floating point.
+	(fma<mode>4): Likewise.
+	(fms<mode>4): Likewise.
+	(nfma<mode>): Likewise.
+	(nfms<mode>4): Likewise.
+	(vec_pack_trunc_v4sf_v8hf): Likewise.
+	(vec_pack_trunc_v4sf_v8bf): Likewise.
+	(vec_pack_trunc_v4sf): Likewise.
+	(xvcvsphp_v8hf): Likewise.
+	(xvcvspbf16_v8bf): Likewise.
+	(vec_unpacks_hi_v8hf): Likewise.
+	(vec_unpacks_lo_v8hf): Likewise.
+	(xvcvhpsp_v8hf): Likewise.
+	(vec_unpacks_hi_v8bf): Likewise.
+	(vec_unpacks_lo_v8bf): Likewise.
+	(xvcvbf16spn_v8bf): Likewise.
+	* config/rs6000/rs6000-protos.h (enum fp16_operation): New enumeration
+	for vectorizing 16-bit floating point.
+	(fp16_vectorization): New declaration.
+	* config/rs6000/t-rs6000 (float16.o): Add build rules.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.cc (bfloat16_operation_as_v4sf): New function to
+	optimize __bfloat16 scalar operations.
+	* config/rs6000/float16.md (xvcvbf16spn_bf): New insn.
+	(bfloat16_binary_op_internal1): New __bfloat16 scalar combiner insns.
+	(bfloat16_binary_op_internal2): Likewise.
+	(bfloat16_fma_internal1): Likewise.
+	(bfloat16_fma_internal2): Likewise.
+	(bfloat16_fms_internal1): Likewise.
+	(bfloat16_fms_internal2): Likewise.
+	(bfloat16_nfma_internal1): Likewise.
+	(bfloat16_nfma_internal2): Likewise.
+	(bfloat16_nfms_internal3): Likewise.
+	* config/rs6000/predicates.md (fp16_reg_or_constant_operand): New
+	predicate.
+	(bfloat16_v4sf_operand): Likewise.
+	(bfloat16_bf_operand): Likewise.
+	* config/rs6000/rs6000-protos.h (bfloat16_operation_as_v4sf): New
+	declaration.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/bfloat16-1.c: New target.
+	* gcc.target/powerpc/bfloat16-2.c: Likewise.
+	* gcc.target/powerpc/float16-1.c: Likewise.
+	* gcc.target/powerpc/float16-2.c: Likewise.
+	* lib/target-supports.exp (check_ppc_float16_hw_available): New target
+	supports for _Float16 and __bfloat16 support.
+	(check_ppc_float16_runtime_available): Likewise.
+	(check_ppc_bfloat16_hw_available): Likewise.
+	(check_ppc_bfloat16_runtime_available): Likewise.
+	(is-effective-target): Add new _Float16 and __bfloat16 targets.
+
+======== Patch #8 ========
+
+PR target/117251: Add PowerPC XXEVAL support to speed up SHA3 calculations
+
+History: This is version 2 of the patch.  In the original patch, all 44
+fusion opportunities were lumped together in one patch.  Outside of
+fusion.md, these changes are fairly small, in that it adds one
+alternative to each of the fusion patterns to add xxeval support.
+Fusion.md is a generated file (created from genfusion.md) that does all
+of the fusion combinations.  Because of these automated changes,
+fusion.md had 265 lines that were deleted and 397 lines that were
+added.
+
+In version 2 of the patch, I broke the original patch into 45 separate
+patches.  The first patch adds the basic support to genfusion.pl,
+predicates.md, rs6000.h, and rs6000.md.  The first patch adds the first
+fusion case (vector 'AND' fusing into vector 'AND'). The next 43
+patches each add one more fusion case.  Then the last case adds the two
+test cases.
+
+The multibuff.c benchmark attached to the PR target/117251 compiled for
+Power10 PowerPC that implement SHA3 has a slowdown in the current trunk
+and GCC 14 compared to GCC 11 - GCC 13, due to excessive amounts of
+spilling.
+
+The main function for the multibuf.c file has 3,747 lines, all of which
+are using vector unsigned long long.  There are 696 vector rotates (all
+rotates are constant), 1,824 vector xor's and 600 vector andc's.
+
+In looking at it, the main thing that steps out is the reason for
+either spilling or moving variables is the support in fusion.md
+(generated by genfusion.pl) that tries to fuse the vec_andc feeding
+into vec_xor, and other vec_xor's feeding into vec_xor.
+
+On the powerpc for power10, there is a special fusion mode that happens
+if the machine has a VANDC or VXOR instruction that is adjacent to a
+VXOR instruction and the VANDC/VXOR feeds into the 2nd VXOR
+instruction.
+
+While the Power10 has 64 vector registers (which uses the XXL prefix to
+do logical operations), the fusion only works with the older Altivec
+instruction set (which uses the V prefix).  The Altivec instruction
+only has 32 vector registers (which are overlaid over the VSX vector
+registers 32-63).
+
+By having the combiner patterns fuse_vandc_vxor and fuse_vxor_vxor to
+do this fusion, it means that the register allocator has more register
+pressure for the traditional Altivec registers instead of the VSX
+registers.
+
+In addition, since there are vector rotates, these rotates only work on
+the traditional Altivec registers, which adds to the Altivec register
+pressure.
+
+Finally in addition to doing the explicit xor, andc, and rotates using
+the Altivec registers, we have to also load vector constants for the
+rotate amount and these registers also are allocated as Altivec
+registers.
+
+Current trunk and GCC 12-14 have more vector spills than GCC 11, but
+GCC 11 has many more vector moves that the later compilers.  Thus even
+though it has way less spills, the vector moves are why GCC 11 have the
+slowest results.
+
+There is an instruction that was added in power10 (XXEVAL) that does
+provide fusion between VSX vectors that includes ANDC->XOR and XOR->XOR
+fusion.
+
+The latency of XXEVAL is slightly more than the fused VANDC/VXOR or
+VXOR/VXOR, so I have written the patch to prefer doing the Altivec
+instructions if they don't need a temporary register.
+
+Here are the results for adding support for XXEVAL for the multibuff.c
+benchmark attached to the PR.  Note that we essentially recover the
+speed with this patch that were lost with GCC 14 and the current trunk:
+
+                               XXEVAL   Trunk   GCC15   GCC14    GCC13
+                               ------   -----   -----   -----    -----
+Multibuf time in seconds        5.600   6.151   6.129   6.053    5.539
+XXEVAL improvement percentage     ---   +9.8%   +9.4%   +8.1%    -1.1%
+
+Fuse VANDC -> VXOR                209     600      600    600      600
+Fuse VXOR -> VXOR                   0     241      241    240      120
+XXEVAL to fuse ANDC -> XOR (#45)  391       0        0      0        0
+XXEVAL to fuse XOR -> XOR (#105)  240       0        0      0        0
+
+Spill vector to stack             140     417      417     403     226
+Load spilled vector from stack    490   1,012    1,012   1,000     766
+Vector moves                        8      93      100      70      72
+
+XXLANDC or VANDC                  209     600      600     600     600
+XXLXOR or VXOR                    953   1,824    1,824   1,824   1,824
+XXEVAL                            631       0        0       0       0
+
+Here are the results for adding support for XXEVAL for the singlebuff.c
+benchmark attached to the PR.  Note that adding XXEVAL greatly speeds
+up this particular benchmark:
+
+                               XXEVAL   Trunk   GCC15   GCC14    GCC13
+                               ------   -----   -----   -----    -----
+Singlebuf time in seconds       4.429   5.330   5.333   5.315    5.270
+XXEVAL improvement percentage     ---  +20.3%  +20.4%  +20.0%   +19.0%
+
+Fuse VANDC -> VXOR                210     600     600     600      600
+Fuse VXOR -> VXOR                   0     240     240     240      120
+XXEVAL to fuse ANDC -> XOR (#45)  390       0       0       0        0
+XXEVAL to fuse XOR -> XOR (#105)  240       0       0       0        0
+
+Spill vector to stack             134     388     388     388      391
+Load spilled vector from stack    357     808     808     808      769
+Vector moves                       34      80      80      80      119
+
+XXLANDC or VANDC                  210     600     600     600      600
+XXLXOR or VXOR                    954   1,824   1,824   1,824    1,824
+XXEVAL                            630       0       0       0        0
+
+These patches add the following fusion patterns:
+
+	xxland  => xxland       xxlandc => xxland
+	xxlxor  => xxland       xxlor   => xxland
+	xxlnor  => xxland       xxleqv  => xxland
+	xxlorc  => xxland       xxlandc => xxlandc
+	xxlnand => xxland       xxlnand => xxlnor
+	xxland  => xxlxor       xxland  => xxlor
+	xxlandc => xxlxor       xxlandc => xxlor
+	xxlorc  => xxlnor       xxlorc  => xxleqv
+	xxlorc  => xxlorc       xxleqv  => xxlnor
+	xxlxor  => xxlxor       xxlxor  => xxlor
+	xxlnor  => xxlnor       xxlor   => xxlxor
+	xxlor   => xxlor        xxlor   => xxlnor
+	xxlnor  => xxlxor       xxlnor  => xxlor
+	xxlxor  => xxlnor       xxleqv  => xxlxor
+	xxleqv  => xxlor        xxlorc  => xxlxor
+	xxlorc  => xxlor        xxlandc => xxlnor
+	xxlandc => xxleqv       xxland  => xxlnor
+	xxlnand => xxlxor       xxlnand => xxlor
+	xxlnand => xxlnand      xxlorc  => xxlnand
+	xxleqv  => xxlnand      xxlnor  => xxlnand
+	xxlor   => xxlnand      xxlxor  => xxlnand
+	xxlandc => xxlnand      xxland  => xxlnand
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	PR target/117251
+	* config/rs6000/fusion.md: Regenerate.
+	* config/rs6000/genfusion.pl (gen_logical_addsubf): Add
+	support to generate vector/vector and/and fusion if XXEVAL is
+	supported.
+	* config/rs6000/predicates.md (vector_fusion_operand): New
+	predicate.
+	* config/rs6000/rs6000.md (isa attribute): Add p10p.
+	(enabled attribute): Add support for XXEVAL support.
+	* config/rs6000/rs6000.h (TARGET_XXEVAL): New macro.
+
+gcc/testsuite/
+
+	PR target/117251
+	* gcc.target/powerpc/p10-vector-fused-1.c: New test.
+	* gcc.target/powerpc/p10-vector-fused-2.c: Likewise.
+
+======== Patch #7 ========
+
+PR target/120681 - allow -mcmodel=large with PC relative  addressing
+
+When I implemented the pc-relative support for power10 in GCC, I
+disabled using pc-relative support for -mcmodel=large.  At the time, I
+didn't want to dig into the issues.  It is now time to allow
+-mcmodel=large to generate pc-relative code.
+
+This patch allows -mcmodel=large to use prefixed addressing on power10,
+power11, and possibly other future PowerPC processors in addition to
+the current -mcmodel=medium support.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	PR target/120681
+	* config/rs6000/linux64.h (PCREL_SUPPORTED_BY_OS): Allow large
+	code model as well as medium code model.
+	* config/rs6000/rs6000.cc (rs6000_option_override_internal):
+	Likewise.
+	(rs6000_elf_declare_function_name): Don't create the
+	local/non-local labels for large code model if we are using
+	PC-relative addressing.
+
+gcc/testsuite/
+
+	PR target/120681
+	* gcc.target/powerpc/pr120681.c: New test.
+
+======== Patch #6 ========
+
+PR target/108958 -- simplify mtvsrdd to zero extend GPR DImode to VSX TImode
+
+Before this patch GCC would zero extend a DImode GPR value to TImode by first
+zero extending the DImode value into a GPR TImode register pair, and then do a
+MTVSRDD to move this value to a VSX register.
+
+For example, consider the following code:
+
+	#ifndef TYPE
+	#define TYPE unsigned long long
+	#endif
+
+	void
+	gpr_to_vsx (TYPE x, __uint128_t *p)
+	{
+	  __uint128_t y = x;
+	  __asm__ (" # %x0" : "+wa" (y));
+	  *p = y;
+	}
+
+Currently GCC generates:
+
+	gpr_to_vsx:
+		mr 10,3
+		li 11,0
+		mtvsrdd 0,11,10
+	#APP
+		 # 0
+	#NO_APP
+		stxv 0,0(4)
+		blr
+
+I.e. the mr and li instructions create the zero extended TImode value
+in a GPR, and then the mtvsrdd instruction moves both registers into a
+single vector register.
+
+Instead, GCC should generate the following code.  Since the mtvsrdd
+instruction will clear the upper 64 bits if the 2nd argument is 0
+(non-zero values are a GPR to put in the upper 64 bits):
+
+	gpr_to_vsx:
+		mtvsrdd 0,0,3
+	#APP
+		 # 0
+	#NO_APP
+		stxv 0,0(4)
+		blr
+
+Originally, I posted a patch that added the zero_extendsiti2 insn.  I
+got some pushback about using reload_completed in the split portion of
+the define_insn_and_split.  However, this is a case where you
+absolutely have to use the reload_completed test, because if you split
+the code before register allocation to handle the normal, the split
+insns will not be compiled to generate the appropriate mtvsrdd without
+creating the TImode value in the GPR register.  I can imagine there
+might be concern about favoring generating code using the vector
+registers instead of using the GPR registers if the code does not
+require the TImode value to be in a vector register.
+
+I completely rewrote the patch.  This patch creates a peephole2 to
+catch this case, and it eliminates creating the TImode variable.
+Instead it just does the MTVSRDD instruction directly.  That way it
+will not influence register allocation, and the code will only be
+generated in the specific case where we need the TImode value in a
+vector register.
+
+I have built GCC with the patches in this patch set applied on both
+little and big endian PowerPC systems and there were no regressions.
+Can I apply this patch to GCC 16?
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	PR target/108958
+	* config/rs6000/rs6000.md (UNSPEC_ZERO_EXTEND): New unspec.
+	(zero_extendsiti2 peephole2): Add a peephole2 to simplify zero
+	extend between DImode value in a GPR to a TImode target in a
+	vector register.
+	(zero_extendsiti2_vsx): New insn.
+
+gcc/testsuite/
+
+	PR target/108958
+	* gcc.target/powerpc/pr108958.c: New test.
+
+======== Patch #5 ========
+
+PR target/120528 -- Simplify zero extend from memory to VSX register on power10
+
+Previously GCC would zero extend a DImode value in memory to a TImode
+target in a vector register by firt zero extending the DImode value
+into a GPR TImode register pair, and then do a MTVSRDD to move this
+value to a VSX register.
+
+For example, consider the following code:
+
+	#ifndef TYPE
+	#define TYPE unsigned long long
+	#endif
+
+	void
+	mem_to_vsx (TYPE *p, __uint128_t *q)
+	{
+	  /* lxvrdx 0,0,3
+	     stxv 0,0(4)  */
+
+	  __uint128_t x = *p;
+	  __asm__ (" # %x0" : "+wa" (x));
+	  *q = x;
+	}
+
+It currently generates the following code on power10:
+
+	mem_to_vsx:
+		ld 10,0(3)
+		li 11,0
+		mtvsrdd 0,11,10
+	#APP
+		 # 0
+	#NO_APP
+		stxv 0,0(4)
+		blr
+
+Instead it could generate:
+
+	mem_to_vsx:
+		lxvrdx 0,0,3
+	#APP
+		 # 0
+	#NO_APP
+		stxv 0,0(4)
+		blr
+
+The lxvr{b,h,w,d}x instructions were added in power10, and they load up
+a vector register with a byte, half-word, word, or double-word value in
+the right most bits, and fill the remaining bits to 0.  I noticed this
+code when working on PR target/108958 (which I just posted the patch).
+
+This patch creates a peephole2 to catch this case, and it eliminates
+creating the TImode variable.  Instead it just does the LXVR{B,H,W,D}x
+instruction directly.
+
+I have built GCC with the patches in this patch set applied on both
+little and big endian PowerPC systems and there were no regressions.
+Can I apply this patch to GCC 16?
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	PR target/120528
+	* config/rs6000/rs6000.md (zero_extend??ti2 peephole2): Add a
+	peephole2 to simplify zero extending a QI/HI/SI/DImode value in
+	memory to a TImode target in a vector register to use the
+	LXVR{B,H,W,D}X instructins.
+
+gcc/testsuite/
+
+	PR target/120528
+	* gcc.target/powerpc/pr120528.c: New test.
+
+======== Patch #4 ========
+
+PR 992493: Optimize splat of a V2DF/V2DI extract with constant element
+
+We had optimizations for splat of a vector extract for the other vector
+types, but we missed having one for V2DI and V2DF.  This patch adds a
+combiner insn to do this optimization.
+
+In looking at the source, we had similar optimizations for V4SI and V4SF
+extract and splats, but we missed doing V2DI/V2DF.
+
+Without the patch for the code:
+
+	vector long long splat_dup_l_0 (vector long long v)
+	{
+	  return __builtin_vec_splats (__builtin_vec_extract (v, 0));
+	}
+
+the compiler generates (on a little endian power9):
+
+	splat_dup_l_0:
+		mfvsrld 9,34
+	        mtvsrdd 34,9,9
+		blr
+
+Now it generates:
+
+	splat_dup_l_0:
+		xxpermdi 34,34,34,3
+	        blr
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	PR target/99293
+	* config/rs6000/vsx.md (vsx_splat_extract_<mode>): New insn.
+
+gcc/testsuite/
+
+	PR target/99293
+	* gcc.target/powerpc/pr99293.c: New test.
+
+======== Patch #3 ========
+
+Add power9 and power10 float to logical optimizations.
+
+I was answering an email from a co-worker and I pointed him to work I had done
+for the Power8 era that optimizes the 32-bit float math library in Glibc.  In
+doing so, I discovered with the Power9 and later computers, this optimization is
+no longer taking place.
+
+The glibc 32-bit floating point math functions have code that looks like:
+
+	union u {
+	  float f;
+	  uint32_t u32;
+	};
+
+	float
+	math_foo (float x, unsigned int mask)
+	{
+	  union u arg;
+	  float x2;
+
+	  arg.f = x;
+	  arg.u32 &= mask;
+
+	  x2 = arg.f;
+	  /* ... */
+	}
+
+On power8 with the optimization it generates:
+
+        xscvdpspn 0,1
+        sldi 9,4,32
+        mtvsrd 32,9
+        xxland 1,0,32
+        xscvspdpn 1,1
+
+I.e., it converts the SFmode to the memory format (instead of the DFmode that is
+used within the register), converts the mask so that it is in the vector
+register in the upper 32-bits, and does a XXLAND (i.e. there is only one direct
+move from GPR to vector register).  Then after doing this, it converts the
+upper 32-bits back to DFmode.
+
+If the XSCVSPDN instruction took the value in the normal 32-bit scalar in a
+vector register, we wouldn't have needed the SLDI of the mask.
+
+On power9/power10/power11 it currently generates:
+
+        xscvdpspn 0,1
+        mfvsrwz 2,0
+        and 2,2,4
+        mtvsrws 1,2
+        xscvspdpn 1,1
+        blr
+
+I.e convert to SFmode representation, move the value to a GPR, do an AND
+operation, move the 32-bit value with a splat, and then convert it back to
+DFmode format.
+
+With this patch, it now generates:
+
+        xscvdpspn 0,1
+        mtvsrwz 32,2
+        xxland 32,0,32
+        xxspltw 1,32,1
+        xscvspdpn 1,1
+        blr
+
+I.e. convert to SFmode representation, move the mask to the vector register, do
+the operation using XXLAND.  Splat the value to get the value in the correct
+location, and then convert back to DFmode.
+
+I have built GCC with the patches in this patch set applied on both little and
+big endian PowerPC systems and there were no regressions.  Can I apply
+this patch to the trunk?
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	PR target/117487
+	* config/rs6000/vsx.md (SFmode logical peephoole): Update comments in
+	the original code that supports power8.
+	(SFBOOL2_*): New constants.
+	(power9/power10 define_peephol2): Add a new define_peephole2 to optimize
+	float and logical operations on power9/power10/power11 similar to the
+	optimiztion that is done on power8.
+
+gcc/testsuite/
+
+	PR target/117487
+	* gcc.target/powerpc/pr117487.c: New test.
+
+======== Patch #2 ========
+
+Add miscellaneous -mcpu=future instructions
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-cpus.def (FUTURE_MASKS_SERVER): Enable using load
+	vector pair and store vector pair instructions for memory copy
+	operations.
+	(POWERPC_MASKS): Make the option for enabling using load vector pair and
+	store vector pair operations set and reset when the PowerPC processor is
+	changed.
+	* config/rs6000/rs6000.cc (rs6000_machine_from_flags): Disable
+	-mblock-ops-vector-pair from influencing .machine selection.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/future-3.c: New test.
+
+2026-07-01   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.md (gtu_geu): New code iterator.
+	(subfus<mode>3_<code>): New insns.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/saturate-subtract-1.c: New test.
+	* gcc.target/powerpc/saturate-subtract-2.c: Likewise.
+	* lib/target-supports.exp (check_effective_target_powerpc_future_ok):
+	New target test.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/altivec.md (xvrlw): New insn.
+	* config/rs6000/rs6000.h (TARGET_XVRLW): New macro.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/vector-rotate-left.c: New test.
+
+2026-07-01   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-string.cc (expand_block_move): Do not generate
+	lxvl and stxvl on 32-bit.
+	* config/rs6000/vsx.md (lxvl): If -mcpu=future, generate the lxvl with
+	the shift count automaticaly used in the insn.
+	(lxvrl): New insn for -mcpu=future.
+	(lxvrll): Likewise.
+	(stxvl): If -mcpu=future, generate the stxvl with the shift count
+	automaticaly used in the insn.
+	(stxvrl): New insn for -mcpu=future.
+	(stxvrll): Likewise.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/lxvrl.c: New test.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/constraints.md (eU): New constraint.
+	(eV): Likewise.
+	* config/rs6000/predicates.md (paddis_operand): New predicate.
+	(paddis_paddi_operand): Likewise.
+	(add_cint_operand): Add paddis support.
+	(reg_or_add_cint_operand): Add support for adds that can be done with
+	paddis and paddi/addi.
+	(add_operand): Add support for adds that can be done with paddis, but
+	not paddis + paddi/addi..
+	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Add support for adds
+	that can be done with paddis and also paddis combined with paddi/addi.
+	(print_operand): Add %B<n> for paddis support.
+	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
+	(SIGNED_INTEGER_64BIT_P): Likewise.
+	* config/rs6000/rs6000.md (add<mode>3 define_expand): Add paddis
+	support.
+	(*add<mode>3 define_insn): Likewise.
+	(movdi_internal64): Likewise.
+	(movdi splitter): New splitter for paddis + paddi/addi.
+	* doc/md.texi (PowerPC constraints): Add eU and eV documentation.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/prefixed-addis.c: New test.
+
+======== Patch #1 ========
+
+Add dense math register support.
+
+This patch is a modification of the V6 patches that I sent out on April
+21st, 2026.
+
+In particular, I made the changes in relation to the comments posted in
+February that I didn't fully address previously.
+
+Here is comment from February:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-February/708071.html
+
+Here is my reply:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/715248.html
+
+Here are the V6 patches posted on April 21st, 2026:
+
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713352.html
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713353.html
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713354.html
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713356.html
+  * https://gcc.gnu.org/pipermail/gcc-patches/2026-April/713357.html
+
+There are 7 patches in this patch set:
+
+Patch #1 adds the wD constraint and the accumulator_operand predicate.
+
+Patch #2 switches mma.md to use the wD constraint and accumulator_operand
+predicate.
+
+Patch #3 adds the -mdense-math option, but in this patch, -mdense-math is not
+implemented.
+
+Patch #4 adds support for 512-bit dense math registers.
+
+Patch #5 adds support for 1,024-bit dense math registers.
+
+Patch #6 is an optional patch that changes the name of the MMA instructions from
+the original name used in the power10/power11 time line to a new alternate name
+that has 'dm' (for dense math) in the instruction name.  Note, this is a new
+patch for the V7 patch set.
+
+Patch #7 clones the mma builtin tests to test the code generation of MMA
+instructions if -mcpu=future is used.  Note, this is a new patch for the V7
+patch set.  If patch #6 is not applied, this patch will need to be modified.
+
+The following is the description of dense math registes from previous versions
+of the patches.
+
+The Dense Math Facility (dmf) is designed to be an extension to the ISA
+3.1 (i.e. power10/power11) MMA facility.  Now, since these are future
+patches, the Dense Math Facility might appear in future PowerPC
+machines or maybe it won't be used in real hardware.
+
+One of the concepts of the DMF system is the accumulators used in the
+MMA and the DMF extensions will become separate registers, rather
+than being overlaid over the traditional floating point registers
+(i.e. VSX registers 0..31).
+
+In addition to being separate registers, the dense math accumulators
+are now logically 1,024 biits instead of 512.
+
+The way the Dense Math registers and instructions are designed,
+existing power10/power11 MMA instructions that operate on 512 bits will
+work with Dense Math.  In ISA 3.1, each of the 8 accumulators are
+overlaid over 4 adjacent FPR registers, and the compiler must not touch
+the 4 adjacent FPRs while the MMA accumulator is used.
+
+In the Dense Math system, the accumulator is a separate register.  When
+-mcpu=power11 or -mcpu=power10 is used, the GCC compiler will not
+allocate the appropriate FPR (VSX) reigsters when generating MMA
+instructions.
+
+If a function compiled for Power10/Power11 is run on a system with
+Dense Math support enabled, the effect is a bunch of the FPR registers
+will not be allocated because the compiler assumes the accumulaters are
+there.  After these patches are applied, if the user compiles the code
+with -mcpu=future, the compiler can allocate up to 32 more vector
+registers, because the Dense Math accumulators are separate registers.
+
+In fact two of the MMA tests (mma-double-test.c and mma-single-test.c)
+do about 20 less spills of floating point values to the stack, since
+the compiler can allocate those FPR vector registers for other
+purposes.
+
+These 5 patches will allow GCC to allocate these registers if the
+-mcpu=future option is used.
+
+  1: The first patch adds a new constraint (%wD) that can be used by
+     code generating MMA instructions. If the user used -mcpu=power10
+     or -mcpu=power11, %wD will act like %d and insist the register be
+     VSX registers 0..31.  If the user used -mcpu=future, the new
+     separate dense math accumulators will be used.
+
+  2: This patch just adds the -mdense-math option, but it does not add
+     support for dense math registers until patch #3.
+
+  3: This patch adds the support for the current MMA 512-bit
+     instructions to use separate accumulators instead of overlaid VSX
+     registers.
+
+  4: This patch adds support for an extension to MMA where the
+     accumulators grow to 1,024 bits instead of 512 bits.
+
+  5: This patch is an optional patch that adds comments to the various
+     MMA insn that explain what MMA instructions are generated by the
+     particular insn.
+
+This patch is the foundation for the Dense Math support.  It is
+expected other patches may be added to this to support potential new
+features added to the Dense Math Facility.
+
+I have built bootstrap little endian compilers on power10 systems, and
+big endian compiler on power9 systems.  There were no regression in the
+tests.  Can I add the patches to the GCC trunk after the -mcpu=future
+patch is applied and GCC 17 has opened up?
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/constraints.md (wD): New constraint.
+	* config/rs6000/predicates.md (accumulator_operand): New predicate.
+	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Print the register
+	class for the 'wD' constraint.
+	(rs6000_init_hard_regno_mode_ok): Set up the 'wD' register constraint
+	class.
+	* config/rs6000/rs6000.h (enum r6000_reg_class_enum): Add element for
+	the 'wD' constraint.
+	* doc/md.texi (PowerPC constraints): Document the 'wD' constraint.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (mma_<vv>): Use the wD constraint and
+	accumulator_operand predicate for all MMA instructions taking
+	accumulator operands.
+	(mma_<avv>): Likewise.
+	(mma_<pv>"): Likewise.
+	(mma_<apv>): Likewise.
+	(mma_<vvi4i4i8>): Likewise.
+	(mma_<avvi4i4i8>): Likewise.
+	(mma_<vvi4i4i2>"): Likewise.
+	(mma_<avvi4i4i2>): Likewise.
+	(mma_<vvi4i4>): Likewise.
+	(mma_<avvi4i4>): Likewise.
+	(mma_<pvi4i2>): Likewise.
+	(mma_<apvi4i2>): Likewise.
+	(mma_<vvi4i4i4>): Likewise.
+	(mma_<avvi4i4i4>): Likewise.
+
+2026-07-01   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-c.cc (rs6000_define_or_undefine_macro): Define
+	__MMA_DENSE_MATH__ if we have MMA that uses dense math register
+	accumulators.  Define __MMA_NO_DENSE_MATH__ if we have MMA but we are
+	using ISA 3.1 where the accumulators are overlaid over VSX registers
+	0..32.  Define __DENSE_MATH__ if we have dense math registers.
+	* config/rs6000/rs6000.cc (rs6000_option_override_internal): Do not
+	allow -mdense-math unless -mcpu=future is used.
+	(rs6000_opt_masks): Add -mdense-math support.
+	* config/rs6000/rs6000.h (TARGET_MMA_DENSE_MATH): New macro.
+	(TARGET_MMA_NO_DENSE_MATH): Likewise.
+	* config/rs6000/rs6000.opt (-mdense-math): New option.
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Add -mdense-math.
+
+2026-07-01   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (movoo): Allow -mdense-math -mno-mma.
+	(movxo): Convert to being a define_expand that can handle both the
+	original MMA support without dense math registers, and adding dense math
+	support.  Allow -mdense-math -mno-mma.
+	(movxo_nodm): Rename original movxo insn, and restrict this insn to when
+	we do not have dense math registers.
+	(movxo_dm): New define_insn_and_split for dense math registers.
+	(vsx_assemble_pair): Allow -mdense-math -mno-mma.
+	(vsx_disassemble_pair): Likewise.
+	(mma_assemble_acc): Likewise.
+	(mma_disassemble_acc): Likewise.
+	(mma_<acc>): Allow built-ins to be used if -mdense-math.
+	(mma_xxsetaccz): Convert into a define_expand to handle both non-dense
+	math and dense math registers.
+	(mma_xxsetaccz_nodm): Rename from mma_xxsetaccz and limit code to non
+	dense math systems.
+	(mma_xxsetaccz_dm): New insn for direct math register support.
+	* config/rs6000/predicates.md (dmf_register_operand): New predicate.
+	(accumulator_operand): Add support for dense math registers.
+	* config/rs6000/rs6000-builtin.cc (rs6000_gimple_fold_mma_builtin): Do
+	not issue xxmfacc (deprime) instruction if we have dense math registers.
+	* config/rs6000/rs6000-cpus.def (FUTURE_MASKS_SERVER): Add -mdense-math.
+	(POWERPC_MASKS): Likewise.
+	* config/rs6000/rs6000.cc (enum rs6000_reg_type): Add dense math
+	register support.
+	(enum rs6000_reload_reg_typ): Likewise.
+	(LAST_RELOAD_REG_CLASS): Likewise.
+	(reload_reg_map): Likewise.
+	(rs6000_reg_names): Likewise.
+	(alt_reg_names): Likewise.
+	(rs6000_hard_regno_nregs_internal): Likewise.
+	(rs6000_hard_regno_mode_ok_uncached): Likewise.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_secondary_reload_memory): Likewise.
+	(rs6000_secondary_reload_simple_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_secondary_reload_class): Likewise.
+	(print_operand): Likewise.
+	(rs6000_dmf_register_move_cost): New helper function.
+	(rs6000_register_move_cost): Add dense math register support.
+	(rs6000_memory_move_cost): Likewise.
+	(rs6000_compute_pressure_classes): Likewise.
+	(rs6000_debugger_regno): Likewise.
+	(rs6000_opt_masks): Likewise.
+	(rs6000_split_multireg_move): Likewise.
+	* config/rs6000/rs6000.h (UNITS_PER_DMF_WORD): New macro.
+	(FIRST_PSEUDO_REGISTER): Add dense math register support.
+	(FIXED_REGISTERS): Likewise.
+	(CALL_REALLY_USED_REGISTERS): Likewise.
+	(REG_ALLOC_ORDER): Likewise.
+	(DMF_REGNO_P): New macro.
+	(enum reg_class): Add dense math register support.
+	(REG_CLASS_NAMES): Likewise.
+	(REGISTER_NAMES): Likewise.
+	(ADDITIONAL_REGISTER_NAMES): Likewise.
+	* config/rs6000/rs6000.md (FIRST_DMF_REGNO): New constant.
+	(LAST_DMF_REGNO): Likewise.
+
+2026-07-01   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (UNSPEC_DMF_INSERT512_UPPER): New unspec.
+	(UNSPEC_DMF_INSERT512_LOWER): Likewise.
+	(UNSPEC_DMF_EXTRACT512): Likewise.
+	(UNSPEC_DMF_RELOAD_FROM_MEMORY): Likewise.
+	(UNSPEC_DMF_RELOAD_TO_MEMORY): Likewise.
+	(movtdo): New define_expand and define_insn_and_split to implement 1,024
+	bit dense math registers.
+	(movtdo_insert512_upper): New insn.
+	(movtdo_insert512_lower): Likewise.
+	(movtdo_extract512): Likewise.
+	(reload_tdo_from_memory): Likewise.
+	(reload_tdo_to_memory): Likewise.
+	* config/rs6000/rs6000-builtin.cc (rs6000_type_string): Add dense math
+	register support.
+	(rs6000_init_builtins): Add support for __dm1024 keyword.
+	* config/rs6000/rs6000-call.cc (rs6000_return_in_memory): Add support
+	for TDOmode.
+	(rs6000_function_arg): Likewise.
+	* config/rs6000/rs6000-modes.def (TDOmode): New mode.
+	* config/rs6000/rs6000.cc (rs6000_hard_regno_mode_ok_uncached): Add
+	support for TDOmode.
+	(rs6000_hard_regno_mode_ok): Likewise.
+	(rs6000_modes_tieable_p): Likewise.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Add support for TDOmode.  Setup reload
+	hooks for dense math TDO reload mode.
+	(reg_offset_addressing_ok_p): Add support for TDOmode.
+	(rs6000_emit_move): Likewise.
+	(rs6000_secondary_reload_simple_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_mangle_type): Add mangling for __dm1024 type.
+	(rs6000_dmf_register_move_cost): Add support for TDOmode.
+	(rs6000_split_multireg_move): Likewise.
+	(rs6000_invalid_conversion): Likewise.
+	* config/rs6000/rs6000.h (VECTOR_ALIGNMENT_P): Add TDOmode.
+	(enum rs6000_builtin_type_index): Add dense math register type nodes.
+	(dm1024_type_node): Likewise.
+	(ptr_dm1024_type_node): Likewise.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dm-1024bit.c: New test.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (vvi4i4i8): Eliminate using the 'pm' prefix here,
+	so we can emit pmdm* on dense math systems.
+	(avvi4i4i8): Likewise.
+	(vvi4i4i2): Likewise.
+	(avvi4i4i2): Likewise.
+	(vvi4i4): Likewise.
+	(avvi4i4): Likewise.
+	(pvi4i2): Likewise.
+	(apvi4i2): Likewise.
+	(vvi4i4i4): Likewise.
+	(mma_<vv>): If -mdesne-math, emit 'dmxv*' form of the instruction
+	instead of 'xv*'.
+	(mma_<avv>): Likewise.
+	(mma_<pv>): Likewise.
+	(mma_<apv>): Likewise.
+	(mma_pm<vvi4i4i8>): If -mdense-math, emit 'pmdm*' instead of 'pm*'.
+	(mma_pm<avvi4i4i8>): Likewise.
+	(mma_pm<vvi4i4i2>): Likewise.
+	(mma_pm<avvi4i4i2>): Likewise.
+	(mma_pm<vvi4i4>): Likewise.
+	(mma_pm<avvi4i4>): Likewise.
+	(mma_pm<pvi4i2>): Likewise.
+	(mma_pm<apvi4i2>): Likewise.
+	(mma_pm<vvi4i4i4>): Likewise.
+	(mma_pm<avvi4i4i4>): Likewise.
+	* config/rs6000/rs6000.cc (print_operand): For %!, print 'dm' if
+	-mdense-math.
+	* config/rs6000/rs6000.h (PRINT_OPERAND_PUNCT_VALID_P): Allow %!.
+
+2026-07-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dm-builtin-1.c: New test.
+	* gcc.target/powerpc/dm-builtin-10-pair.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-10-quad.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-2.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-3.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-4.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-5.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-6.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-7.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-8.c: Likewise.
+	* gcc.target/powerpc/dm-builtin-9.c: Likewise.
