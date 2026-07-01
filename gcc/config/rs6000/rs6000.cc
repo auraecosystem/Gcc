@@ -1259,11 +1259,7 @@ static const char alt_reg_names[][8] =
   /* vrsave vscr sfp */
   "vrsave", "vscr", "sfp",
   /* dense math registers.  */
-<<<<<<< HEAD
   "%dm0", "%dm1", "%dm2", "%dm3", "%dm4", "%dm5", "%dm6", "%dm7",
-=======
-  "%dmr0", "%dmr1", "%dmr2", "%dmr3", "%dmr4", "%dmr5", "%dmr6", "%dmr7",
->>>>>>> 36ac20bbf9a (Add dense math register support.)
 };
 #endif
 
