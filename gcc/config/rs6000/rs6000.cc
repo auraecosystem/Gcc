@@ -1259,7 +1259,11 @@ static const char alt_reg_names[][8] =
   /* vrsave vscr sfp */
   "vrsave", "vscr", "sfp",
   /* dense math registers.  */
+<<<<<<< HEAD
   "%dm0", "%dm1", "%dm2", "%dm3", "%dm4", "%dm5", "%dm6", "%dm7",
+=======
+  "%dmr0", "%dmr1", "%dmr2", "%dmr3", "%dmr4", "%dmr5", "%dmr6", "%dmr7",
+>>>>>>> 36ac20bbf9a (Add dense math register support.)
 };
 #endif
 
@@ -2033,10 +2037,8 @@ rs6000_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
 static bool
 rs6000_modes_tieable_p (machine_mode mode1, machine_mode mode2)
 {
-  if (mode1 == PTImode || mode1 == OOmode || mode1 == XOmode
-      || mode1 == TDOmode || mode2 == PTImode || mode2 == OOmode
-      || mode2 == XOmode || mode2 == TDOmode
-      || FP16_SCALAR_MODE_P (mode1) || FP16_SCALAR_MODE_P (mode2))
+  if (mode1 == PTImode || OPAQUE_MODE_P (mode1) || FP16_SCALAR_MODE_P (mode1)
+      || mode2 == PTImode || OPAQUE_MODE_P (mode2) || FP16_SCALAR_MODE_P (mode2))
     return mode1 == mode2;
 
   if (ALTIVEC_OR_VSX_VECTOR_MODE (mode1))
