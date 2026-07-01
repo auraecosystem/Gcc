@@ -101,7 +101,7 @@
    will be fixed in potential future machines.  */
 #define FUTURE_MASKS_SERVER    (POWER11_MASKS_SERVER			\
 				| OPTION_MASK_BLOCK_OPS_VECTOR_PAIR	\
-				| OPTION_MASK_DMF			\
+				| OPTION_MASK_DENSE_MATH		\
 				| OPTION_MASK_FUTURE)
 
 /* Flags that need to be turned off if -mno-vsx.  */
