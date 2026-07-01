@@ -79,4 +79,6 @@ PARTIAL_INT_MODE (TI, 128, PTI);
 /* Modes used by __vector_pair, __vector_quad and __dmr1024.  */
 OPAQUE_MODE (OO, 32);
 OPAQUE_MODE (XO, 64);
+
+/* Mode used by __dmf.  */
 OPAQUE_MODE (TDO, 128);
