@@ -2973,7 +2973,7 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	wn - always NO_REGS.
 	wr - GPR if 64-bit mode is permitted.
 	wx - Float register if we can do 32-bit int stores.
-	wD - Dense math accumulator if DMF, else float register.  */
+	wD - Dense math register if DMF enabled.  */
 
   if (TARGET_HARD_FLOAT)
     rs6000_constraints[RS6000_CONSTRAINT_d] = FLOAT_REGS;
@@ -2981,8 +2981,8 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
     rs6000_constraints[RS6000_CONSTRAINT_v] = ALTIVEC_REGS;
   if (TARGET_VSX)
     rs6000_constraints[RS6000_CONSTRAINT_wa] = VSX_REGS;
-  if (TARGET_MMA)
-    rs6000_constraints[RS6000_CONSTRAINT_wD] = FLOAT_REGS;
+  if (TARGET_DMF)
+    rs6000_constraints[RS6000_CONSTRAINT_wD] = DMR_REGS;
 
   if (TARGET_POWERPC64)
     {

@@ -1073,6 +1073,7 @@ enum reg_class
   FLOAT_REGS,
   ALTIVEC_REGS,
   VSX_REGS,
+  DMR_REGS,
   VRSAVE_REGS,
   VSCR_REGS,
   GEN_OR_FLOAT_REGS,
@@ -1102,6 +1103,7 @@ enum reg_class
   "FLOAT_REGS",								\
   "ALTIVEC_REGS",							\
   "VSX_REGS",								\
+  "DMR_REGS",								\
   "VRSAVE_REGS",							\
   "VSCR_REGS",								\
   "GEN_OR_FLOAT_REGS",							\
@@ -1187,7 +1189,7 @@ enum r6000_reg_class_enum {
   RS6000_CONSTRAINT_wr,		/* GPR register if 64-bit  */
   RS6000_CONSTRAINT_wx,		/* FPR register for STFIWX */
   RS6000_CONSTRAINT_wA,		/* BASE_REGS if 64-bit.  */
-  RS6000_CONSTRAINT_wD,		/* Accumulator registers.  */
+  RS6000_CONSTRAINT_wD,		/* Dense math registers.  */
   RS6000_CONSTRAINT_MAX
 };
 
