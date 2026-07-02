@@ -2328,6 +2328,7 @@ rs6000_debug_reg_global (void)
 	   "wr reg_class = %s\n"
 	   "wx reg_class = %s\n"
 	   "wA reg_class = %s\n"
+	   "wD reg_class = %s\n"
 	   "\n",
 	   reg_class_names[rs6000_constraints[RS6000_CONSTRAINT_d]],
 	   reg_class_names[rs6000_constraints[RS6000_CONSTRAINT_v]],
@@ -2335,7 +2336,8 @@ rs6000_debug_reg_global (void)
 	   reg_class_names[rs6000_constraints[RS6000_CONSTRAINT_we]],
 	   reg_class_names[rs6000_constraints[RS6000_CONSTRAINT_wr]],
 	   reg_class_names[rs6000_constraints[RS6000_CONSTRAINT_wx]],
-	   reg_class_names[rs6000_constraints[RS6000_CONSTRAINT_wA]]);
+	   reg_class_names[rs6000_constraints[RS6000_CONSTRAINT_wA]],
+	   reg_class_names[rs6000_constraints[RS6000_CONSTRAINT_wD]]);
 
   nl = "\n";
   for (m = 0; m < NUM_MACHINE_MODES; ++m)
@@ -2970,7 +2972,8 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	wc - Reserved to represent individual CR bits (used in LLVM).
 	wn - always NO_REGS.
 	wr - GPR if 64-bit mode is permitted.
-	wx - Float register if we can do 32-bit int stores.  */
+	wx - Float register if we can do 32-bit int stores.
+	wD - Dense math accumulator if DMF, else float register.  */
 
   if (TARGET_HARD_FLOAT)
     rs6000_constraints[RS6000_CONSTRAINT_d] = FLOAT_REGS;
@@ -2978,6 +2981,8 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
     rs6000_constraints[RS6000_CONSTRAINT_v] = ALTIVEC_REGS;
   if (TARGET_VSX)
     rs6000_constraints[RS6000_CONSTRAINT_wa] = VSX_REGS;
+  if (TARGET_MMA)
+    rs6000_constraints[RS6000_CONSTRAINT_wD] = FLOAT_REGS;
 
   if (TARGET_POWERPC64)
     {

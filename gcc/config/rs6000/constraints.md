@@ -99,6 +99,9 @@
   "@internal Like @code{b}, if @option{-mpowerpc64} is used; otherwise,
    @code{NO_REGS}.")
 
+(define_register_constraint "wD" "rs6000_constraints[RS6000_CONSTRAINT_wD]"
+  "@internal 1024 bit accumulator register.")
+
 ;; wB needs ISA 2.07 VUPKHSW
 (define_constraint "wB"
   "@internal Signed 5-bit constant integer that can be loaded into an
