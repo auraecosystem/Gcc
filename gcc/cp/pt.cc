@@ -16086,6 +16086,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain,
 		  r = error_mark_node;
 		  break;
 		}
+	      name = copy_node (name);
 	      for (tree& elt : tree_vec_range (name))
 		elt = make_conv_op_name (elt);
 	      variadic_p = true;
@@ -23368,6 +23369,9 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	     instantiated entities and so no need to tsubst the annotation
 	     attribute and we rely on pointer equality of that.  */
 	  ;
+	else if (kind == REFLECT_BASE)
+	  /* Don't substitute; class_bases_of is never called for a dependent
+	     type.  */;
 	else if (TREE_CODE (h) == SCOPE_REF)
 	  h = tsubst_qualified_id (h, args, complain, in_decl,
 				   /*done=*/true, /*address_p=*/false,
@@ -23915,6 +23919,16 @@ check_non_deducible_conversions (tree parms, const tree *args, unsigned nargs,
 	  tree arg = args[ia];
 	  conversion **conv_p = convs ? &convs[ia+offset] : NULL;
 	  int lflags = conv_flags (ia, nargs, fn, arg, flags);
+
+	  /* As in add_function_candidate, don't consider conversion to an
+	     unrelated type when LOOKUP_DEFAULTED.  */
+	  if ((flags & LOOKUP_DEFAULTED)
+	      && ia == 0
+	      && (DECL_CONSTRUCTOR_P (fn)
+		  || DECL_ASSIGNMENT_OPERATOR_P (fn))
+	      && !reference_related_p (non_reference (parm),
+				       DECL_CONTEXT (fn)))
+	    return 1;
 
 	  if (check_non_deducible_conversion (parm, arg, strict, lflags,
 					      conv_p, explain_p, noninst_only_p))
@@ -33683,6 +33697,7 @@ finish_expansion_stmt (tree expansion_stmt, tree args,
 	      TREE_STATIC (iter) = 1;
 	      DECL_DECLARED_CONSTEXPR_P (iter) = 1;
 	      TREE_READONLY (iter) = 1;
+	      DECL_IGNORED_P (iter) = 1;
 	    }
 	  pushdecl (iter);
 	  cp_finish_decl (iter, iter_init, /*is_constant_init*/false,

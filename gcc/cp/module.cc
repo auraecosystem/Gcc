@@ -2645,7 +2645,7 @@ public:
       /* If not ERROR_MARK, a rewrite candidate for this operator.  */
       tree_code rewrite = ERROR_MARK;
       /* Argument list for the call.  */
-      vec<tree, va_gc>* args = make_tree_vector ();
+      vec<tree, va_gc>* args = nullptr;
     };
     vec<dep_adl_info> dep_adl_entity_list;
 
@@ -9434,6 +9434,11 @@ trees_out::decl_node (tree decl, walk_kind ref)
     case TYPE_DECL:
       if (DECL_TINFO_P (decl))
 	goto tinfo;
+      /* c++/125768: For an imported typedef, also mark the original type
+	 reachable in case it was instantiated here.  */
+      if (!streaming_p () && DECL_ORIGINAL_TYPE (decl)
+	  && (DECL_LANG_SPECIFIC (decl) && DECL_MODULE_IMPORT_P (decl)))
+	tree_node (DECL_ORIGINAL_TYPE (decl));
       break;
     }
 
@@ -15254,14 +15259,22 @@ void
 depset::hash::add_dependent_adl_entities (tree expr)
 {
   gcc_checking_assert (!is_key_order ());
+
+  /* This is not needed for header units where everything is
+     visible to name lookup, nothing is discarded.  */
+  if (header_module_p ())
+    return;
+
   if (TREE_CODE (current->get_entity ()) != TEMPLATE_DECL)
     return;
 
   dep_adl_info info;
+  auto_vec<tree, 3> args;
   switch (TREE_CODE (expr))
     {
     case CALL_EXPR:
-      if (!KOENIG_LOOKUP_P (expr))
+      if (!KOENIG_LOOKUP_P (expr)
+	  || !type_dependent_expression_p_push (expr))
 	return;
       info.name = CALL_EXPR_FN (expr);
       if (!info.name)
@@ -15273,7 +15286,7 @@ depset::hash::add_dependent_adl_entities (tree expr)
       if (!identifier_p (info.name))
 	info.name = OVL_NAME (info.name);
       for (int ix = 0; ix < call_expr_nargs (expr); ix++)
-	vec_safe_push (info.args, CALL_EXPR_ARG (expr, ix));
+	args.safe_push (CALL_EXPR_ARG (expr, ix));
       break;
 
     case LE_EXPR:
@@ -15310,10 +15323,12 @@ depset::hash::add_dependent_adl_entities (tree expr)
     case TRUTH_ANDIF_EXPR:
     case TRUTH_ORIF_EXPR:
     overloadable_expr:
+      if (!type_dependent_expression_p_push (expr))
+	return;
       info.name = ovl_op_identifier (TREE_CODE (expr));
       gcc_checking_assert (tree_operand_length (expr) == 2);
-      vec_safe_push (info.args, TREE_OPERAND (expr, 0));
-      vec_safe_push (info.args, TREE_OPERAND (expr, 1));
+      args.safe_push (TREE_OPERAND (expr, 0));
+      args.safe_push (TREE_OPERAND (expr, 1));
       break;
 
     default:
@@ -15322,10 +15337,20 @@ depset::hash::add_dependent_adl_entities (tree expr)
 
   /* If all arguments are type-dependent we don't need to do
      anything further, we won't find new entities.  */
-  processing_template_decl_sentinel ptds;
-  ++processing_template_decl;
-  if (!any_type_dependent_arguments_p (info.args))
+  bool all_type_dependent = true;
+  for (tree arg : args)
+    if (!type_dependent_expression_p_push (arg))
+      {
+	all_type_dependent = false;
+	break;
+      }
+  if (all_type_dependent)
     return;
+
+  gcc_checking_assert (!info.args);
+  info.args = make_tree_vector ();
+  for (tree arg : args)
+    vec_safe_push (info.args, arg);
 
   /* We need to defer name lookup until after walking, otherwise
      we get confused by stray TREE_VISITEDs.  */
@@ -15705,7 +15730,9 @@ depset::hash::find_dependencies (module_state *module)
 		      tree lookup = lookup_arg_dependent (info.name, NULL_TREE,
 							  info.args, true);
 		      for (tree fn : lkp_range (lookup))
-			add_dependency (make_dependency (fn, EK_DECL));
+			/* We don't need to add_dependency, just have
+			   make_dependency build an ADL binding.  */
+			make_dependency (fn, EK_DECL);
 
 		      if (info.rewrite)
 			{
@@ -15713,7 +15740,7 @@ depset::hash::find_dependencies (module_state *module)
 			  lookup = lookup_arg_dependent (rewrite_name, NULL_TREE,
 							 info.args, true);
 			  for (tree fn : lkp_range (lookup))
-			    add_dependency (make_dependency (fn, EK_DECL));
+			    make_dependency (fn, EK_DECL);
 			}
 		      release_tree_vector (info.args);
 		    }

@@ -1,3 +1,356 @@
+2026-07-01  Matthias Kretz  <m.kretz@gsi.de>
+
+	Backported from master:
+	2026-07-01  Matthias Kretz  <m.kretz@gsi.de>
+
+	* include/bits/simd_details.h (_ScalarAbi): Remove.
+	(__scalar_abi_tag): Identify _Abi<N, N> as scalar now.
+	(__native_abi): Replace _ScalarAbi<1> with _Abi_t<1, 1, ...>.
+	(__abi_rebind): Refactor rebinding from/to __scalar_abi_tag.
+	* include/bits/simd_mask.h (_S_use_bitmask): Only true if
+	!_S_is_scalar.
+	(_M_and_neighbors, _M_or_neighbors): Add case for _S_is_scalar
+	where the and/or must be executed one step earlier.
+	(_M_reduce_min_index, _M_reduce_max_index): Delete dead code.
+	* include/bits/simd_vec.h (_S_use_bitmask): Inherit the value
+	from the first data member.
+	* testsuite/std/simd/traits_impl.cc: Adjust for the removal of
+	_ScalarAbi.
+
+2026-07-01  Yi Chen  <chencyy@hygon.cn>
+
+	Backported from master:
+	2026-07-01  Yi Chen  <chencyy@hygon.cn>
+
+	* src/c++11/random.cc (random_device::_M_init): Add signature_HYGON_ebx to
+	the RDSEED and RDRAND CPUID vendor allowlists.  For the default device on
+	Hygon, prefer RDRAND via a dedicated check at the top of the function.
+
+2026-07-01  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-29  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/chrono_io.h: Fix comment typo.
+
+2026-07-01  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-25  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/125956
+	* src/c++20/format.cc [_GLIBCXX_HAVE_ICONV] (iconv_input): New
+	concept.
+	(__encoding::conv) [_GLIBCXX_HAVE_ICONV]: Use iconv_input to
+	decide which type to cast the input pointer to.
+
+2026-07-01  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-24  Jonathan Wakely  <jwakely@redhat.com>
+
+	* testsuite/27_io/filesystem/operations/copy_symlink/1.cc: Add
+	dg-require-target-fs-symlinks.
+	* testsuite/27_io/filesystem/operations/copy_symlink/2.cc:
+	Likewise.
+	* testsuite/27_io/filesystem/operations/copy_symlink/3.cc:
+	Likewise.
+	* testsuite/27_io/filesystem/operations/copy_symlink/4.cc:
+	Likewise.
+
+2026-07-01  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-24  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/118158
+	* testsuite/27_io/filesystem/operations/pr118158.cc: Add
+	dg-require-mkfifo.
+
+2026-07-01  Dragon Archer  <dragon-archer@outlook.com>
+
+	Backported from master:
+	2026-05-16  Dragon Archer  <dragon-archer@outlook.com>
+
+	PR libstdc++/125228
+	* src/c++11/debug.cc: Replace assert with __glibcxx_assert,
+	and remove the include of <cassert>.
+	* src/c++17/floating_to_chars.cc: Likewise, but redefine
+	assert as __glibcxx_assert.
+
+2026-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/c++23/Makefile.am (stamp-modules-bits): Use abs_builddir instead
+	of abs_srcdir.
+	* src/c++23/Makefile.in: Regenerate.
+
+2026-06-24  Alexandre Oliva  <oliva@adacore.com>
+
+	Backported from master:
+	2026-06-24  Alexandre Oliva  <oliva@adacore.com>
+
+	* src/c++23/Makefile.am (libstdc++.modules.json): Rewrite
+	without abspath make function.
+	(stamp-modules-bits): Likewise.
+	* src/c++23/Makefile.in: Rebuilt.
+
+2026-06-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/chrono.h (std::chrono_literals): Fix typo in
+	comment.
+
+2026-06-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	* doc/xml/manual/debug_mode.xml: Remove 404 link to stlport
+	website and modernise some text about debug modes in other
+	implementations.
+	* doc/html/manual/debug_mode_design.html: Regenerate.
+
+2026-06-23  Nathan Myers  <ncm@cantrip.org>
+
+	PR libstdc++/125890
+	* include/bits/memory_resource.h (allocate_at_least): Add to
+	allocator_traits<pmr::polymorphic_allocator> specialization.
+	* testsuite/20_util/polymorphic_allocator/at_least.cc: New test.
+
+2026-06-23  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	Backported from master:
+	2026-06-13  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/bits/version.def (constant_wrapper): Bump to 202606L.
+	* include/bits/version.h: Regenerate.
+	* include/bits/funcref_impl.h (function_ref::function_ref): Rename
+	template parameter from __cwfn to __fn and use it direclty.
+	* include/bits/funcwrap.h (function_ref): Rename template parameter
+	to __fn.
+	(std::constant_wrapper): Use auto as non-type template parameter,
+	and refeference it as value.
+	* include/bits/utility.h (__CwFixedValue): Remove.
+	* include/std/mdspan (__mdspan::__is_constant_wrapper):
+	Use auto as non-type template parameter.
+	* testsuite/20_util/constant_wrapper/generic.cc: Remove arrays
+	and string literal tests. Add test for address of value.
+	* testsuite/20_util/constant_wrapper/other_wrappers.cc:
+	Remove test_array.
+	* testsuite/20_util/constant_wrapper/type_param_neg.cc: New file.
+
+2026-06-04  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-29  Patrick Palka  <ppalka@redhat.com>
+
+	* include/std/flat_set (_Flat_set_impl::swap): Swap _M_cont
+	first.
+
+2026-06-04  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-28  Patrick Palka  <ppalka@redhat.com>
+
+	* include/std/flat_map (flat_map): Bring in operator= from
+	_Flat_map_base.
+	(flat_multimap): Likewise.
+	* include/std/flat_set (flat_set): Bring in operator= from
+	_Flat_set_base.
+	(flat_multiset): Likewise.
+	* testsuite/23_containers/flat_map/1.cc (test11): Simplify by
+	using = {...}.
+	(test12): New test.
+	* testsuite/23_containers/flat_multimap/1.cc (test10): Simplify
+	by using = {...}.
+	(test11): New test.
+	* testsuite/23_containers/flat_multiset/1.cc (test10): Simplify
+	by using = {...}.
+	(test11): New test.
+	* testsuite/23_containers/flat_set/1.cc (test10): Simplify by
+	using = {...}.
+	(test11): New test.
+
+2026-06-04  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-28  Patrick Palka  <ppalka@redhat.com>
+
+	* include/bits/version.def (flat_map): Bump to 202511.
+	(flat_set): Likewise.
+	* include/bits/version.h: Regenerate.
+	* include/std/flat_map (_Flat_map_impl): Remove
+	is_nothrow_swappable_v assertions.
+	(_Flat_map_impl::_Flat_map_impl): Explicitly default copy ctor.
+	Define move ctor with corrected exception handling as per
+	P3567R2.
+	(_Flat_map_impl::operator=): Likewise.
+	(_Flat_map_impl::insert_range): Define new __sorted_t overload
+	as per P3567R2.
+	(_Flat_map_impl::swap): Make conditionally noexcept as per
+	P3567R2.
+	* include/std/flat_set (_Flat_set_impl): Remove
+	is_nothrow_swappable_v assertion.
+	(_Flat_set_impl::_Flat_set_impl): Explicitly default copy ctor.
+	Define move ctor with correct invariant preserving behavior as
+	per P3567R2.
+	(_Flat_set_impl::operator=): Likewise.
+	(_Flat_set_impl::_M_insert_range): Factored out from
+	insert_range.  Add bool parameter __is_sorted defaulted to
+	false.
+	(_Flat_set_impl::insert_range): Define new __sorted_t overload
+	as per P3567R2.
+	(_Flat_set_impl::swap): Make conditionally noexcept as per
+	P3567R2.  Correct to use ranges::swap instead of ADL swap.
+	* testsuite/23_containers/flat_map/1.cc (test11, test12):
+	New tests.
+	* testsuite/23_containers/flat_multimap/1.cc (test10, test11):
+	New tests.
+	* testsuite/23_containers/flat_multiset/1.cc (test10, test11):
+	New tests.
+	* testsuite/23_containers/flat_set/1.cc (test10, test11):
+	New tests.
+
+2026-06-04  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-28  Patrick Palka  <ppalka@redhat.com>
+
+	* include/std/flat_map (_Flat_map_impl::_M_insert): New bool
+	parameter __is_sorted defaulted to false.  Reimplement using
+	views::zip and ranges::inplace_merge.
+	(_Flat_map_impl::insert): In the __sorted_t overload, pass
+	__is_sorted=true to _M_insert.
+
+2026-06-04  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-04  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/debug/safe_iterator.h: Remove trailing whitespace.
+
+2026-05-27  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-26  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/125450
+	* include/std/optional (range_format): Do not define for
+	freestanding.
+
+2026-05-21  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-21  Patrick Palka  <ppalka@redhat.com>
+
+	* testsuite/23_containers/flat_map/1.cc (test_constexpr):
+	If std::string isn't constexpr don't run test10.
+
+2026-05-21  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-19  Patrick Palka  <ppalka@redhat.com>
+
+	PR libstdc++/125374
+	* include/std/flat_map (_Flat_map_impl::_M_try_emplace): Forward
+	instead of unconditionally moving __k when inserting it.
+	* testsuite/23_containers/flat_map/1.cc (test10): New test.
+
+2026-05-21  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	Backported from master:
+	2026-05-18  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/std/mdspan (layout_left_padded::is_exhaustive)
+	(layout_righ_padded::is_exhaustive): Mark as const.
+	* testsuite/23_containers/mdspan/layouts/mapping.cc: Test noexcept and
+	const-invocability for is_exhaustive, is_strided, and is_unique.
+	* testsuite/23_containers/mdspan/layouts/padded.cc: Test is_exhaustive on
+	const mapping..
+	* testsuite/23_containers/mdspan/layouts/stride.cc: Likewise.
+	* testsuite/23_containers/mdspan/mdspan.cc: Checks const-invocability
+	for is_exhaustive, is_strided, is_unique.
+
+2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	* src/c++20/tzdata.zi: Import new file from 2026b release.
+
+2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-18  Jonathan Wakely  <jwakely@redhat.com>
+
+	* testsuite/25_algorithms/pstl/alg_sorting/minmax_element.cc:
+	Reduce iterations for debug mode.
+
+2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/125369
+	* include/bits/chrono_io.h (__detail::_Parser::operator()):
+	Check for errors when parsing digits for a %z format.
+	* testsuite/std/time/parse/125369.cc: New test.
+
+2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-13  Jonathan Wakely  <jwakely@redhat.com>
+
+	* testsuite/std/time/clock/local/io.cc: Call test_format.
+
+2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-07  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/78302
+	PR libstdc++/71301
+	* include/std/tuple [C++20] (tuple(tuple&&)): Add
+	requires-clause.
+	* testsuite/20_util/tuple/cons/78302.cc: New test.
+
+2026-05-18  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-18  Jonathan Wakely  <jwakely@redhat.com>
+
+	* testsuite/23_containers/bitset/lwg4294.cc: Move to...
+	* testsuite/20_util/bitset/cons/lwg4294.cc: ...here.
+
+2026-05-16  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-16  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/125312
+	* acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Copy header
+	into cwd instead of including it via an absolute path.
+	* configure: Regenerate.
+
+2026-05-16  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-04-24  Jonathan Wakely  <jwakely@redhat.com>
+
+	* src/c++20/tzdata.zi: Import new file from 2026a release.
+
+2026-05-16  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-13  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/shared_ptr_atomic.h: Remove trailing whitespace.
+
 2026-05-05  Jonathan Wakely  <jwakely@redhat.com>
 
 	Backported from master:

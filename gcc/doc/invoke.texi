@@ -21141,8 +21141,8 @@ problems or, in some cases, to provide workarounds for compiler bugs.
 for documentation of these internal parameters.
 @end table
 
-@anchor{Submodel Options}
 @node Target-Specific Options
+@anchor{Submodel Options}
 @section Target-Specific Options
 @cindex submodel options
 @cindex hardware-specific options
@@ -31588,8 +31588,8 @@ Supported values for @var{cpu_type} are @samp{401}, @samp{403},
 @samp{e6500}, @samp{ec603e}, @samp{G3}, @samp{G4}, @samp{G5},
 @samp{titan}, @samp{power3}, @samp{power4}, @samp{power5}, @samp{power5+},
 @samp{power6}, @samp{power6x}, @samp{power7}, @samp{power8},
-@samp{power9}, @samp{power10}, @samp{power11}, @samp{powerpc}, @samp{powerpc64},
-@samp{powerpc64le}, @samp{rs64}, and @samp{native}.
+@samp{power9}, @samp{power10}, @samp{power11}, @samp{future}, @samp{powerpc},
+@samp{powerpc64}, @samp{powerpc64le}, @samp{rs64}, and @samp{native}.
 
 @option{-mcpu=powerpc}, @option{-mcpu=powerpc64}, and
 @option{-mcpu=powerpc64le} specify pure 32-bit PowerPC (either
@@ -35115,7 +35115,7 @@ MOVDIRI, MOVDIR64B, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK,
 UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512FP16, AVX512BF16, AMX-FP16,
 PREFETCHI, AMX-COMPLEX, AVX10.1-512, AVX-IFMA, AVX-NE-CONVERT, AVX-VNNI-INT16,
 AVX-VNNI-INT8, CMPccXADD, SHA512, SM3, SM4, AVX10.2-512, APX_F, AMX-AVX512,
-AMX-FP8, AMX-TF32, MOVRS and AMX-MOVRS instruction set support.
+AMX-FP8, MOVRS and AMX-MOVRS instruction set support.
 
 @item bonnell
 @itemx atom
@@ -35391,6 +35391,36 @@ instruction set support.
 
 @item geode
 AMD Geode embedded processor with MMX and 3DNow!@: instruction set support.
+
+@item c86-4g-m4
+HYGON c86-4g-m4 CPU with x86-64, MMX, SSE, SSE2, SSE3, SSE4A, CX16, ABM, SSSE3,
+SSE4.1, SSE4.2, AES, PCLMUL, AVX, AVX2, BMI, BMI2, F16C, FMA, PRFCHW, FXSR, SHA,
+XSAVE, XSAVEOPT, XSAVEC, FSGSBASE, RDRND, MOVBE, MWAITX, ADX, RDSEED, CLZERO,
+CLFLUSHOPT, XSAVES, LZCNT, POPCNT instruction set support.
+
+@item c86-4g-m6
+HYGON c86-4g-m6 CPU with x86-64, MMX, SSE, SSE2, SSE3, SSE4A, CX16, ABM, SSSE3,
+SSE4.1, SSE4.2, AES, PCLMUL, AVX, AVX2, BMI, BMI2, F16C, FMA, PRFCHW, FXSR, SHA,
+XSAVE, XSAVEOPT, XSAVEC, FSGSBASE, RDRND, MOVBE, MWAITX, ADX, RDSEED, CLZERO,
+CLFLUSHOPT, XSAVES, LZCNT, POPCNT instruction set support.
+
+@item c86-4g-m7
+HYGON c86-4g-m7 CPU with x86-64, MMX, SSE, SSE2, SSE3, SSE4A, CX16, ABM, SSSE3,
+SSE4.1, SSE4.2, AES, PCLMUL, AVX, AVX2, BMI, BMI2, F16C, FMA, PRFCHW, FXSR, SHA,
+XSAVE, XSAVEOPT, XSAVEC, FSGSBASE, RDRND, MOVBE, MWAITX, ADX, RDSEED, CLZERO,
+CLFLUSHOPT, XSAVES, LZCNT, POPCNT, AVX512F, AVX512DQ, AVX512IFMA, AVX512CD,
+AVX512BW, AVX512VL, AVX512BF16, AVX512VBMI, AVX512VBMI2, GFNI, AVX512VNNI, VAES,
+AVX512BITALG, AVX512VPOPCNTDQ, AVX512VP2INTERSECT, AVXVNNI, VPCLMULQDQ,
+WBNOINVD instruction set support.
+
+@item c86-4g-m8
+HYGON c86-4g-m8 CPU with x86-64, MMX, SSE, SSE2, SSE3, SSE4A, CX16, ABM, SSSE3,
+SSE4.1, SSE4.2, AES, PCLMUL, AVX, AVX2, BMI, BMI2, F16C, FMA, PRFCHW, FXSR, SHA,
+XSAVE, XSAVEOPT, XSAVEC, FSGSBASE, RDRND, MOVBE, MWAITX, ADX, RDSEED, CLZERO,
+CLFLUSHOPT, XSAVES, LZCNT, POPCNT, AVX512F, AVX512DQ, AVX512IFMA, AVX512CD,
+AVX512BW, AVX512VL, AVX512BF16, AVX512VBMI, AVX512VBMI2, GFNI, AVX512VNNI, VAES,
+AVX512BITALG, AVX512VPOPCNTDQ, AVX512VP2INTERSECT, AVXVNNI, VPCLMULQDQ,
+WBNOINVD instruction set support.
 @end table
 
 @opindex mtune

@@ -8579,7 +8579,8 @@ extern tree finish_base_specifier		(tree, tree, bool, tree);
 extern void finish_member_declaration		(tree);
 extern bool outer_automatic_var_p		(tree);
 extern bool parsing_lambda_declarator		();
-extern tree process_outer_var_ref		(tree, tsubst_flags_t, bool force_use = false);
+extern tree process_outer_var_ref		(tree, tsubst_flags_t,
+						 bool = false);
 extern cp_expr finish_id_expression		(tree, tree, tree,
 						 cp_id_kind *,
 						 bool, bool, bool *,
@@ -9508,6 +9509,7 @@ extern void coro_set_ramp_function		(tree, tree);
 
 /* In reflect.cc */
 extern void init_reflection ();
+extern tree maybe_update_function_parm (tree);
 extern bool metafunction_p (tree) ATTRIBUTE_PURE;
 extern tree direct_base_derived (tree) ATTRIBUTE_PURE;
 extern tree process_metafunction (const constexpr_ctx *, tree, tree,

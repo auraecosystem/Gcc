@@ -135,6 +135,7 @@ tree
 get_reflection (location_t loc, tree t, reflect_kind kind/*=REFLECT_UNDEF*/)
 {
   STRIP_ANY_LOCATION_WRAPPER (t);
+  t = STRIP_REFERENCE_REF (t);
 
   /* Constant template parameters and pack-index-expressions cannot
      appear as operands of the reflection operator.  */
@@ -295,7 +296,7 @@ maybe_strip_typedefs (tree t)
    DECL_ARGUMENTS (DECL_CONTEXT (parm)) chain.  Return corresponding
    PARM_DECL which is in the chain.  */
 
-static tree
+tree
 maybe_update_function_parm (tree parm)
 {
   if (!OLD_PARM_DECL_P (parm))
@@ -5513,7 +5514,8 @@ eval_can_substitute (location_t loc, const constexpr_ctx *ctx,
 	return throw_exception (loc, ctx,
 				"invalid argument to can_substitute",
 				fun, non_constant_p, jump_target);
-      a = convert_from_reference (a);
+      if (!TYPE_P (a))
+	a = convert_from_reference (a);
       TREE_VEC_ELT (rvec, i) = a;
     }
   if (DECL_TYPE_TEMPLATE_P (r) || DECL_TEMPLATE_TEMPLATE_PARM_P (r))
@@ -7065,6 +7067,13 @@ class_members_of (location_t loc, const constexpr_ctx *ctx, tree r,
 				    get_reflection_raw (loc, m));
 	    break;
 	  }
+      for (tree m : implicitly_declared)
+	if (LAMBDA_FUNCTION_P (m))
+	  {
+	    CONSTRUCTOR_APPEND_ELT (elts, NULL_TREE,
+				    get_reflection_raw (loc, m));
+	    break;
+	  }
     }
   return elts;
 }
@@ -7883,6 +7892,11 @@ process_metafunction (const constexpr_ctx *ctx, tree fun, tree call,
 	if (*jump_target || *non_constant_p)
 	  return NULL_TREE;
 	ht = REFLECT_EXPR_HANDLE (info);
+	if (error_operand_p (ht))
+	  {
+	    *non_constant_p = true;
+	    return NULL_TREE;
+	  }
 	if (METAFN_KIND_ARG (minfo, argno) == METAFN_KIND_ARG_TINFO
 	    && eval_is_type (ht) != boolean_true_node)
 	  return throw_exception_nontype (loc, ctx, fun, non_constant_p,
@@ -8738,6 +8752,10 @@ check_out_of_consteval_use_r (tree *tp, int *walk_subtrees, void *pset)
       || TREE_CODE (t) == DECL_EXPR
       /* Neither into USING_STMT.  */
       || TREE_CODE (t) == USING_STMT
+      /* The operand of a splice is a constant-expression, thus
+	 manifestly constant-evaluated, so consteval-only types are permitted
+	 here.  */
+      || TREE_CODE (t) == SPLICE_EXPR
       /* Blocks can appear in the TREE_VEC operand of OpenMP
 	 depend/affinity/map/to/from OMP_CLAUSEs when using iterators.  */
       || TREE_CODE (t) == BLOCK)

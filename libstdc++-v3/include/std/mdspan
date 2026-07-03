@@ -907,7 +907,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     template<typename _Tp>
       constexpr bool __is_constant_wrapper = false;
 
-    template<_CwFixedValue _Xv, typename _Tp>
+    template<auto _Xv, typename _Tp>
       constexpr bool __is_constant_wrapper<constant_wrapper<_Xv, _Tp>>
 	= true;
 
@@ -2628,7 +2628,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	{ return _PaddedStorage::_M_is_always_exhaustive(); }
 
 	constexpr bool
-	is_exhaustive() noexcept
+	is_exhaustive() const noexcept
 	{ return _M_storage._M_is_exhaustive(); }
 
 	static constexpr bool
@@ -2801,7 +2801,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	{ return _PaddedStorage::_M_is_always_exhaustive(); }
 
 	constexpr bool
-	is_exhaustive() noexcept
+	is_exhaustive() const noexcept
 	{ return _M_storage._M_is_exhaustive(); }
 
 	static constexpr bool

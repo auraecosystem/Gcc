@@ -3853,6 +3853,15 @@ build_min_non_dep_op_overload (enum tree_code op,
 	  tree spaceship_non_dep = (TREE_CODE (non_dep) == CALL_EXPR
 				    ? CALL_EXPR_ARG (non_dep, reversed ? 1 : 0)
 				    : TREE_OPERAND (non_dep, reversed ? 1 : 0));
+
+	  tree int_promotion = NULL_TREE;
+	  if (TREE_CODE (spaceship_non_dep) == NOP_EXPR)
+	    {
+	      gcc_checking_assert (TREE_CODE (non_dep) != CALL_EXPR);
+	      int_promotion = TREE_TYPE (spaceship_non_dep);
+	      spaceship_non_dep = TREE_OPERAND (spaceship_non_dep, 0);
+	    }
+
 	  gcc_checking_assert (TREE_CODE (spaceship_non_dep) == CALL_EXPR);
 	  tree spaceship_op0 = va_arg (p, tree);
 	  tree spaceship_op1 = va_arg (p, tree);
@@ -3875,6 +3884,8 @@ build_min_non_dep_op_overload (enum tree_code op,
 	    {
 	      gcc_checking_assert (COMPARISON_CLASS_P (non_dep)
 				   || TREE_CODE (non_dep) == SPACESHIP_EXPR);
+	      if (int_promotion)
+		op0 = build_nop (int_promotion, op0);
 	      if (reversed)
 		std::swap (op0, op1);
 	      return build_min_non_dep (TREE_CODE (non_dep), non_dep, op0, op1);
@@ -6235,6 +6246,10 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func,
 	  WALK_SUBTREE (DECL_SIZE (decl));
 	  WALK_SUBTREE (DECL_SIZE_UNIT (decl));
 	}
+      if (is_typedef_decl (TREE_OPERAND (t, 0)))
+	/* We avoid walking into typedefs above, but we do want to walk
+	   into them if we're looking at the actual declaration.  */
+	WALK_SUBTREE (DECL_ORIGINAL_TYPE (TREE_OPERAND (t, 0)));
       break;
 
     case LAMBDA_EXPR:

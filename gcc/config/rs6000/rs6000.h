@@ -101,6 +101,7 @@
    you make changes here, make them also there.  */
 #define ASM_CPU_SPEC \
 "%{mcpu=native: %(asm_cpu_native); \
+  mcpu=future: -mfuture; \
   mcpu=power11: -mpower11; \
   mcpu=power10: -mpower10; \
   mcpu=power9: -mpower9; \
@@ -532,9 +533,13 @@ extern int rs6000_vector_align[];
 				 || TARGET_VSX				 \
 				 || TARGET_HARD_FLOAT)
 
-/* E500 cores only support plain "sync", not lwsync.  */
+/* E500 and MPC8xx cores require all should-be-zero bits in sync to
+   actually be zero; using lwsync (L=1) causes a fault on these cores.
+   Classic cores (601, 603, 604, 750 etc.) simply ignore the L field
+   and always do a full hwsync.  */
 #define TARGET_NO_LWSYNC (rs6000_cpu == PROCESSOR_PPC8540 \
-			  || rs6000_cpu == PROCESSOR_PPC8548)
+			  || rs6000_cpu == PROCESSOR_PPC8548 \
+			  || rs6000_cpu == PROCESSOR_MPCCORE)
 
 
 /* Which machine supports the various reciprocal estimate instructions.  */
@@ -2285,6 +2290,8 @@ enum rs6000_builtin_type_index
   RS6000_BTI_ptr_vector_quad,
   RS6000_BTI_ptr_long_long,
   RS6000_BTI_ptr_long_long_unsigned,
+  RS6000_BTI_INTPTI,
+  RS6000_BTI_UINTPTI,
   RS6000_BTI_MAX
 };
 
@@ -2329,6 +2336,8 @@ enum rs6000_builtin_type_index
 #define uintDI_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_UINTDI])
 #define intTI_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_INTTI])
 #define uintTI_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_UINTTI])
+#define intPTI_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_INTPTI])
+#define uintPTI_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_UINTPTI])
 #define float_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_float])
 #define double_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_double])
 #define long_double_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_long_double])

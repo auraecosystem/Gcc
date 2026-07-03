@@ -4595,7 +4595,8 @@ set_contract_capture_flag (tree d, bool val)
    id-expression, and we do lambda capture.  */
 
 tree
-process_outer_var_ref (tree decl, tsubst_flags_t complain, bool odr_use)
+process_outer_var_ref (tree decl, tsubst_flags_t complain,
+		       bool odr_use/*=false*/)
 {
   if (cp_unevaluated_operand)
     {
@@ -4697,6 +4698,10 @@ process_outer_var_ref (tree decl, tsubst_flags_t complain, bool odr_use)
      constant without odr-use.  So don't complain yet.  */
   else if (!odr_use && decl_constant_var_p (var))
     return var;
+  /* Don't complain when DECL is dependent, because it can turn out to
+     be constant (and therefore needing no capture) when instantiating.  */
+  else if (VAR_P (var) && instantiation_dependent_expression_p (var))
+    return var;
   else if (lambda_expr)
     {
       if (complain & tf_error)
@@ -4715,7 +4720,7 @@ process_outer_var_ref (tree decl, tsubst_flags_t complain, bool odr_use)
 	}
       return error_mark_node;
     }
-  else if (processing_contract_condition && (TREE_CODE (decl) == PARM_DECL))
+  else if (processing_contract_condition && TREE_CODE (decl) == PARM_DECL)
     /* Use of a parameter in a contract condition is fine.  */
     return decl;
   else
@@ -13253,7 +13258,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
 	 is T , and decltype((r)) is const T&."  */
       expr = strip_contract_const_wrapper (expr);
 
-      if (INDIRECT_REF_P (expr)
+      if (REFERENCE_REF_P (expr)
 	  || TREE_CODE (expr) == VIEW_CONVERT_EXPR)
         /* This can happen when the expression is, e.g., "a.b". Just
            look at the underlying operand.  */
