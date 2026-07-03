@@ -1,3 +1,13 @@
+======== Patch #12 ========
+
+Fix typo.
+
+2026-06-25  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.cc (rs6000_modes_tieable_p): Fix typo.
+
 ======== Patch #11 ========
 
 Fix dense math register insert/extract 512-bit problem.
