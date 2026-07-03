@@ -1259,7 +1259,7 @@ static const char alt_reg_names[][8] =
   /* vrsave vscr sfp */
   "vrsave", "vscr", "sfp",
   /* dense math registers.  */
-  "%dmr0", "%dmr1", "%dmr2", "%dmr3", "%dmr4", "%dmr5", "%dmr6", "%dmr7",
+  "%dm0", "%dm1", "%dm2", "%dm3", "%dm4", "%dm5", "%dm6", "%dm7",
 };
 #endif
 
@@ -14476,6 +14476,10 @@ print_operand (FILE *file, rtx x, int code)
 	 accumulators overlapping with the FPR registers.  */
       if (!REG_P (x))
 	output_operand_lossage ("invalid %%A value");
+
+      /* We can't use reg_names[REGNO (x)] here because the assembler doesn't
+	 recognize things list dmxvf64gerpp %dm6,%vs32,%vs40.  We continue to
+	 just put out a number 0..7.  */
       else if (TARGET_DENSE_MATH && DMF_REGNO_P (REGNO (x)))
 	fprintf (file, "%d", REGNO (x) - FIRST_DMF_REGNO);
       else if (!FP_REGNO_P (REGNO (x)) || (REGNO (x) % 4) != 0)
