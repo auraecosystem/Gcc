@@ -581,7 +581,11 @@ get_equiv (rtx x)
       return res;
     }
   if ((res = ira_reg_equiv[regno].constant) != NULL_RTX)
-    return res;
+    {
+      if (targetm.cannot_substitute_const_equiv_p (res))
+	return x;
+      return res;
+    }
   if ((res = ira_reg_equiv[regno].invariant) != NULL_RTX)
     return res;
   gcc_unreachable ();
@@ -2359,14 +2363,22 @@ get_dependent_filter (constraint_num cn, machine_mode mode)
   gcc_assert (ref_opno >= 0 && ref_opno < curr_static_id->n_operands);
 
   rtx ref_op = *curr_id->operand_loc[ref_opno];
+  if (SUBREG_P (ref_op))
+     ref_op = SUBREG_REG (ref_op);
   if (!REG_P (ref_op))
     return nullptr;
   unsigned int ref_regno = REGNO (ref_op);
   if (ref_regno >= FIRST_PSEUDO_REGISTER)
     {
       int ref_hard_regno = reg_renumber[ref_regno];
+      /* Even with a pseudo reference op, the filter can still reject
+	 based on the partner.  We call it with INVALID_REGNUM
+	 to give it a chance to do so.  Otherwise we'd introduce
+	 an "all choices legal" filter that might later
+	 "change its mind" once there is a fixed reference.  */
       if (ref_hard_regno < 0)
-	return nullptr;
+	return lra_get_dependent_filter (id, mode, INVALID_REGNUM,
+					 GET_MODE (ref_op), false);
       ref_regno = (unsigned int) ref_hard_regno;
     }
 

@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "trans-types.h"
 #include "trans-array.h"
 #include "trans-const.h"
+#include "trans-descriptor.h"
 #include "dependency.h"
 
 typedef struct iter_info
@@ -1827,48 +1828,6 @@ class_has_len_component (gfc_symbol *sym)
 }
 
 
-static void
-copy_descriptor (stmtblock_t *block, tree dst, tree src, int rank)
-{
-  int n;
-  tree dim;
-  tree tmp;
-  tree tmp2;
-  tree size;
-  tree offset;
-
-  offset = gfc_index_zero_node;
-
-  /* Use memcpy to copy the descriptor. The size is the minimum of
-     the sizes of 'src' and 'dst'. This avoids a non-trivial conversion.  */
-  tmp = TYPE_SIZE_UNIT (TREE_TYPE (src));
-  tmp2 = TYPE_SIZE_UNIT (TREE_TYPE (dst));
-  size = fold_build2_loc (input_location, MIN_EXPR,
-			  TREE_TYPE (tmp), tmp, tmp2);
-  tmp = builtin_decl_explicit (BUILT_IN_MEMCPY);
-  tmp = build_call_expr_loc (input_location, tmp, 3,
-			     gfc_build_addr_expr (NULL_TREE, dst),
-			     gfc_build_addr_expr (NULL_TREE, src),
-			     fold_convert (size_type_node, size));
-  gfc_add_expr_to_block (block, tmp);
-
-  /* Set the offset correctly.  */
-  for (n = 0; n < rank; n++)
-    {
-      dim = gfc_rank_cst[n];
-      tmp = gfc_conv_descriptor_lbound_get (src, dim);
-      tmp2 = gfc_conv_descriptor_stride_get (src, dim);
-      tmp = fold_build2_loc (input_location, MULT_EXPR, TREE_TYPE (tmp),
-			     tmp, tmp2);
-      offset = fold_build2_loc (input_location, MINUS_EXPR,
-			TREE_TYPE (offset), offset, tmp);
-      offset = gfc_evaluate_now (offset, block);
-    }
-
-  gfc_conv_descriptor_offset_set (block, dst, offset);
-}
-
-
 /* Do proper initialization for ASSOCIATE names.  */
 
 static void
@@ -1997,7 +1956,7 @@ trans_associate_var (gfc_symbol *sym, gfc_wrapped_block *block)
 	 attributes so the selector descriptor must be copied in and
 	 copied out.  */
       if (rank > 0)
-	copy_descriptor (&se.pre, desc, se.expr, rank);
+	gfc_copy_descriptor (&se.pre, desc, se.expr, rank);
       else
 	{
 	  tmp = gfc_conv_descriptor_data_get (se.expr);
@@ -2026,7 +1985,7 @@ trans_associate_var (gfc_symbol *sym, gfc_wrapped_block *block)
 		  || CLASS_DATA (sym)->attr.pointer)))
 	{
 	  if (rank > 0)
-	    copy_descriptor (&se.post, se.expr, desc, rank);
+	    gfc_copy_descriptor (&se.post, se.expr, desc, rank);
 	  else
 	    gfc_conv_descriptor_data_set (&se.post, se.expr, desc);
 
@@ -7690,9 +7649,23 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	  gfc_add_expr_to_block (&block, tmp);
 	}
       /* Set KIND and LEN PDT components and allocate those that are
-         parameterized.  */
-      else if (IS_PDT (expr))
+	 parameterized and make sure that allocatable components are
+	 nullified.  */
+      else if (IS_PDT (expr) || IS_CLASS_PDT (expr))
 	{
+	  gfc_symbol *declared;
+	  gfc_symbol *type_spec_dt;
+	  tree type;
+	  tree ptr;
+
+	  declared = IS_PDT (expr) ? expr->ts.u.derived
+				   : CLASS_DATA (expr)->ts.u.derived;
+
+	  if (code->ext.alloc.ts.type == BT_DERIVED)
+	    type_spec_dt = code->ext.alloc.ts.u.derived;
+	  else
+	    type_spec_dt = NULL;
+
 	  if (code->expr3 && code->expr3->param_list)
 	    param_list = code->expr3->param_list;
 	  else if (expr->param_list)
@@ -7706,25 +7679,21 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	  int pdt_rank = (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (se.expr))
 			  ? GFC_TYPE_ARRAY_RANK (TREE_TYPE (se.expr))
 			  : expr->rank);
-	  tmp = gfc_allocate_pdt_comp (expr->ts.u.derived, se.expr,
+	  tmp = gfc_allocate_pdt_comp (declared, se.expr,
 				       pdt_rank, param_list);
 	  gfc_add_expr_to_block (&block, tmp);
-	}
-      /* Ditto for CLASS expressions.  */
-      else if (IS_CLASS_PDT (expr))
-	{
-	  if (code->expr3 && code->expr3->param_list)
-	    param_list = code->expr3->param_list;
-	  else if (expr->param_list)
-	    param_list = expr->param_list;
-	  else
-	    param_list = expr->symtree->n.sym->param_list;
-	  int pdt_rank = (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (se.expr))
-			  ? GFC_TYPE_ARRAY_RANK (TREE_TYPE (se.expr))
-			  : expr->rank);
-	  tmp = gfc_allocate_pdt_comp (CLASS_DATA (expr)->ts.u.derived,
-				       se.expr, pdt_rank, param_list);
-	  gfc_add_expr_to_block (&block, tmp);
+
+	  /* If this is a CLASS allocation and the declared type does not have
+	     allocatable components but the explicit type_spec does, nullify
+	     the allocatable components of the type_spec derived type.  */
+	  if (pdt_rank == 0 && type_spec_dt
+	      && !declared->attr.alloc_comp && type_spec_dt->attr.alloc_comp)
+	    {
+	      type = build_pointer_type (gfc_get_derived_type (type_spec_dt));
+	      ptr = fold_convert (type, se.expr);
+	      tmp = gfc_nullify_alloc_comp (type_spec_dt, ptr, 0);
+	      gfc_add_expr_to_block (&block, tmp);
+	    }
 	}
       else if (code->expr3 && code->expr3->mold
 	       && code->expr3->ts.type == BT_CLASS)
