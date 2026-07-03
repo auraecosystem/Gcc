@@ -383,9 +383,9 @@
    #
    #
    #
-   dmxxinstdmr512 %0,%1,%Y1,0
+   dmxxinstdmr512 %0,%x1,%x1+2,0
    dmmr %0,%1
-   dmxxextfdmr512 %0,%Y0,%1,0"
+   dmxxextfdmr512 %x0,%x0+2,%1,0"
   "&& reload_completed
    && !dmf_register_operand (operands[0], XOmode)
    && !dmf_register_operand (operands[1], XOmode)"
@@ -891,7 +891,7 @@
 	(unspec:TDO [(match_operand:XO 1 "vsx_register_operand" "wa")]
 		    UNSPEC_DMF_INSERT512_UPPER))]
   "TARGET_DENSE_MATH"
-  "dmxxinstdmr512 %0,%1,%Y1,0"
+  "dmxxinstdmr512 %0,%x1,%x1+2,0"
   [(set_attr "type" "mma")])
 
 (define_insn "movtdo_insert512_lower"
@@ -900,7 +900,7 @@
 		     (match_operand:XO 2 "vsx_register_operand" "wa")]
 		    UNSPEC_DMF_INSERT512_LOWER))]
   "TARGET_DENSE_MATH"
-  "dmxxinstdmr512 %0,%2,%Y2,1"
+  "dmxxinstdmr512 %0,%x2,%x2+2,1"
   [(set_attr "type" "mma")])
 
 ;; Move from dense math registers to VSX registers via two extract 512 bit
@@ -911,7 +911,7 @@
 		    (match_operand 2 "const_0_to_1_operand" "n")]
 		   UNSPEC_DMF_EXTRACT512))]
   "TARGET_DENSE_MATH"
-  "dmxxextfdmr512 %0,%Y0,%1,%2"
+  "dmxxextfdmr512 %x0,%x0+2,%1,%2"
   [(set_attr "type" "mma")])
 
 ;; Reload dense math registers from memory.
