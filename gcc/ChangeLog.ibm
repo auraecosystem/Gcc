@@ -1,3 +1,77 @@
+======== Patch #11 ========
+
+Fix dense math register insert/extract 512-bit problem.
+
+Kishan Parmar <kishan@linux.ibm.com> issued a patch that made me re-examine the
+code I had put out for dense math registers.  This patch fixes the third problem
+the patch uncovered.
+
+The first problem is the insert/extract instructions were using %<n> to address
+VSX registers instead of using %x<n>.  This would give the wrong register number
+if a vector register 32..63 was used (i.e. a traditional Altivec register).
+
+The second problem was the instructions were using %L<n> to access the second
+vector pair register, which does not work for Altivec registers either without
+the patch.
+
+I have rewritten the instructions to use %x<n> for the first vector pair
+register, and %x<n>+2 to access the second vector pair register.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+I have tested these patches on both big endian and little endian PowerPC
+servers, with no regressions.  Can I check these patches into the trunk?
+
+2026-07-02  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (movxo_dm): Fix issues if vector registers 32..63
+	were used.
+	(movtdo_insert512_upper): Likewise.
+	(movtdo_insert512_lower): Likewise.
+	(movtdo_extract512): Likewise.
+
+======== Patch #10 ========
+
+Fix -mregnames issue with dense math registers.
+
+Kishan Parmar <kishan@linux.ibm.com> issued a patch that made me re-examine the
+code I had put out for dense math registers.  This patch fixes two of these problems.
+
+The first problem is the output operand %A<n> was always printing out a number,
+even if -mregnames was used.  I fixed this by using reg_names[..] for dense math
+registers.  For power10/power11 accumulators that are overlaid on top of VSX
+registers, it just prints out the VSX register number divided by 4.
+
+The second problem is once %A<n> can print a register name instead of a number,
+the next problem is if you use -mregnames, GCC would put out %dmr<n> while the
+assembler wants %dm<n>.  I fixed this to use the correct name.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+I have tested these patches on both big endian and little endian PowerPC
+servers, with no regressions.  Can I check these patches into the trunk?
+
+2026-07-02  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.cc (alt_reg_names): Use %dm<n> for dense math
+	registers, not %dmr<n>.
+	(print_operand): Add a comment for %A<n>, of why we can't emit %dm<n>
+	since the assembler doesn't recognize %dm0 in this context.
+
 ======== Patch #9 ========
 
 Add _Float16 and __bfloat16 support.
