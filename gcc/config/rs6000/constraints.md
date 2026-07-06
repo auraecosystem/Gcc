@@ -100,7 +100,8 @@
    @code{NO_REGS}.")
 
 (define_register_constraint "wD" "rs6000_constraints[RS6000_CONSTRAINT_wD]"
-  "@internal Dense math register.")
+  "@internal Floating point register @code{FPR} if TARGET_MMA is enabled.
+  1024 bit Dense math register @code{DMR} if TARGET_DMF is enabled.")
 
 ;; wB needs ISA 2.07 VUPKHSW
 (define_constraint "wB"

@@ -3298,7 +3298,7 @@ Like @code{b}, if @option{-mpowerpc64} is used; otherwise, @code{NO_REGS}.
 Signed 5-bit constant integer that can be loaded into an Altivec register.
 
 @item wD
-Dense math register if @option{-mdense-math} is used; otherwise, @code{NO_REGS}.
+Accumulator register if @option{-mma} is used; otherwise, @code{NO_REGS}.
 
 @item wE
 Vector constant that can be loaded with the XXSPLTIB instruction.
