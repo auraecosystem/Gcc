@@ -20739,6 +20739,8 @@ rs6000_mangle_type (const_tree type)
     return "u13__vector_pair";
   if (type == vector_quad_type_node)
     return "u13__vector_quad";
+  if (type == dmr1024_type_node)
+    return "u9__dmr1024";
 
   /* For all other types, use the default mangling.  */
   return NULL;
@@ -28921,7 +28923,8 @@ rs6000_invalid_conversion (const_tree fromtype, const_tree totype)
 
   if (frommode != tomode)
     {
-      /* Do not allow conversions to/from XOmode and OOmode types.  */
+      /* Do not allow conversions to/from XOmode, OOmode and TDOmode
+	 types.  */
       if (frommode == XOmode)
 	return N_("invalid conversion from type %<__vector_quad%>");
       if (tomode == XOmode)
@@ -28930,6 +28933,10 @@ rs6000_invalid_conversion (const_tree fromtype, const_tree totype)
 	return N_("invalid conversion from type %<__vector_pair%>");
       if (tomode == OOmode)
 	return N_("invalid conversion to type %<__vector_pair%>");
+      if (frommode == TDOmode)
+	return N_("invalid conversion from type %<__dmr1024%>");
+      if (tomode == TDOmode)
+	return N_("invalid conversion to type %<__dmr1024%>");
     }
 
   /* Conversion allowed.  */
@@ -29438,6 +29445,11 @@ rs6000_opaque_type_invalid_use_p (gimple *stmt)
     else if (mv == vector_pair_type_node)
       {
 	error ("type %<__vector_pair%> requires the %qs option", "-mmma");
+	return true;
+      }
+    else if (mv == dmr1024_type_node)
+      {
+	error ("type %<__dmr1024%> requires the %qs option", "-mdense-math");
 	return true;
       }
     return false;
