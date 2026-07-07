@@ -1868,6 +1868,10 @@ rs6000_hard_regno_mode_ok_uncached (int regno, machine_mode mode)
   if (COMPLEX_MODE_P (mode))
     mode = GET_MODE_INNER (mode);
 
+  /* No other types other than XOmode or TDOmode can go in DMRs.  */
+  if (DMR_REGNO_P (regno) && !(mode ==XOmode || mode == TDOmode))
+    return 0;
+
   if (mode == TDOmode)
     {
       if (TARGET_DMF)
@@ -1888,10 +1892,6 @@ rs6000_hard_regno_mode_ok_uncached (int regno, machine_mode mode)
   if (mode == XOmode)
     return ((TARGET_DMF && DMR_REGNO_P (regno))
 	     || (TARGET_MMA && FP_REGNO_P (regno) && (regno & 3) == 0));
-
-  /* No other types other than XOmode or TDOmode can go in DMRs.  */
-  if (DMR_REGNO_P (regno))
-    return 0;
 
   /* PTImode can only go in GPRs.  Quad word memory operations require even/odd
      register combinations, and use PTImode where we need to deal with quad
@@ -12408,9 +12408,6 @@ rs6000_secondary_reload_memory (rtx addr,
   const char *type = NULL;
   const char *fail_msg = NULL;
 
-  if (rclass == DMR_REGS)
-    return 2;
-
   if (GPR_REG_CLASS_P (rclass))
     addr_mask = reg_addr[mode].addr_mask[RELOAD_REG_GPR];
 
@@ -12424,6 +12421,14 @@ rs6000_secondary_reload_memory (rtx addr,
   else if (rclass == VSX_REGS)
     addr_mask = (reg_addr[mode].addr_mask[RELOAD_REG_VMX]
 		 & ~RELOAD_REG_AND_M16);
+
+  /* DMR registers have no load/store instructions; memory access goes
+     through an intermediate VSX stage handled by the TDO reload insn.
+     Use the DMR addr_mask so the address-code checks below can determine
+     whether a scratch GPR is needed to simplify the address before the
+     TDO reload insn is invoked.  */
+  else if (rclass == DMR_REGS)
+    addr_mask = reg_addr[mode].addr_mask[RELOAD_REG_DMR];
 
   /* If the register allocator hasn't made up its mind yet on the register
      class to use, settle on defaults to use.  */
@@ -13452,6 +13457,7 @@ rs6000_preferred_reload_class (rtx x, enum reg_class rclass)
   machine_mode mode = GET_MODE (x);
   bool is_constant = CONSTANT_P (x);
 
+  /* Values cannot be loaded into DMR registers.  */
   if (rclass == DMR_REGS)
     return NO_REGS;
 
@@ -13551,7 +13557,10 @@ rs6000_preferred_reload_class (rtx x, enum reg_class rclass)
 	return VSX_REGS;
 
       if (mode == XOmode)
-	return FLOAT_REGS;
+	return (TARGET_DMF ? VSX_REGS : FLOAT_REGS);
+
+      if (mode == TDOmode)
+	return VSX_REGS;
 
       if (GET_MODE_CLASS (mode) == MODE_INT)
 	return GENERAL_REGS;
@@ -13713,6 +13722,26 @@ rs6000_secondary_reload_class (enum reg_class rclass, machine_mode mode,
   /* We can copy among the CR registers.  */
   if ((rclass == CR_REGS || rclass == CR0_REGS)
       && regno >= 0 && CR_REGNO_P (regno))
+    return NO_REGS;
+
+  /* DMR registers can only be moved to/from VSX registers.
+     - DMR -> VSX or VSX -> DMR: direct, no scratch register needed.
+     - DMR -> memory or memory -> DMR: must route through VSX; request
+     VSX_REGS as the intermediate scratch class.
+     - DMR -> DMR: direct move, no scratch needed.  */
+  if (rclass == DMR_REGS)
+    {
+      /* VSX register or another DMR register: direct move, no scratch.  */
+      if (regno >= 0 && (VSX_REGNO_P (regno) || DMR_REGNO_P (regno)))
+ return NO_REGS;
+
+      /* Memory (regno == -1) or unresolved pseudo: need a VSX intermediate.  */
+      return VSX_REGS;
+    }
+
+  /* Copying into a VSX register from a DMR register: direct.  */
+  if ((rclass == VSX_REGS || rclass == FLOAT_REGS || rclass == ALTIVEC_REGS)
+      && regno >= 0 && DMR_REGNO_P (regno))
     return NO_REGS;
 
   /* Otherwise, we need GENERAL_REGS.  */
@@ -22853,6 +22882,31 @@ rs6000_debug_address_cost (rtx x, machine_mode mode,
 }
 
 
+static int
+rs6000_dmr_register_move_cost (machine_mode mode, reg_class_t rclass)
+{
+  const int move_cost = 2;
+  HARD_REG_SET vsx_set = (reg_class_contents[rclass]
+			  & reg_class_contents[VSX_REGS]);
+
+  if (TARGET_DMF && !hard_reg_set_empty_p (vsx_set))
+    {
+      /* XOmode can be copied in 1 instruction.  */
+      if (mode == XOmode)
+	return move_cost;
+
+      /* TDOmode can be copied in 2 instructions.  */
+      else if (mode == TDOmode)
+	return move_cost * 2;
+
+      else
+	return move_cost * 2 * hard_regno_nregs (FIRST_DMR_REGNO, mode);
+    }
+
+  return 1000 * 2 * hard_regno_nregs (FIRST_DMR_REGNO, mode);
+}
+
+
 /* A C expression returning the cost of moving data from a register of class
    CLASS1 to one of CLASS2.  */
 
@@ -22873,10 +22927,20 @@ rs6000_register_move_cost (machine_mode mode,
   HARD_REG_SET to_vsx, from_vsx;
   to_vsx = reg_class_contents[to] & reg_class_contents[VSX_REGS];
   from_vsx = reg_class_contents[from] & reg_class_contents[VSX_REGS];
-  if (!hard_reg_set_empty_p (to_vsx)
-      && !hard_reg_set_empty_p (from_vsx)
-      && (TARGET_VSX
-	  || hard_reg_set_intersect_p (to_vsx, from_vsx)))
+
+  if ((mode == TDOmode || mode==XOmode) && from == DMR_REGS && to == DMR_REGS)
+    ret = 2 * hard_regno_nregs (FIRST_DMR_REGNO, mode);
+
+  else if (from == DMR_REGS)
+    ret = rs6000_dmr_register_move_cost (mode, to);
+
+  else if (to == DMR_REGS)
+    ret = rs6000_dmr_register_move_cost (mode, from);
+
+  else if (!hard_reg_set_empty_p (to_vsx)
+	   && !hard_reg_set_empty_p (from_vsx)
+	   && (TARGET_VSX
+	       || hard_reg_set_intersect_p (to_vsx, from_vsx)))
     {
       int reg = FIRST_FPR_REGNO;
       if (TARGET_VSX
@@ -22972,6 +23036,9 @@ rs6000_memory_move_cost (machine_mode mode, reg_class_t rclass,
     ret = 4 * hard_regno_nregs (32, mode);
   else if (reg_classes_intersect_p (rclass, ALTIVEC_REGS))
     ret = 4 * hard_regno_nregs (FIRST_ALTIVEC_REGNO, mode);
+  else if (reg_classes_intersect_p (rclass, DMR_REGS))
+    ret = (rs6000_dmr_register_move_cost (mode, VSX_REGS)
+	   + rs6000_memory_move_cost (mode, VSX_REGS, false));
   else
     ret = 4 + rs6000_register_move_cost (mode, rclass, GENERAL_REGS);
 
