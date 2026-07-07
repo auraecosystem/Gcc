@@ -599,6 +599,170 @@ ipa_dump_jump_function (FILE *f, ipa_jump_func *jump_func,
     fprintf (f, "         Unknown VR\n");
 }
 
+DEBUG_FUNCTION void
+ipa_dump_expr_bytecode (FILE *f, const struct ipa_jf_expr &expr,
+			const char *prefix)
+{
+  const ipa_bytecode_seq &bytecode = expr.bytecode;
+  unsigned bytecode_len = bytecode.size ();
+  unsigned offset = 0;
+
+  while (offset < bytecode_len)
+    {
+      unsigned inst_offset = offset;
+      ipa_jf_bytecode inst
+	= bytecode.read_and_advance<ipa_jf_bytecode> (offset);
+      gcc_checking_assert (ipa_jf_bytecode_valid_p (inst));
+
+      switch (inst)
+	{
+	case IPA_JF_CONSTANT_LOAD:
+	  {
+	    fprintf (f, "%s(%d): CONSTANT_LOAD: ", prefix, inst_offset);
+
+	    tree type = bytecode.read_and_advance<tree> (offset);
+	    tree value = bytecode.read_and_advance<tree> (offset);
+
+	    ipa_print_constant_value (f, value);
+	    fprintf (f, " (");
+	    print_generic_expr (f, type);
+	    fprintf (f, ")");
+	    break;
+	  }
+	case IPA_JF_PARAM_LOAD:
+	  {
+	    fprintf (f, "%s(%d): PARAM_LOAD: ", prefix, inst_offset);
+
+	    tree type = bytecode.read_and_advance<tree> (offset);
+	    unsigned formal_id = bytecode.read_and_advance<unsigned> (offset);
+
+	    fprintf (f, "%u (", formal_id);
+	    print_generic_expr (f, type);
+	    fprintf (f, ")");
+	    break;
+	  }
+	case IPA_JF_TYPE_CAST:
+	  {
+	    fprintf (f, "%s(%d): TYPE_CAST: ", prefix, inst_offset);
+
+	    tree type = bytecode.read_and_advance<tree> (offset);
+
+	    print_generic_expr (f, type);
+	    break;
+	  }
+	case IPA_JF_MINUS_EXPR:
+	  {
+	    fprintf (f, "%s(%d): MINUS_EXPR: ", prefix, inst_offset);
+
+	    tree type = bytecode.read_and_advance<tree> (offset);
+
+	    print_generic_expr (f, type);
+	    break;
+	  }
+	case IPA_JF_PLUS_EXPR:
+	  {
+	    fprintf (f, "%s(%d): PLUS_EXPR: ", prefix, inst_offset);
+
+	    tree type = bytecode.read_and_advance<tree> (offset);
+
+	    print_generic_expr (f, type);
+	    break;
+	  }
+	case IPA_JF_SUB_EXPR:
+	  {
+	    fprintf (f, "%s(%d): SUB_EXPR: ", prefix, inst_offset);
+
+	    tree type = bytecode.read_and_advance<tree> (offset);
+
+	    print_generic_expr (f, type);
+	    break;
+	  }
+	case IPA_JF_MULT_EXPR:
+	  {
+	    fprintf (f, "%s(%d): MULT_EXPR: ", prefix, inst_offset);
+
+	    tree type = bytecode.read_and_advance<tree> (offset);
+
+	    print_generic_expr (f, type);
+	    break;
+	  }
+	case IPA_JF_DIV_EXPR:
+	  {
+	    fprintf (f, "%s(%d): DIV_EXPR: ", prefix, inst_offset);
+
+	    tree type = bytecode.read_and_advance<tree> (offset);
+
+	    print_generic_expr (f, type);
+	    break;
+	  }
+	default:
+	  gcc_unreachable ();
+	}
+      fprintf (f, "\n");
+    }
+}
+
+DEBUG_FUNCTION void
+ipa_dump_jf_expr (FILE *f, const struct ipa_jf_expr &expr)
+{
+  bool is_simple = expr.bytecode.is_empty ();
+  fprintf (f, "PASS-THROUGH: %s\n", is_simple ? "SIMPLE" : "LINEARIZED");
+  fprintf (f, "    offset: " HOST_WIDE_INT_PRINT_DEC "\n", expr.offset);
+  fprintf (f, "    agg_preserved: %d\n", expr.agg_preserved);
+  if (is_simple)
+    {
+      /* Simple pass-through jump function.  */
+      fprintf (f, "    formal_id: %d\n", expr.formal_id);
+      // TODO: flags?
+    }
+  else
+    {
+      /* Arithmetic jump function with a linearized ssa chain.  */
+      ipa_dump_expr_bytecode (f, expr, "        ");
+      // TODO: flags?
+    }
+}
+
+DEBUG_FUNCTION void
+ipa_dump_new_jump_function (FILE *f, struct ipa_jf *new_jf)
+{
+  enum new_jump_func_type type = new_jf->type;
+
+  if (type == NEW_IPA_JF_UNKNOWN)
+    fprintf (f, "UNKNOWN\n");
+  else if (type == NEW_IPA_JF_CONST)
+    {
+      fprintf (f, "CONST: ");
+      ipa_print_constant_value (f, new_jf->constant.value);
+      fprintf (f, "\n");
+    }
+  else if (type == NEW_IPA_JF_PASS_THROUGH)
+    {
+      ipa_dump_jf_expr (f, new_jf->pass_through);
+    }
+  else /* type == NEW_IPA_JF_AGGREGATE */
+    {
+      gcc_checking_assert (type == NEW_IPA_JF_AGGREGATE);
+      struct ipa_jf_expr *expr;
+      int i;
+
+      fprintf (f, "AGGREGATE JUMP FUNCTION:\n");
+      FOR_EACH_VEC_ELT (new_jf->aggregate.agg_parts, i, expr)
+	{
+	  ipa_dump_jf_expr (f, *expr);
+	}
+    }
+
+  if (new_jf->vr)
+    {
+      fprintf (f, "    ");
+      new_jf->vr->dump (f);
+      fprintf (f, "\n");
+    }
+  else
+    fprintf (f, "    Unknown VR\n");
+}
+
 /* Print the jump functions associated with call graph edge CS to file F.  */
 
 static void
@@ -749,6 +913,13 @@ ipa_set_jf_constant (struct ipa_jump_func *jfunc, tree constant,
     jfunc->value.constant.rdesc = NULL;
 }
 
+static void
+ipa_set_new_jf_constant (struct ipa_jf *jf, tree constant, struct cgraph_edge *)
+{
+  jf->type = NEW_IPA_JF_CONST;
+  jf->constant.value = unshare_expr_without_location (constant);
+}
+
 /* Set JFUNC to be a simple pass-through jump function.  */
 static void
 ipa_set_jf_simple_pass_through (struct ipa_jump_func *jfunc, int formal_id,
@@ -761,6 +932,16 @@ ipa_set_jf_simple_pass_through (struct ipa_jump_func *jfunc, int formal_id,
   jfunc->value.pass_through.operation = NOP_EXPR;
   jfunc->value.pass_through.agg_preserved = agg_preserved;
   jfunc->value.pass_through.refdesc_decremented = false;
+}
+
+static void
+ipa_set_new_jf_simple_pass_through (struct ipa_jf *jf, int formal_id,
+				    bool agg_preserved)
+{
+  jf->type = NEW_IPA_JF_PASS_THROUGH;
+  jf->pass_through.formal_id = formal_id;
+  jf->pass_through.agg_preserved = agg_preserved;
+  jf->pass_through.offset = ipa_jf_expr::SCALAR_SENTINEL;
 }
 
 /* Set JFUNC to be an unary pass through jump function.  */
@@ -1507,6 +1688,428 @@ unadjusted_ptr_and_unit_offset (tree op, tree *ret, poly_int64 *offset_ret)
   return offset_known;
 }
 
+
+/* Extract the base, offset and MEM_REF expression from a statement ASSIGN if
+   it looks like:
+
+   iftmp.1_3 = &obj_2(D)->D.1762;
+
+   The base of the MEM_REF must be a default definition SSA NAME of a
+   parameter.  Return NULL_TREE if it looks otherwise.  If case of success, the
+   whole MEM_REF expression is returned and the offset calculated from any
+   handled components and the MEM_REF itself is stored into *OFFSET.  The whole
+   RHS stripped off the ADDR_EXPR is stored into *OBJ_P.  */
+
+static tree
+get_ancestor_addr_info (gimple *assign, tree *obj_p, HOST_WIDE_INT *offset)
+{
+  HOST_WIDE_INT size;
+  tree expr, parm, obj;
+  bool reverse;
+
+  if (!gimple_assign_single_p (assign))
+    return NULL_TREE;
+  expr = gimple_assign_rhs1 (assign);
+
+  if (TREE_CODE (expr) != ADDR_EXPR)
+    return NULL_TREE;
+  expr = TREE_OPERAND (expr, 0);
+  obj = expr;
+  expr = get_ref_base_and_extent_hwi (expr, offset, &size, &reverse);
+
+  offset_int mem_offset;
+  if (!expr
+      || TREE_CODE (expr) != MEM_REF
+      || !mem_ref_offset (expr).is_constant (&mem_offset))
+    return NULL_TREE;
+  parm = TREE_OPERAND (expr, 0);
+  if (TREE_CODE (parm) != SSA_NAME
+      || !SSA_NAME_IS_DEFAULT_DEF (parm)
+      || TREE_CODE (SSA_NAME_VAR (parm)) != PARM_DECL)
+    return NULL_TREE;
+
+  *offset += mem_offset.to_short_addr () * BITS_PER_UNIT;
+  *obj_p = obj;
+  return expr;
+}
+
+static bool
+linearize_gimple_stmt (struct ipa_func_body_info *fbi, struct ipa_jf_expr *expr,
+		       tree t, gimple *gs)
+{
+  ipa_node_params *info = fbi->info;
+  ipa_bytecode_seq &bytecode = expr->bytecode;
+
+  tree_code tc;
+  tree lhs;
+  ipa_jf_bytecode op;
+  enum gimple_rhs_class cls;
+  int rhs_count;
+
+  if (gimple_nop_p (gs))
+    {
+      if (TREE_CODE (t) == SSA_NAME)
+	{
+	  int formal_id = ipa_get_param_decl_index (info, SSA_NAME_VAR (t));
+	  if (formal_id != -1)
+	    {
+	      bytecode.push (IPA_JF_PARAM_LOAD);
+	      bytecode.push (TREE_TYPE (t));
+	      bytecode.push (formal_id);
+	      return true;
+	    }
+	  else
+	    goto fail;
+	}
+      goto fail;
+    }
+
+  if (!is_gimple_assign (gs))
+    goto fail;
+
+  cls = gimple_assign_rhs_class (gs);
+  switch (cls)
+    {
+    case GIMPLE_SINGLE_RHS:
+      {
+	tree rhs = gimple_assign_rhs1 (gs);
+
+	if (is_gimple_ip_invariant (rhs))
+	  {
+	    bytecode.push (IPA_JF_CONSTANT_LOAD);
+	    bytecode.push (TREE_TYPE (rhs));
+	    bytecode.push (rhs);
+	    return true;
+	  }
+
+	while (gimple_assign_rhs_class (gs) == GIMPLE_SINGLE_RHS)
+	  {
+	    if (TREE_CODE (rhs) != SSA_NAME || SSA_NAME_IS_DEFAULT_DEF (rhs))
+	      break;
+
+	    gs = SSA_NAME_DEF_STMT (rhs);
+	    if (!is_gimple_assign (gs))
+	      break;
+
+	    rhs = gimple_assign_rhs1 (gs);
+	  }
+
+	// TODO: handle addr_expr
+	if (TREE_CODE (rhs) == ADDR_EXPR)
+	  rhs = TREE_OPERAND (rhs, 0);
+	tree_code code = TREE_CODE (rhs);
+
+	// check if code is supported
+	switch (code)
+	  {
+	  case COMPONENT_REF:
+	    {
+	      tree obj;
+	      HOST_WIDE_INT off; // field offset, lower to PLUS_EXPR
+	      tree base = get_ancestor_addr_info (gs, &obj, &off);
+	      if (!base)
+		goto fail;
+
+	      rhs = SSA_NAME_VAR (TREE_OPERAND (base, 0));
+	      int formal_id = ipa_get_param_decl_index (info, rhs);
+	      if (formal_id == -1)
+		goto fail;
+
+	      // confirmed ancestor, lower to plus expr
+	      bytecode.push (IPA_JF_PARAM_LOAD);
+	      bytecode.push (rhs);
+	      bytecode.push (formal_id);
+
+	      bytecode.push (IPA_JF_CONSTANT_LOAD);
+	      bytecode.push (integer_type_node); // ????
+	      bytecode.push (off);
+
+	      bytecode.push (IPA_JF_PLUS_EXPR);
+	      bytecode.push (rhs);
+	      return true;
+	    }
+	  case VAR_DECL:
+	    {
+	      int formal_id = ipa_get_param_decl_index (info, rhs);
+	      if (formal_id == -1)
+		goto fail;
+
+	      bytecode.push (IPA_JF_PARAM_LOAD);
+	      bytecode.push (rhs);
+	      bytecode.push (formal_id);
+	      return true;
+	    }
+	  case SSA_NAME:
+	    {
+	      return linearize_gimple_stmt (fbi, expr, rhs,
+					    SSA_NAME_DEF_STMT (rhs));
+	    }
+	  default:
+	    goto fail;
+	  };
+      }
+    case GIMPLE_UNARY_RHS:
+      {
+	rhs_count = 1;
+	break;
+      }
+    case GIMPLE_BINARY_RHS:
+      {
+	rhs_count = 2;
+	break;
+      }
+    default:
+      gcc_checking_assert (0 && "currently unhandled");
+    }
+
+  for (int i = 0; i < rhs_count; i++)
+    {
+      tree operand = gimple_op (gs, i + 1);
+      if (is_gimple_ip_invariant (operand))
+	{
+	  bytecode.push (IPA_JF_CONSTANT_LOAD);
+	  bytecode.push (TREE_TYPE (operand));
+	  bytecode.push (operand);
+	}
+      else if (TREE_CODE (operand) == SSA_NAME)
+	linearize_gimple_stmt (fbi, expr, operand, SSA_NAME_DEF_STMT (operand));
+    }
+
+  tc = gimple_assign_rhs_code (gs);
+  lhs = gimple_assign_lhs (gs);
+
+  op = tree_code_to_ipa_jf_bytecode (tc);
+  if (op == IPA_JF_BYTECODE_END)
+    goto fail;
+
+  bytecode.push (op);
+  bytecode.push (TREE_TYPE (lhs));
+
+  return true;
+
+fail:
+  bytecode.destroy ();
+  return false;
+}
+
+// static void
+// build_jf_expr_walk_ssa (struct ipa_func_body_info *fbi,
+// 			struct ipa_jf_expr *expr, gimple *stmt)
+// {
+//   // used as lazy gate, has nothing to do with openmp
+//   if (!flag_openmp)
+//     return;
+//
+//   unsigned cost = 0;
+//   const unsigned budget = 25; // arbitrary number
+//
+//   auto_vec<gimple *> qs;
+//   qs.safe_push (stmt);
+//
+//   int formal_id = -1;
+//   gimple *gs;
+//
+//   class ipa_node_params *info = fbi->info;
+//
+//   for (gs = stmt; gs && cost < budget && cost < qs.length (); cost++)
+//     {
+//       gs = qs[cost];
+//       if (!is_gimple_assign (gs))
+// 	{
+// 	  // end of ssa chain, end?
+// 	  break;
+// 	}
+//
+//       enum gimple_rhs_class cls = gimple_assign_rhs_class (gs);
+//       switch (cls)
+// 	{
+// 	case GIMPLE_SINGLE_RHS:
+// 	  {
+// 	    tree rhs = gimple_assign_rhs1 (gs);
+// 	    if (TREE_CODE (rhs) == ADDR_EXPR)
+// 	      rhs = TREE_OPERAND (rhs, 0);
+// 	    tree_code code = TREE_CODE (rhs);
+//
+// 	    bool supported_code = false;
+//
+// 	    // check if code is supported
+// 	    switch (code)
+// 	      {
+// 	      case VAR_DECL:
+// 	      case COMPONENT_REF:
+// 	      case SSA_NAME:
+// 		{
+// 		  supported_code = true;
+// 		  break;
+// 		}
+// 	      default:
+// 		break;
+// 	      };
+//
+// 	    if (!supported_code)
+// 	      break;
+//
+// 	    if (code == COMPONENT_REF)
+// 	      {
+// 		// potential anceestor jf
+// 		tree obj;
+// 		HOST_WIDE_INT off;
+// 		tree base = get_ancestor_addr_info (gs, &obj, &off);
+// 		if (base)
+// 		  rhs = SSA_NAME_VAR (TREE_OPERAND (base, 0));
+// 	      }
+// 	    else if (code == SSA_NAME)
+// 	      rhs = SSA_NAME_VAR (rhs);
+//
+// 	    int potential_param = ipa_get_param_decl_index (info, rhs);
+// 	    if (formal_id != -1 && formal_id != potential_param)
+// 	      {
+// 		// another param used, abort
+// 		formal_id = -1;
+// 	      }
+// 	    else
+// 	      {
+// 		formal_id = potential_param;
+// 	      }
+//
+// 	    break;
+// 	  }
+// 	case GIMPLE_UNARY_RHS:
+// 	  {
+// 	    tree rhs = gimple_assign_rhs1 (gs);
+// 	    if (TREE_CODE (rhs) == SSA_NAME && SSA_NAME_DEF_STMT (rhs))
+// 	      qs.safe_push (SSA_NAME_DEF_STMT (rhs));
+// 	    break;
+// 	  }
+// 	case GIMPLE_BINARY_RHS:
+// 	  {
+// 	    tree rhs1 = gimple_assign_rhs1 (gs);
+// 	    tree rhs2 = gimple_assign_rhs2 (gs);
+//
+// 	    if (TREE_CODE (rhs1) == SSA_NAME)
+// 	      {
+// 		if (gimple_nop_p (SSA_NAME_DEF_STMT (rhs1)))
+// 		  {
+// 		    if (formal_id == -1)
+// 		      formal_id
+// 			= ipa_get_param_decl_index (info, SSA_NAME_VAR (rhs1));
+// 		  }
+// 		else
+// 		  qs.safe_push (SSA_NAME_DEF_STMT (rhs1));
+// 	      }
+//
+// 	      if (TREE_CODE (rhs2) == SSA_NAME)
+// 	      {
+// 		if (gimple_nop_p (SSA_NAME_DEF_STMT (rhs2)))
+// 		  {
+// 		    if (formal_id == -1)
+// 		      formal_id
+// 			= ipa_get_param_decl_index (info, SSA_NAME_VAR (rhs2));
+// 		  }
+// 		else
+// 		  qs.safe_push (SSA_NAME_DEF_STMT (rhs2));
+// 	      }
+//
+// 	    break;
+// 	  }
+// 	default:
+// 	  gcc_checking_assert (0 && "currently unhandled");
+// 	}
+//     }
+//
+//   if (formal_id == -1)
+//     // dont have formal_id of param, abort?
+//     return;
+//
+//   expr->formal_id = formal_id;
+//   struct ipa_jf_op *op;
+//   unsigned i;
+//   int index;
+//   FOR_EACH_VEC_ELT_REVERSE (qs, i, gs)
+//     {
+//       gcc_checking_assert (is_gimple_assign (gs));
+//       enum gimple_rhs_class cls = gimple_assign_rhs_class (gs);
+//       switch (cls)
+// 	{
+// 	case GIMPLE_SINGLE_RHS:
+// 	  {
+// 	    tree rhs = gimple_assign_rhs1 (gs);
+// 	    op = ipa_jf_op_pool.allocate ();
+// 	    op->type = TREE_TYPE (rhs);
+//
+// 	    tree_code code = TREE_CODE (rhs);
+//
+// 	    if (code == SSA_NAME)
+// 	      rhs = SSA_NAME_VAR (rhs);
+//
+// 	    if (TREE_CODE (rhs) == VAR_DECL || TREE_CODE (rhs) == PARM_DECL)
+// 	      {
+// 		// load from formal parameter
+// 		op->code = NOP_EXPR;
+// 		op->special_ops = JF_OP_PARAM_LOAD;
+// 	      }
+// 	    else
+// 	      {
+// 		op->code = TREE_CODE (rhs);
+// 		op->special_ops = JF_OP_INVALID;
+// 	      }
+//
+// 	    break;
+// 	  }
+// 	case GIMPLE_UNARY_RHS:
+// 	  {
+// 	    op = ipa_jf_op_pool.allocate ();
+// 	    tree rhs = gimple_assign_rhs1 (gs);
+// 	    op->type = TREE_TYPE (rhs);
+// 	    op->code = TREE_CODE (rhs);
+// 	    op->special_ops = JF_OP_INVALID;
+// 	    op->index = 0;
+//
+// 	    break;
+// 	  }
+// 	case GIMPLE_BINARY_RHS:
+// 	  {
+// 	    tree rhs1 = gimple_assign_rhs1 (gs);
+// 	    tree rhs2 = gimple_assign_rhs2 (gs);
+//
+// 	    bool rhs1_invariant = is_gimple_ip_invariant (rhs1);
+// 	    bool rhs2_invariant = is_gimple_ip_invariant (rhs2);
+// 	    if (!rhs1_invariant && !rhs2_invariant)
+// 	      {
+// 		// two non constants, cant handle this case rn
+// 		expr->param_ops.release ();
+// 		return;
+// 	      }
+//
+// 	    // should get folded if both are consts?
+// 	    gcc_checking_assert (rhs1_invariant ^ rhs2_invariant);
+//
+// 	    if (rhs1_invariant)
+// 	      {
+// 		op->val[0] = rhs1;
+// 		op->index = 1;
+// 		op->type = TREE_TYPE (rhs2);
+// 	      }
+// 	    else
+// 	      {
+// 		op->val[0] = rhs2;
+// 		op->index = 0;
+// 		op->type = TREE_TYPE (rhs1);
+// 	      }
+//
+// 	    gcc_checking_assert (is_gimple_assign (gs));
+//
+// 	    op->code = gimple_assign_rhs_code (gs);
+// 	    op->special_ops = JF_OP_INVALID;
+//
+// 	    break;
+// 	  }
+// 	}
+//
+//       expr->param_ops.safe_push (op);
+//     }
+// }
+
 /* Given that an actual argument is an SSA_NAME (given in NAME) and is a result
    of an assignment statement STMT, try to determine whether we are actually
    handling any of the following cases and construct an appropriate jump
@@ -1564,6 +2167,7 @@ static void
 compute_complex_assign_jump_func (struct ipa_func_body_info *fbi,
 				  class ipa_node_params *info,
 				  struct ipa_jump_func *jfunc,
+				  struct ipa_jf *new_jf,
 				  gcall *call, gimple *stmt, tree name,
 				  tree param_type)
 {
@@ -1589,10 +2193,16 @@ compute_complex_assign_jump_func (struct ipa_func_body_info *fbi,
       tc_ssa = gimple_assign_lhs (stmt);
     }
 
+  ipa_jf_expr *expr = &new_jf->pass_through;
+  if (index < 0)
+    if (linearize_gimple_stmt (fbi, expr, NULL_TREE, stmt))
+      new_jf->type = NEW_IPA_JF_PASS_THROUGH;
+
   if (index >= 0)
     {
       if (lto_variably_modified_type_p (TREE_TYPE (name)))
 	return;
+
 
       switch (gimple_assign_rhs_class (stmt))
 	{
@@ -1609,6 +2219,8 @@ compute_complex_assign_jump_func (struct ipa_func_body_info *fbi,
 	    ipa_set_jf_arith_pass_through (jfunc, index, op2,
 					   gimple_assign_rhs_code (stmt),
 					   TREE_TYPE (name));
+	    if (linearize_gimple_stmt (fbi, expr, NULL_TREE, stmt))
+	      new_jf->type = NEW_IPA_JF_PASS_THROUGH;
 	    break;
 	  }
 	case GIMPLE_SINGLE_RHS:
@@ -1616,6 +2228,7 @@ compute_complex_assign_jump_func (struct ipa_func_body_info *fbi,
 	    bool agg_p = parm_ref_data_pass_through_p (fbi, index, call,
 						       tc_ssa);
 	    ipa_set_jf_simple_pass_through (jfunc, index, agg_p);
+	    ipa_set_new_jf_simple_pass_through (new_jf, index, agg_p);
 	    break;
 	  }
 	case GIMPLE_UNARY_RHS:
@@ -1623,11 +2236,15 @@ compute_complex_assign_jump_func (struct ipa_func_body_info *fbi,
 	    ipa_set_jf_unary_pass_through (jfunc, index,
 					   gimple_assign_rhs_code (stmt),
 					   TREE_TYPE (name));
+	  if (linearize_gimple_stmt (fbi, expr, NULL_TREE, stmt))
+	    new_jf->type = NEW_IPA_JF_PASS_THROUGH;
 	default:;
 	}
       return;
     }
 
+  /* basically get_ancestor_addr_info
+	      vvvvvvvvvvvvvvvvvv*/
   if (TREE_CODE (op1) != ADDR_EXPR)
     return;
   op1 = TREE_OPERAND (op1, 0);
@@ -1647,55 +2264,13 @@ compute_complex_assign_jump_func (struct ipa_func_body_info *fbi,
   /* Dynamic types are changed in constructors and destructors.  */
   index = ipa_get_param_decl_index (info, SSA_NAME_VAR (ssa));
   if (index >= 0 && param_type && POINTER_TYPE_P (param_type))
-    ipa_set_ancestor_jf (jfunc, offset,  index,
+    ipa_set_ancestor_jf (jfunc, offset, index,
 			 parm_ref_data_pass_through_p (fbi, index, call, ssa),
 			 false);
+
+  if (linearize_gimple_stmt (fbi, expr, NULL_TREE, stmt))
+    new_jf->type = NEW_IPA_JF_PASS_THROUGH;
 }
-
-/* Extract the base, offset and MEM_REF expression from a statement ASSIGN if
-   it looks like:
-
-   iftmp.1_3 = &obj_2(D)->D.1762;
-
-   The base of the MEM_REF must be a default definition SSA NAME of a
-   parameter.  Return NULL_TREE if it looks otherwise.  If case of success, the
-   whole MEM_REF expression is returned and the offset calculated from any
-   handled components and the MEM_REF itself is stored into *OFFSET.  The whole
-   RHS stripped off the ADDR_EXPR is stored into *OBJ_P.  */
-
-static tree
-get_ancestor_addr_info (gimple *assign, tree *obj_p, HOST_WIDE_INT *offset)
-{
-  HOST_WIDE_INT size;
-  tree expr, parm, obj;
-  bool reverse;
-
-  if (!gimple_assign_single_p (assign))
-    return NULL_TREE;
-  expr = gimple_assign_rhs1 (assign);
-
-  if (TREE_CODE (expr) != ADDR_EXPR)
-    return NULL_TREE;
-  expr = TREE_OPERAND (expr, 0);
-  obj = expr;
-  expr = get_ref_base_and_extent_hwi (expr, offset, &size, &reverse);
-
-  offset_int mem_offset;
-  if (!expr
-      || TREE_CODE (expr) != MEM_REF
-      || !mem_ref_offset (expr).is_constant (&mem_offset))
-    return NULL_TREE;
-  parm = TREE_OPERAND (expr, 0);
-  if (TREE_CODE (parm) != SSA_NAME
-      || !SSA_NAME_IS_DEFAULT_DEF (parm)
-      || TREE_CODE (SSA_NAME_VAR (parm)) != PARM_DECL)
-    return NULL_TREE;
-
-  *offset += mem_offset.to_short_addr () * BITS_PER_UNIT;
-  *obj_p = obj;
-  return expr;
-}
-
 
 /* Given that an actual argument is an SSA_NAME that is a result of a phi
    statement PHI, try to find out whether NAME is in fact a
@@ -1722,6 +2297,7 @@ static void
 compute_complex_ancestor_jump_func (struct ipa_func_body_info *fbi,
 				    class ipa_node_params *info,
 				    struct ipa_jump_func *jfunc,
+				    struct ipa_jf *new_jf,
 				    gcall *call, gphi *phi)
 {
   HOST_WIDE_INT offset;
@@ -1776,6 +2352,9 @@ compute_complex_ancestor_jump_func (struct ipa_func_body_info *fbi,
   ipa_set_ancestor_jf (jfunc, offset, index,
 		       parm_ref_data_pass_through_p (fbi, index, call, parm),
 		       true);
+
+  if (linearize_gimple_stmt (fbi, &new_jf->pass_through, NULL_TREE, assign))
+    new_jf->type = NEW_IPA_JF_PASS_THROUGH;
 }
 
 /* Inspect the given TYPE and return true iff it has the same structure (the
@@ -1966,6 +2545,7 @@ build_agg_jump_func_from_list (struct ipa_known_agg_contents_list *list,
 static void
 analyze_agg_content_value (struct ipa_func_body_info *fbi,
 			   struct ipa_load_agg_data *agg_value,
+			   struct ipa_jf_expr *expr,
 			   gimple *stmt)
 {
   tree lhs = gimple_assign_lhs (stmt);
@@ -1978,6 +2558,9 @@ analyze_agg_content_value (struct ipa_func_body_info *fbi,
   agg_value->pass_through.operation = NOP_EXPR;
   agg_value->pass_through.formal_id = -1;
   agg_value->offset = -1;
+
+  expr->offset = -1;
+  expr->formal_id = -1;
 
   if (AGGREGATE_TYPE_P (TREE_TYPE (lhs))  /* TODO: Support aggregate type.  */
       || TREE_THIS_VOLATILE (lhs)
@@ -1999,6 +2582,7 @@ analyze_agg_content_value (struct ipa_func_body_info *fbi,
       rhs1 = gimple_assign_rhs1 (stmt);
     }
 
+  // TODO: handle phi in expr
   if (gphi *phi = dyn_cast<gphi *> (stmt))
     {
       /* Also special case like the following (a is a formal parameter):
@@ -2045,6 +2629,8 @@ analyze_agg_content_value (struct ipa_func_body_info *fbi,
     }
   else if (is_gimple_assign (stmt))
     {
+      linearize_gimple_stmt(fbi, expr, NULL_TREE, stmt);
+
       code = gimple_assign_rhs_code (stmt);
       switch (gimple_assign_rhs_class (stmt))
 	{
@@ -2146,9 +2732,10 @@ analyze_agg_content_value (struct ipa_func_body_info *fbi,
    is expected to be in form of MEM_REF expression.  */
 
 static bool
-extract_mem_content (struct ipa_func_body_info *fbi,
-		     gimple *stmt, tree base, bool check_ref,
-		     struct ipa_known_agg_contents_list *content)
+extract_mem_content (struct ipa_func_body_info *fbi, gimple *stmt, tree base,
+		     bool check_ref,
+		     struct ipa_known_agg_contents_list *content,
+		     struct ipa_jf_expr *expr)
 {
   HOST_WIDE_INT lhs_offset, lhs_size;
   bool reverse;
@@ -2177,7 +2764,10 @@ extract_mem_content (struct ipa_func_body_info *fbi,
   content->type = TREE_TYPE (lhs);
   content->next = NULL;
 
-  analyze_agg_content_value (fbi, &content->value, stmt);
+  expr->offset = lhs_offset;
+  expr->type = TREE_TYPE (lhs);
+
+  analyze_agg_content_value (fbi, &content->value, expr, stmt);
   return true;
 }
 
@@ -2189,10 +2779,10 @@ extract_mem_content (struct ipa_func_body_info *fbi,
    the type of the aggregate, JFUNC is the jump function for the aggregate.  */
 
 static void
-determine_known_aggregate_parts (struct ipa_func_body_info *fbi,
-				 gcall *call, tree arg,
-				 tree arg_type,
-				 struct ipa_jump_func *jfunc)
+determine_known_aggregate_parts (struct ipa_func_body_info *fbi, gcall *call,
+				 tree arg, tree arg_type,
+				 struct ipa_jump_func *jfunc,
+				 struct ipa_jf *new_jf)
 {
   struct ipa_known_agg_contents_list *list = NULL, *all_list = NULL;
   bitmap visited = NULL;
@@ -2268,13 +2858,16 @@ determine_known_aggregate_parts (struct ipa_func_body_info *fbi,
      of the aggregate is affected by definition of the virtual operand, it
      builds a sorted linked list of ipa_agg_jf_list describing that.  */
 
+  auto_vec<ipa_jf_expr> exprs;
   for (tree dom_vuse = gimple_vuse (call);
        dom_vuse && fbi->aa_walk_budget > 0;)
     {
       gimple *stmt = SSA_NAME_DEF_STMT (dom_vuse);
 
+      struct ipa_jf_expr expr;
       if (gphi *phi = dyn_cast <gphi *> (stmt))
 	{
+	  // TODO: handle with ipa_jf_expr
 	  dom_vuse = get_continuation_for_phi (phi, &r, true,
 					       fbi->aa_walk_budget,
 					       &visited, false, NULL, NULL);
@@ -2287,7 +2880,8 @@ determine_known_aggregate_parts (struct ipa_func_body_info *fbi,
 	  struct ipa_known_agg_contents_list *content
 			= XALLOCA (struct ipa_known_agg_contents_list);
 
-	  if (!extract_mem_content (fbi, stmt, arg_base, check_ref, content))
+	  if (!extract_mem_content (fbi, stmt, arg_base, check_ref, content,
+				    &expr))
 	    break;
 
 	  /* Now we get a dominating virtual operand, and need to check
@@ -2307,6 +2901,7 @@ determine_known_aggregate_parts (struct ipa_func_body_info *fbi,
 	      /* Add to the list consisting of only dominating virtual
 		 operands, whose definitions can finally reach the call.  */
 	      add_to_agg_contents_list (&list, (*copy = *content, copy));
+	      exprs.safe_push (expr);
 
 	      if (++value_count == max_agg_items)
 		break;
@@ -2332,6 +2927,11 @@ determine_known_aggregate_parts (struct ipa_func_body_info *fbi,
     {
       jfunc->agg.by_ref = by_ref;
       build_agg_jump_func_from_list (list, value_count, arg_offset, jfunc);
+
+      for (auto &expr : exprs)
+	new_jf->aggregate.agg_parts.safe_push (expr);
+      new_jf->type = NEW_IPA_JF_AGGREGATE;
+      new_jf->aggregate.by_ref = by_ref;
     }
 }
 
@@ -2509,6 +3109,10 @@ ipa_compute_jump_functions_for_edge (struct ipa_func_body_info *fbi,
   if (arg_num == 0 || args->jump_functions)
     return;
   vec_safe_grow_cleared (args->jump_functions, arg_num, true);
+
+  auto_vec<ipa_jf> new_jfs;
+  new_jfs.safe_grow_cleared (arg_num);
+
   if (flag_devirtualize)
     vec_safe_grow_cleared (args->polymorphic_call_contexts, arg_num, true);
 
@@ -2521,6 +3125,7 @@ ipa_compute_jump_functions_for_edge (struct ipa_func_body_info *fbi,
   for (n = 0; n < arg_num; n++)
     {
       struct ipa_jump_func *jfunc = ipa_get_ith_jump_func (args, n);
+      struct ipa_jf *njf = &new_jfs[n];
       tree arg = gimple_call_arg (call, n);
       tree param_type = ipa_get_callee_param_type (cs, n);
       if (flag_devirtualize && POINTER_TYPE_P (TREE_TYPE (arg)))
@@ -2593,11 +3198,14 @@ ipa_compute_jump_functions_for_edge (struct ipa_func_body_info *fbi,
 	    gcc_assert (!jfunc->m_vr);
 	}
 
+      njf->vr = jfunc->m_vr;
+
       arg = skip_a_safe_conversion_op (arg);
       if (is_gimple_ip_invariant (arg)
 	  || (VAR_P (arg) && is_global_var (arg) && TREE_READONLY (arg)))
 	{
 	  ipa_set_jf_constant (jfunc, arg, cs);
+	  ipa_set_new_jf_constant (njf, arg, cs);
 	  if (TREE_CODE (arg) == ADDR_EXPR)
 	    {
 	      tree pointee = TREE_OPERAND (arg, 0);
@@ -2646,7 +3254,8 @@ ipa_compute_jump_functions_for_edge (struct ipa_func_body_info *fbi,
 		}
 	    }
 	}
-      else if (!is_gimple_reg_type (TREE_TYPE (arg))
+      // this is what is_gimple_reg_type means, but it's more readable this way
+      else if (AGGREGATE_TYPE_P (TREE_TYPE (arg))
 	       && TREE_CODE (arg) == PARM_DECL)
 	{
 	  int index = ipa_get_param_decl_index (info, arg);
@@ -2658,6 +3267,7 @@ ipa_compute_jump_functions_for_edge (struct ipa_func_body_info *fbi,
 	  if (parm_preserved_before_stmt_p (fbi, index, call, arg))
 	    {
 	      ipa_set_jf_simple_pass_through (jfunc, index, false);
+	      ipa_set_new_jf_simple_pass_through (njf, index, false);
 	      continue;
 	    }
 	}
@@ -2671,16 +3281,17 @@ ipa_compute_jump_functions_for_edge (struct ipa_func_body_info *fbi,
 		  bool agg_p;
 		  agg_p = parm_ref_data_pass_through_p (fbi, index, call, arg);
 		  ipa_set_jf_simple_pass_through (jfunc, index, agg_p);
+		  ipa_set_new_jf_simple_pass_through (njf, index, agg_p);
 		}
 	    }
 	  else
 	    {
 	      gimple *stmt = SSA_NAME_DEF_STMT (arg);
 	      if (is_gimple_assign (stmt))
-		compute_complex_assign_jump_func (fbi, info, jfunc,
+		compute_complex_assign_jump_func (fbi, info, jfunc, njf,
 						  call, stmt, arg, param_type);
 	      else if (gimple_code (stmt) == GIMPLE_PHI)
-		compute_complex_ancestor_jump_func (fbi, info, jfunc,
+		compute_complex_ancestor_jump_func (fbi, info, jfunc, njf,
 						    call,
 						    as_a <gphi *> (stmt));
 	    }
@@ -2696,12 +3307,13 @@ ipa_compute_jump_functions_for_edge (struct ipa_func_body_info *fbi,
 	param_type = TREE_TYPE (arg);
 
       if ((jfunc->type != IPA_JF_PASS_THROUGH
-	      || !ipa_get_jf_pass_through_agg_preserved (jfunc))
+	   || !ipa_get_jf_pass_through_agg_preserved (jfunc))
 	  && (jfunc->type != IPA_JF_ANCESTOR
 	      || !ipa_get_jf_ancestor_agg_preserved (jfunc))
 	  && (AGGREGATE_TYPE_P (TREE_TYPE (arg))
 	      || POINTER_TYPE_P (param_type)))
-	determine_known_aggregate_parts (fbi, call, arg, param_type, jfunc);
+	determine_known_aggregate_parts (fbi, call, arg, param_type, jfunc,
+					 njf);
     }
 
   if (!callback_edges.is_empty ())
@@ -2729,6 +3341,20 @@ ipa_compute_jump_functions_for_edge (struct ipa_func_body_info *fbi,
 	      ipa_duplicate_jump_function (cs, callback_edge, src, dst);
 	    }
 	}
+    }
+
+  if (dump_file && flag_openmp)
+    {
+      fprintf (
+	dump_file,
+	"New jump functions for edge %s -> %s:\n", cs->caller->dump_name (),
+	cs->callee->dump_name ());
+      for (auto &jf : new_jfs)
+	{
+	  ipa_dump_new_jump_function (dump_file, &jf);
+	  fprintf (dump_file, "--------------------\n");
+	}
+      fprintf (dump_file, "\n");
     }
 
   if (!useful_context)

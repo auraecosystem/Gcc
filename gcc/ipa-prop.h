@@ -23,6 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 /* The following definitions and interfaces are used by
    interprocedural analyses or parameters.  */
 
+#include "system.h"
 #define IPA_UNDESCRIBED_USE -1
 
 /* Index identifying an actualargument or a formal parameter may have only this
@@ -355,6 +356,212 @@ struct GTY (()) ipa_jump_func
   } GTY ((desc ("%1.type"))) value;
 };
 
+enum ipa_jf_bytecode : uint8_t
+{
+  /* Start sentinel.  */
+  IPA_JF_BYTECODE_START = 0x31,
+
+  /* Shared layout:
+     INSTRUCTION RESULT_TYPE ...
+
+     Instruction is a member of this enum.  Result type is the type of the
+     result of the expression.  Other arguments may be specified for a given
+     instruction.  */
+
+  /* Basic operations.  */
+  /* =================  */
+
+  /* INSTRUCTION RESULT_TYPE CONSTANT */
+  /* Pushes CONSTANT onto the stack.  */
+  IPA_JF_CONSTANT_LOAD,
+
+  /* INSTRUCTION RESULT_TYPE INDEX */
+  /* Loads formal parameter at INDEX and pushes it onto the stack.  */
+  IPA_JF_PARAM_LOAD,
+
+  /* Casts the top of the stack to RESULT_TYPE.  */
+  IPA_JF_TYPE_CAST,
+
+  /* Arithmetic operations.  */
+  /* ======================  */
+
+  /* These instructions expect their arguments on the stack.  Arguments for
+     non-unary operations should be on the stack in right-to-left order,
+     meaning RHS will be popped before LHS.  */
+
+  /* Binary operation.  Adds the arguments and pushes the result onto the
+     stack.  */
+  IPA_JF_PLUS_EXPR,
+  /* Binary operation.  Subtracts the arguments and pushes the result onto the
+     stack.  */
+  IPA_JF_SUB_EXPR,
+  /* Binary operation.  Multiplies the arguments and pushes the result onto the
+     stack.  */
+  IPA_JF_MULT_EXPR,
+  /* Binary operation.  Divides the arguments and pushes the result onto the
+     stack.  */
+  IPA_JF_DIV_EXPR,
+  /* Unary operation.  Negates the argument and pushes the results onto
+     the stack.  */
+  IPA_JF_MINUS_EXPR,
+
+  /* Conditionals.  */
+  /* =============  */
+
+  /* Ternary conditional expression.  Pops CONDITION, TRUE_BRANCH and
+     ELSE_BRANCH off the stack.  If CONDITION evaluates to true, pushes
+     TRUE_BRANCH onto the stack.  Pushes ELSE_BRANCH onto the stack
+     otherwise.  */
+  IPA_JF_COND_TERNARY,
+
+  /* End sentinel.  */
+  IPA_JF_BYTECODE_END
+};
+
+inline bool
+ipa_jf_bytecode_valid_p (ipa_jf_bytecode op)
+{
+  return IPA_JF_BYTECODE_START < op && op < IPA_JF_BYTECODE_END;
+}
+
+struct ipa_bytecode_seq
+{
+public:
+  ipa_bytecode_seq () : _data (nullptr), _size (0), _max (0) {}
+  ~ipa_bytecode_seq () = default; // has to be destroyed by calling destroy()
+
+  void destroy ()
+  {
+    ::operator delete (_data);
+    _data = nullptr;
+    _size = _max = 0;
+  }
+
+  template <typename T> void push (const T &elt)
+  {
+    _ensure_fits (sizeof (T));
+
+    __builtin_memcpy (_data + _size, &elt, sizeof (T));
+    _size += sizeof (T);
+  }
+
+  template <typename T> T read_and_advance (unsigned &offset) const
+  {
+    T res;
+    __builtin_memcpy (&res, _data + offset, sizeof (T));
+    offset += sizeof (T);
+    return res;
+  }
+
+  unsigned size () const { return _size; }
+
+  bool is_empty () const { return !_size; }
+
+private:
+  ipa_jf_bytecode *_data;
+  unsigned _size, _max;
+
+  void _ensure_fits (unsigned elt_size)
+  {
+    if (_size + elt_size < _max)
+      return;
+
+    _max = _max ? _max * GROWTH_FACTOR : DEFAULT_SIZE;
+    ipa_jf_bytecode *new_data = (ipa_jf_bytecode *) ::operator new (_max);
+    __builtin_memcpy (new_data, _data, _size);
+    ::operator delete (_data);
+    _data = new_data;
+  }
+
+  static constexpr unsigned DEFAULT_SIZE = 128; // arbitrary number
+  static constexpr unsigned GROWTH_FACTOR = 2;	// arbitrary number
+};
+
+inline ipa_jf_bytecode
+tree_code_to_ipa_jf_bytecode (tree_code tc)
+{
+  switch (tc)
+    {
+    case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
+      return IPA_JF_PLUS_EXPR;
+
+    case MINUS_EXPR:
+      return IPA_JF_SUB_EXPR;
+
+    case MULT_EXPR:
+      return IPA_JF_MULT_EXPR;
+
+    // many more div exprs to go :(
+    case TRUNC_DIV_EXPR:
+    case CEIL_DIV_EXPR:
+    case FLOOR_DIV_EXPR:
+    case ROUND_DIV_EXPR:
+      return IPA_JF_DIV_EXPR;
+
+    default:
+      return IPA_JF_BYTECODE_END;
+    }
+}
+
+struct ipa_jf_expr
+{
+  /* If agg_contents is set, this is the offset from which the used data was
+     loaded.  */
+  HOST_WIDE_INT offset;
+  /* Type of the access reading the data (or the PARM_DECL SSA_NAME).  */
+  tree type;
+
+  /* Index in the list of formals.  */
+  int formal_id;
+
+  unsigned agg_preserved : 1;
+
+  /* Set if the used data were loaded from an aggregate parameter or from
+     data received by reference.  */
+  unsigned agg_contents : 1;
+  /* If agg_contents is set, this differentiates between loads from data
+     passed by reference and by value.  */
+  unsigned by_ref : 1;
+  /* A set of sequential operations on the parameter, which can be seen as
+     a mathematical function on the parameter.  */
+  ipa_bytecode_seq bytecode;
+
+  inline bool scalar_p () const noexcept { return offset == SCALAR_SENTINEL; }
+
+  static constexpr HOST_WIDE_INT SCALAR_SENTINEL = -1;
+};
+
+struct ipa_jf_agg_data
+{
+  vec<ipa_jf_expr> agg_parts;
+  bool by_ref : 1;
+};
+
+enum new_jump_func_type
+{
+  NEW_IPA_JF_UNKNOWN,
+  NEW_IPA_JF_CONST,
+  NEW_IPA_JF_PASS_THROUGH,
+  NEW_IPA_JF_AGGREGATE,
+};
+
+struct ipa_jf
+{
+  ipa_jf () : type (NEW_IPA_JF_UNKNOWN), vr (NULL) {}
+
+  ~ipa_jf () = default;
+
+  enum new_jump_func_type type;
+  ipa_vr *vr = NULL;
+
+  union
+  {
+    ipa_constant_data constant;
+    ipa_jf_expr pass_through;
+    ipa_jf_agg_data aggregate;
+  };
+};
 
 /* Return the constant stored in a constant jump function JFUNC.  */
 
