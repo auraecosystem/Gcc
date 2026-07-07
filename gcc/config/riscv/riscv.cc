@@ -300,6 +300,8 @@ struct riscv_tune_param
   const char *jump_align;
   const char *loop_align;
   bool prefer_agnostic;
+  unsigned int small_loop_unroll_ninsns = 4;
+  unsigned int small_loop_unroll_factor = 2;
 };
 
 
@@ -734,6 +736,8 @@ static const struct riscv_tune_param xt_c9501_tune_info = {
   "8",						/* jump_align */
   "16",						/* loop_align */
   true,						/* prefer-agnostic.  */
+  4,	/* small_loop_unroll_ninsns.  */
+  8,	/* small_loop_unroll_factor.  */
 };
 
 /* Costs to use when optimizing for Tenstorrent Ascalon 8 wide.  */
@@ -5078,6 +5082,22 @@ riscv_insn_cost (rtx_insn *insn, bool speed)
 	}
     }
   return cost;
+}
+
+/* This function adjusts the unroll factor based on
+   the current tune parameters.  */
+
+static unsigned
+riscv_loop_unroll_adjust (unsigned nunroll, class loop *loop)
+{
+  if (riscv_unroll_only_small_loops && !loop->unroll)
+    {
+      if (loop->ninsns <= tune_param->small_loop_unroll_ninsns)
+	return MIN (tune_param->small_loop_unroll_factor, nunroll);
+      else
+	return 1;
+    }
+  return nunroll;
 }
 
 /* Implement TARGET_MAX_NOCE_IFCVT_SEQ_COST.  Like the default implementation,
@@ -12164,6 +12184,16 @@ riscv_option_override (void)
 
   flag_pcc_struct_return = 0;
 
+  /* Explicit -funroll-loops or -funroll-all-loops turns
+     -munroll-only-small-loops off, allowing the unroller to handle
+     all loops without the conservative small-loop restriction.  */
+  if ((OPTION_SET_P (flag_unroll_loops) && flag_unroll_loops)
+      || (OPTION_SET_P (flag_unroll_all_loops) && flag_unroll_all_loops))
+    {
+      if (!OPTION_SET_P (riscv_unroll_only_small_loops))
+	riscv_unroll_only_small_loops = 0;
+    }
+
   if (flag_pic)
     g_switch_value = 0;
 
@@ -15687,7 +15717,7 @@ synthesize_ior_xor (rtx_code code, rtx operands[3])
      execution and fusion in the constant synthesis those would naturally
      decrease the budget.  It also does not account for the IOR/XOR at
      the end of the sequence which would increase the budget.  */
-  int budget = (TARGET_ZBS ? riscv_const_insns (operands[2], true) : -1);
+  int budget = (TARGET_ZBS ? riscv_integer_cost (INTVAL (operands[2]), true) : -1);
   int original_budget = budget;
 
   /* Bits we need to set in operands[0].  As we synthesize the operation,
@@ -15751,7 +15781,7 @@ synthesize_ior_xor (rtx_code code, rtx operands[3])
   if ((TARGET_ZBB || TARGET_XTHEADBB || TARGET_ZBKB)
       && budget < 0
       && popcount_hwi (INTVAL (operands[2])) <= 11
-      && riscv_const_insns (operands[2], true) >= 3)
+      && riscv_integer_cost (INTVAL (operands[2]), true) >= 3)
     {
       ival = INTVAL (operands[2]);
       /* First see if the constant trivially fits into 11 bits in the LSB.  */
@@ -15840,9 +15870,8 @@ synthesize_ior_xor (rtx_code code, rtx operands[3])
 	 we have Zbb, then we have XNOR and ORN.  So if the inverted constant
 	 is cheaper, invert it and use XNOR/ORN.  */
       if (TARGET_ZBB
-	  && riscv_const_insns (GEN_INT (~UINTVAL (operands[2])), true) > 0
-	  && (riscv_const_insns (operands[2], true)
-	      > riscv_const_insns (GEN_INT (~UINTVAL (operands[2])), true)))
+	  && (riscv_integer_cost (INTVAL (operands[2]), true)
+	      > riscv_integer_cost (~UINTVAL (operands[2]), true)))
 	{
 	  rtx x = force_reg (word_mode, GEN_INT (~UINTVAL (operands[2])));
 
@@ -15950,7 +15979,7 @@ synthesize_and (rtx operands[3])
      execution and fusion in the constant synthesis those would naturally
      decrease the budget.  It also does not account for the AND at
      the end of the sequence which would increase the budget. */
-  int budget = riscv_const_insns (operands[2], true);
+  int budget = riscv_integer_cost (INTVAL (operands[2]), true);
   rtx input = NULL_RTX;
   rtx output = NULL_RTX;
 
@@ -16038,6 +16067,53 @@ synthesize_and (rtx operands[3])
       return true;
     }
 
+  /* Similarly if there's a run of 1s on the ends and all zeros in the middle
+     then rotation to get all the 1s in the mask into the LSB may result in
+     a SMALL_OPERAND or perhaps a mode mask.  In those cases its rotate,
+     mask, rotate back into position.  */
+  t = INTVAL (operands[2]);
+  if (TARGET_64BIT
+      && (TARGET_ZBB || TARGET_XTHEADBB || TARGET_ZBKB)
+      && budget >= 3
+      && consecutive_bits_operand (GEN_INT (~t), word_mode)
+      && ((TARGET_ZBA && popcount_hwi (t) == 32)
+	  || popcount_hwi (t) == 16
+	  || popcount_hwi (t) <= 11))
+    {
+      /* First rotate the relevant bits into the low position.  */
+      int count = BITS_PER_WORD - clz_hwi (~t);
+      rtx x = gen_rtx_ROTATERT (word_mode, operands[1], GEN_INT (count));
+      output = gen_reg_rtx (word_mode);
+      emit_insn (gen_rtx_SET (output, x));
+      input = output;
+
+      /* Now clear bits according to the mask.  */
+      if (popcount_hwi (t) == 32)
+	{
+	  x = gen_rtx_ZERO_EXTEND (word_mode, gen_lowpart (SImode, input));
+	  emit_insn (gen_rtx_SET (output, x));
+	  input = output;
+	}
+      else if (popcount_hwi (t) == 16)
+	{
+	  x = gen_rtx_ZERO_EXTEND (word_mode, gen_lowpart (HImode, input));
+	  emit_insn (gen_rtx_SET (output, x));
+	  input = output;
+	}
+      else
+	{
+	  x = GEN_INT ((HOST_WIDE_INT_1U << popcount_hwi (t)) - 1);
+	  x = gen_rtx_AND (word_mode, input, x);
+	  emit_insn (gen_rtx_SET (output, x));
+	  input = output;
+	}
+
+      /* Now we just need to rotate the bits back into position.  */
+      x = gen_rtx_ROTATERT (word_mode, input, GEN_INT (BITS_PER_WORD - count));
+      emit_insn (gen_rtx_SET (operands[0], x));
+      return true;
+    }
+
   /* If there are all zeros, except for a run of 1s somewhere in the middle
      of the constant, then this is at worst 3 shifts.  */
   t = INTVAL (operands[2]);
@@ -16099,9 +16175,9 @@ synthesize_and (rtx operands[3])
 	 we have Zbb, then we have ANDN.  So if the inverted constant
 	 is cheaper, invert it and use ANDN.  */
       if (TARGET_ZBB
-	  && riscv_const_insns (GEN_INT (~UINTVAL (operands[2])), true) > 0
-	  && (riscv_const_insns (operands[2], true)
-	      > riscv_const_insns (GEN_INT (~UINTVAL (operands[2])), true)))
+	  && riscv_integer_cost (~UINTVAL (operands[2]), true) > 0
+	  && (riscv_integer_cost (UINTVAL (operands[2]), true)
+	      > riscv_integer_cost (~UINTVAL (operands[2]), true)))
 	{
 	  rtx x = force_reg (word_mode, GEN_INT (~UINTVAL (operands[2])));
 	  x = gen_rtx_NOT (word_mode, x);
@@ -16203,6 +16279,46 @@ synthesize_add (rtx operands[3])
       rtx output = gen_rtx_PLUS (word_mode, operands[0], GEN_INT (saturated));
       emit_insn (gen_rtx_SET (operands[0], output));
       return true;
+    }
+
+  /* We can use shNadd.uw for some cases.  These are at most 2 insns.  */
+  ival = INTVAL (operands[2]);
+  if (TARGET_64BIT && TARGET_ZBA && budget1 >= 2)
+    {
+      int shcount = 0;
+      rtx mask;
+
+      if ((ival & 0x1fff) == 0
+	  && (ival & HOST_WIDE_INT_C (0x100000000)) != 0
+	  && (ival & HOST_WIDE_INT_C (0xfffffffe00000000)) == 0)
+	{
+	  mask = GEN_INT (HOST_WIDE_INT_C (0x1fffffffe));
+	  shcount = 1;
+	}
+      else if ((ival & 0x3fff) == 0
+	  && (ival & HOST_WIDE_INT_C (0x200000000)) != 0
+	  && (ival & HOST_WIDE_INT_C (0xfffffffc00000000)) == 0)
+	{
+	  mask = GEN_INT (HOST_WIDE_INT_C (0x3fffffffc));
+	  shcount = 2;
+	}
+      else if ((ival & 0x7fff) == 0
+	  && (ival & HOST_WIDE_INT_C (0x400000000)) != 0
+	  && (ival & HOST_WIDE_INT_C (0xfffffff800000000)) == 0)
+	{
+	  mask = GEN_INT (HOST_WIDE_INT_C (0x7fffffff8));
+	  shcount = 3;
+	}
+
+      if (shcount != 0)
+	{
+	  rtx x = force_reg (word_mode, GEN_INT (sext_hwi (ival >> shcount, 32)));
+	  x = gen_rtx_ASHIFT (word_mode, x, GEN_INT (shcount));
+	  x = gen_rtx_AND (word_mode, x, mask);
+	  x = gen_rtx_PLUS (word_mode, x, operands[1]);
+	  emit_insn (gen_rtx_SET (operands[0], x));
+	  return true;
+	}
     }
 
   /* If we can shift the constant by 1, 2, or 3 bit positions
@@ -16489,6 +16605,8 @@ riscv_memtag_tag_bitsize ()
 #define TARGET_RTX_COSTS riscv_rtx_costs
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST riscv_address_cost
+#undef TARGET_LOOP_UNROLL_ADJUST
+#define TARGET_LOOP_UNROLL_ADJUST riscv_loop_unroll_adjust
 #undef TARGET_INSN_COST
 #define TARGET_INSN_COST riscv_insn_cost
 

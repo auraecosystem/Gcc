@@ -1,3 +1,368 @@
+2026-07-06  Philipp Tomsich  <philipp.tomsich@vrull.eu>
+
+	PR tree-optimization/124545
+	* gcc.dg/pr124545-2.c: Use __UINT32_TYPE__ / __UINT64_TYPE__
+	instead of unsigned int/long/long long so the runtime check
+	works on ILP32 targets.
+
+2026-07-06  Harald Anlauf  <anlauf@gmx.de>
+
+	PR fortran/121366
+	* gfortran.dg/trigd_1.f90: New test.
+
+2026-07-06  Jim Lin  <jim@andestech.com>
+
+	* gcc.target/riscv/ext-dce-4.c (test_half_sign_needed): Shift
+	by 4 instead of 8 to keep the lh load.
+
+2026-07-06  Jim Lin  <jim@andestech.com>
+
+	* gcc.target/riscv/shift-shift-7.c: Skip under -Og.
+
+2026-07-06  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/125901
+	* g++.dg/reflect/type_trait16.C: New test.
+	* g++.dg/reflect/type_trait17.C: New test.
+	* g++.dg/reflect/type_trait18.C: New test.
+
+2026-07-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/126031
+	PR c++/121552
+	* g++.dg/cpp2a/typedef2.C: New test.
+
+2026-07-06  Jim Lin  <jim@andestech.com>
+
+	* gcc.target/riscv/zbb-min-max-05.c: Skip under -funroll-loops.
+
+2026-07-06  Mark Zhuang  <zhuangqiubin@linux.spacemit.com>
+
+	* gcc.target/riscv/mcpu-spacemit-x60.c: New test.
+
+2026-07-06  Torbjörn SVENSSON  <torbjorn.svensson@foss.st.com>
+
+	* gcc.target/arm/tls-disable-literal-pool.c: Add quotation for
+	command line arguments.
+
+2026-07-06  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	PR tree-optimization/120892
+	* gcc.dg/tree-ssa/split-path-1.c: Move to...
+	* gcc.c-torture/execute/split-path-1.c: ...here.  Adjust to a plain
+	compile and run test without the split-paths dump scan.
+	* gcc.dg/tree-ssa/split-path-2.c: Move to...
+	* gcc.c-torture/compile/split-path-2.c: ...here.  Adjust to a
+	compile-only test without the split-paths dump scan.
+	* gcc.dg/tree-ssa/split-path-3.c: Move to...
+	* gcc.c-torture/compile/split-path-3.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-4.c: Move to...
+	* gcc.c-torture/compile/split-path-4.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-5.c: Move to...
+	* gcc.c-torture/compile/split-path-5.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-6.c: Move to...
+	* gcc.c-torture/compile/split-path-6.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-7.c: Move to...
+	* gcc.c-torture/compile/split-path-7.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-8.c: Move to...
+	* gcc.c-torture/compile/split-path-8.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-9.c: Move to...
+	* gcc.c-torture/compile/split-path-9.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-10.c: Move to...
+	* gcc.c-torture/compile/split-path-10.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-11.c: Move to...
+	* gcc.c-torture/compile/split-path-11.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-12.c: Move to...
+	* gcc.c-torture/compile/split-path-12.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/split-path-13.c: Move to...
+	* gcc.c-torture/compile/split-path-13.c: ...here.  Likewise.
+	* gcc.dg/tree-ssa/pr69270.c: Move to...
+	* gcc.c-torture/compile/pr69270.c: ...here.  Likewise.
+	* g++.dg/tree-ssa/pr88797.C: Move to...
+	* g++.dg/torture/pr88797.C: ...here.  Adjust to a compile-only test.
+	* gcc.target/i386/pr106450.c: Remove -fsplit-paths from dg-options.
+
+2026-07-06  liuhongt  <hongtao.liu@intel.com>
+
+	PR target/126098
+	* gcc.target/i386/pr126098.c: New test.
+
+2026-07-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.dg/opt/20260703-1.C: New test.
+
+2026-07-05  Jose E. Marchesi  <jemarch@gnu.org>
+
+	* algol68/compile/module-extracts-1.a68: Fix expected regexp for
+	priority extract.
+	* algol68/compile/module-pub-mangling-7.a68: Fix expected regexp
+	for mangled operator name.
+	* algol68/compile/module-pub-mangling-9.a68: Likewise.
+
+2026-07-05  Jose E. Marchesi  <jemarch@gnu.org>
+
+	* algol68/compile/error-bits-denotation-1.a68: New test.
+	* algol68/execute/and-bits-1.a68: Fix invalid bits denotations.
+	* algol68/execute/bits-shift-2.a68: Likewise.
+	* algol68/execute/bits-shift-3.a68: Likewise.
+	* algol68/execute/not-bits-1.a68: Likewise.
+	* algol68/execute/or-bits-1.a68: Likewise.
+
+2026-07-05  Jose E. Marchesi  <jemarch@gnu.org>
+
+	* algol68/compile/error-radix-5.a68: New test.
+	* algol68/compile/error-radix-6.a68: Likewise.
+	* algol68/compile/error-radix-7.a68: Likewise.
+	* algol68/execute/bits-radix-ten-1.a68: Likewise.
+
+2026-07-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/126090
+	* gfortran.dg/warn_undefined_vars_6.f90: Add warnings
+	about deleted feature.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/67643
+	* gcc.target/sh/pr67643.c: New test.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/55212
+	* gcc.target/sh/pr64366.c: Remove -mlra option.
+	* g++.target/sh/torture/pr55212-c311.C: Likewise.
+	* g++.target/sh/torture/pr55212-c333.C: Likewise.
+	* g++.target/sh/torture/pr55212-c373.C: Likewise.
+	* g++.target/sh/torture/pr55212-c384.C: Likewise.
+	* g++.target/sh/torture/pr55212-c413.C: Likewise.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/69765
+	* gcc.target/sh/pr69765.c: New test.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/116709
+	* gcc.target/sh/pr116709.c: New file.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/67459
+	PR target/122948
+	* gcc.target/sh/pr122948.c: New test.
+
+2026-07-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/126058
+	PR fortran/126090
+	* gfortran.dg/warn_undefined_vars_5.f90: New test.
+	* gfortran.dg/warn_undefined_vars_6.f90: New test.
+
+2026-07-04  Pan Li  <pan2.li@intel.com>
+
+	* gcc.target/riscv/sat/sat_arith.h: Add test helper macros.
+	* gcc.target/riscv/sat/sat_u_mul-20-u16-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u16-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u16-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u16-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u32-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u32-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u32-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u64-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u8-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u8-from-u16.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u8-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u8-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-20-u8-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u16-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u16-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u16-from-u64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u32-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u32-from-u64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u64-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u8-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u8-from-u16.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u8-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-20-u8-from-u64.c: New test.
+
+2026-07-04  Pan Li  <pan2.li@intel.com>
+
+	* gcc.target/riscv/sat/sat_arith.h: Add test helper macros.
+	* gcc.target/riscv/sat/sat_u_mul-19-u16-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u16-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u16-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u16-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u32-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u32-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u32-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u64-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u8-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u8-from-u16.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u8-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u8-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-19-u8-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u16-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u16-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u16-from-u64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u32-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u32-from-u64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u64-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u8-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u8-from-u16.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u8-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-19-u8-from-u64.c: New test.
+
+2026-07-04  Pan Li  <pan2.li@intel.com>
+
+	* gcc.target/riscv/sat/sat_arith.h: Add test helper macros.
+	* gcc.target/riscv/sat/sat_u_mul-18-u16-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u16-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u16-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u16-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u32-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u32-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u32-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u64-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u8-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u8-from-u16.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u8-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u8-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-18-u8-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u16-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u16-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u16-from-u64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u32-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u32-from-u64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u64-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u8-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u8-from-u16.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u8-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-18-u8-from-u64.c: New test.
+
+2026-07-04  Pan Li  <pan2.li@intel.com>
+
+	* gcc.target/riscv/sat/sat_arith.h: Add test helper macros.
+	* gcc.target/riscv/sat/sat_u_mul-17-u16-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u16-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u16-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u16-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u32-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u32-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u32-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u64-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u8-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u8-from-u16.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u8-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u8-from-u64.rv32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-17-u8-from-u64.rv64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u16-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u16-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u16-from-u64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u32-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u32-from-u64.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u64-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u8-from-u128.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u8-from-u16.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u8-from-u32.c: New test.
+	* gcc.target/riscv/sat/sat_u_mul-run-17-u8-from-u64.c: New test.
+
+2026-07-04  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	* gcc.dg/pr94589-5a.c: Allow for `u<` and `u>` in the scan too.
+
+2026-07-03  Philipp Tomsich  <philipp.tomsich@vrull.eu>
+
+	PR tree-optimization/122569
+	* gcc.dg/tree-ssa/pr122569-3.c: New test.
+
+2026-07-03  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR tree-optimization/106164
+	PR tree-optimization/126042
+	PR tree-optimization/94589
+	* g++.dg/opt/pr94589-5a.C: New test.
+	* gcc.dg/pr94589-5.c: Explictly enable -ftrapping-math.
+	* gcc.dg/pr94589-5a.c: New test.
+
+2026-07-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/126057
+	* g++.dg/cpp2a/decomp11.C: New test.
+
+2026-07-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/125826
+	* g++.dg/cpp0x/defaulted51.C: Adjust expected diagnostics
+	for C++29.
+	* g++.dg/cpp0x/defaulted55.C: Likewise.
+	* g++.dg/cpp0x/defaulted56.C: Likewise.
+	* g++.dg/cpp0x/defaulted57.C: Likewise.
+	* g++.dg/cpp0x/defaulted63.C: Likewise.
+	* g++.dg/cpp0x/defaulted64.C: Likewise.
+	* g++.dg/cpp0x/defaulted65.C: Likewise.
+	* g++.dg/cpp0x/defaulted66.C: Likewise.
+	* g++.dg/cpp0x/defaulted67.C: Likewise.
+	* g++.dg/cpp0x/defaulted68.C: Likewise.
+	* g++.dg/cpp1y/defaulted2.C: Likewise.
+	* g++.dg/cpp29/defaulted1.C: New test.
+	* g++.dg/cpp29/defaulted2.C: New test.
+	* g++.dg/cpp29/defaulted3.C: New test.
+	* g++.dg/cpp29/defaulted4.C: New test.
+	* g++.dg/cpp29/defaulted5.C: New test.
+	* g++.dg/cpp29/defaulted6.C: New test.
+
+2026-07-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/126036
+	* g++.dg/reflect/pr126036.C: New test.
+
+2026-07-03  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	* gcc.target/riscv/and-synthesis-3.c: New test.
+
+2026-07-03  Naveen  <naveen.siddegowda@oss.qualcomm.com>
+
+	PR tree-optimization/102202
+	* gcc.dg/pr102202-1.c: New test.
+	* gcc.dg/pr102202.c: New test.
+	* gcc.target/aarch64/pr100518.c: Modify to handle the warning.
+
+2026-07-03  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	PR target/120027
+	* gcc.target/aarch64/sve/acle/general/pr120027.c: New test.
+
+2026-07-03  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/97592
+	PR fortran/125998
+	* gfortran.dg/contiguous_17.f90: New test.
+
+2026-07-03  Tamar Christina  <tamar.christina@arm.com>
+	    Chris Bazley  <Chris.Bazley@arm.com>
+
+	* gcc.target/aarch64/sve/copsi.c: New test.
+
+2026-07-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/81426
+	* gcc.target/sh/pr81426.c: New test.
+
+2026-07-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/34777
+	* gcc.target/sh/torture/pr34777-1.c: New test.
+
+2026-07-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/124778
+	* gcc.target/sh/torture/pr124778.c: New test.
+
+2026-07-03  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	* gcc.target/riscv/xor-synthesis-4.c: New test.
+
 2026-07-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/126018

@@ -4213,6 +4213,13 @@ vect_build_slp_instance (vec_info *vinfo,
 			 "Analyzing vectorizable control flow: %G",
 			 root_stmt_infos[0]->stmt);
     }
+  else if (kind == slp_inst_kind_bb_reduc)
+    {
+      if (dump_enabled_p ())
+	dump_printf_loc (MSG_NOTE, vect_location,
+			 "Analyzing vectorizable BB reduction: %G",
+			 root_stmt_infos[0]->stmt);
+    }
 
   if (dump_enabled_p ())
     {
@@ -9695,6 +9702,9 @@ vect_bb_vectorization_profitable_p (bb_vec_info bb_vinfo,
 	  continue;
 	}
 
+      if (dump_enabled_p ())
+	dump_printf_loc (MSG_NOTE, vect_location,
+			 "Scalar cost for part in loop %d\n", sl);
       class vector_costs *scalar_target_cost_data = init_cost (bb_vinfo, true);
       do
 	{
@@ -9707,6 +9717,9 @@ vect_bb_vectorization_profitable_p (bb_vec_info bb_vinfo,
       scalar_cost = scalar_target_cost_data->body_cost ();
 
       /* Complete the target-specific vector cost calculation.  */
+      if (dump_enabled_p ())
+	dump_printf_loc (MSG_NOTE, vect_location,
+			 "Vector cost for part in loop %d\n", vl);
       class vector_costs *vect_target_cost_data = init_cost (bb_vinfo, false);
       auto_vec<stmt_info_for_cost> tem;
       do
@@ -9741,10 +9754,7 @@ vect_bb_vectorization_profitable_p (bb_vec_info bb_vinfo,
 	 free on the scalar side but cost a load on the vector side for
 	 example).  */
       if (vec_outside_cost + vec_inside_cost > scalar_cost)
-	{
-	  profitable = false;
-	  break;
-	}
+	profitable = false;
     }
   if (profitable && vi < li_vector_costs.length ())
     {

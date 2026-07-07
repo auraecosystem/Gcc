@@ -1627,14 +1627,6 @@ A C expression for the size in bits of the type @code{long} on the
 target machine.  If you don't define this, the default is one word.
 @end defmac
 
-@defmac ADA_LONG_TYPE_SIZE
-On some machines, the size used for the Ada equivalent of the type
-@code{long} by a native Ada compiler differs from that used by C@.  In
-that situation, define this macro to be a C expression to be used for
-the size of that type.  If you don't define this, the default is the
-value of @code{LONG_TYPE_SIZE}.
-@end defmac
-
 @defmac LONG_LONG_TYPE_SIZE
 A C expression for the size in bits of the type @code{long long} on the
 target machine.  If you don't define this, the default is two
@@ -1709,16 +1701,6 @@ causes function names in libgcc to be changed to use a @code{__gnu_}
 prefix for their name rather than the default @code{__}.  A port which
 uses this macro should also arrange to use @file{t-gnu-prefix} in
 the libgcc @file{config.host}.
-@end defmac
-
-@defmac WIDEST_HARDWARE_FP_SIZE
-A C expression for the size in bits of the widest floating-point format
-supported by the hardware.  If you define this macro, you must specify a
-value less than or equal to mode precision of the mode used for C type
-@code{long double} (from hook @code{targetm.c.mode_for_floating_type}
-with argument @code{TI_LONG_DOUBLE_TYPE}).  If you do not define this
-macro, mode precision of the mode used for C type @code{long double} is
-the default.
 @end defmac
 
 @defmac DEFAULT_SIGNED_CHAR

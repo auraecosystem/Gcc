@@ -1252,6 +1252,26 @@
   [(set_attr "type" "neon_arith_acc<q>")]
 )
 
+;; C = ADD (ABS (A), B) -> C = ABA (A, B, 0)
+(define_insn_and_split "*aarch64_abs_plus<mode>"
+  [(set (match_operand:VDQ_BHSI 0 "register_operand" "=&w")
+	(plus:VDQ_BHSI
+	  (unspec:VDQ_BHSI
+	    [(match_operand:VDQ_BHSI 1 "register_operand" "w")]
+	    UNSPEC_ABS)
+	  (match_operand:VDQ_BHSI 2 "register_operand" "w")))]
+  "TARGET_SIMD && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+  {
+    rtx zero = aarch64_gen_shareable_zero (<MODE>mode);
+    emit_insn (gen_aarch64_saba<mode> (operands[0], operands[2],
+				       operands[1], zero));
+    DONE;
+  }
+)
+
 (define_insn "fabd<mode>3<vczle><vczbe>"
   [(set (match_operand:VHSDF_HSDF 0 "register_operand" "=w")
 	(abs:VHSDF_HSDF
@@ -8002,13 +8022,23 @@
 
 ;; cmtst
 
-;; Although neg (ne (and x y) 0) is the natural way of expressing a cmtst,
-;; we don't have any insns using ne, and aarch64_vcond outputs
-;; not (neg (eq (and x y) 0))
-;; which is rewritten by simplify_rtx as
-;; plus (eq (and x y) 0) -1.
-
 (define_insn "aarch64_cmtst<mode><vczle><vczbe>"
+  [(set (match_operand:<V_INT_EQUIV> 0 "register_operand" "=w")
+	(neg:<V_INT_EQUIV>
+	  (ne:<V_INT_EQUIV>
+	    (and:VDQ_I
+	      (match_operand:VDQ_I 1 "register_operand" "w")
+	      (match_operand:VDQ_I 2 "register_operand" "w"))
+	    (match_operand:VDQ_I 3 "aarch64_simd_imm_zero"))))
+  ]
+  "TARGET_SIMD"
+  "cmtst\t%<v>0<Vmtype>, %<v>1<Vmtype>, %<v>2<Vmtype>"
+  [(set_attr "type" "neon_tst<q>")]
+)
+;; Although neg (ne (and x y) 0) is the natural way of expressing a cmtst,
+;; earlier versions of GCC simplified this as plus (eq (and x y) 0) -1.
+
+(define_insn "*aarch64_cmtst<mode><vczle><vczbe>"
   [(set (match_operand:<V_INT_EQUIV> 0 "register_operand" "=w")
 	(plus:<V_INT_EQUIV>
 	  (eq:<V_INT_EQUIV>
@@ -8020,6 +8050,22 @@
   ]
   "TARGET_SIMD"
   "cmtst\t%<v>0<Vmtype>, %<v>1<Vmtype>, %<v>2<Vmtype>"
+  [(set_attr "type" "neon_tst<q>")]
+)
+
+;; One can also get a cmtsts by having to combine a
+;; neg (ne x 0) in which case you rewrite it to
+;; a comparison against itself
+
+(define_insn "*aarch64_cmtst_same_<mode><vczle><vczbe>"
+  [(set (match_operand:<V_INT_EQUIV> 0 "register_operand" "=w")
+	(neg:<V_INT_EQUIV>
+	  (ne:<V_INT_EQUIV>
+	    (match_operand:VDQ_I 1 "register_operand" "w")
+	    (match_operand:VDQ_I 2 "aarch64_simd_imm_zero"))))
+  ]
+  "TARGET_SIMD"
+  "cmtst\t%<v>0<Vmtype>, %<v>1<Vmtype>, %<v>1<Vmtype>"
   [(set_attr "type" "neon_tst<q>")]
 )
 

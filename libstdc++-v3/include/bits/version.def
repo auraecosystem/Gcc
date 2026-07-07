@@ -89,6 +89,9 @@ ftms = {
 };
 
 ftms = {
+  // 202106 P0401R6 Providing size feedback in the Allocator interface
+  // 202302 P2652R2 Disallow user specialization of allocator_traits
+  //        LWG3887 Version macro for allocate_at_least 
   name = allocate_at_least;
   values = {
     v = 202302;
@@ -2339,9 +2342,11 @@ ftms = {
 };
 
 ftms = {
+  // 202506 P2927R3 Observing exceptions stored in exception_ptr
+  // 202603 P3981R2 Better return types in std::inplace_vector and std::exception_ptr_cast
   name = exception_ptr_cast;
   values = {
-    v = 202506;
+    v = 202603;
     cxxmin = 26;
   };
 };

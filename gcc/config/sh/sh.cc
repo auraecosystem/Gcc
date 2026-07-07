@@ -593,9 +593,6 @@ TARGET_GNU_ATTRIBUTES (sh_attribute_table,
 #undef  TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO	sh_encode_section_info
 
-#undef TARGET_LRA_P
-#define TARGET_LRA_P sh_lra_p
-
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD sh_secondary_reload
 
@@ -1660,8 +1657,7 @@ prepare_move_operands (rtx operands[], machine_mode mode)
 	 in some situation.  It isn't the case for SH in the problematic
 	 case.  We can pre-allocate R0 for that index term to avoid
 	 the issue.  See PR target/66591.  */
-      else if (sh_lra_p ()
-	       && ! TARGET_SH2A
+      else if (! TARGET_SH2A
 	       && ((REG_P (operands[0]) && MEM_P (operands[1]))
 		   || (REG_P (operands[1]) && MEM_P (operands[0]))))
 	{
@@ -3579,7 +3575,7 @@ sh_max_mov_insn_displacement (machine_mode mode, bool consider_sh2a)
   /* SH2A supports FPU move insns with 12 bit displacements.
      Other variants to do not support any kind of displacements for
      FPU move insns.  */
-  if (! consider_sh2a && TARGET_FPU_ANY && GET_MODE_CLASS (mode) == MODE_FLOAT)
+  if (! consider_sh2a && TARGET_FPU_ANY && FLOAT_MODE_P (mode))
     return 0;
   else
     {
@@ -4823,16 +4819,8 @@ broken_move (rtx_insn *insn)
 		&& GET_CODE (SET_SRC (pat)) == CONST_DOUBLE
 		&& (fp_zero_operand (SET_SRC (pat))
 		    || fp_one_operand (SET_SRC (pat)))
-		/* In general we don't know the current setting of fpscr, so
-		   disable fldi.
-		   There is an exception if this was a register-register move
-		   before reload - and hence it was ascertained that we have
-		   single precision setting - and in a post-reload optimization
-		   we changed this to do a constant load.  In that case
-		   we don't have an r0 clobber, hence we must use fldi.  */
-		&& (TARGET_FMOVD
-		    || (GET_CODE (XEXP (XVECEXP (PATTERN (insn), 0, 2), 0))
-			== SCRATCH))
+		/* fldi can materialize the fp constants 0 and 1 directly in
+		   an fp register, so such a move is not broken.  */
 		&& REG_P (SET_DEST (pat))
 		&& FP_REGISTER_P (REGNO (SET_DEST (pat))))
 	  && ! (TARGET_SH2A
@@ -8849,39 +8837,6 @@ get_t_reg_rtx (void)
 
 static GTY(()) tree fpscr_values;
 
-static void
-emit_fpu_switch (rtx scratch, int index)
-{
-  if (fpscr_values == NULL)
-    {
-      tree t = build_index_type (integer_one_node);
-      t = build_array_type (integer_type_node, t);
-      t = build_decl (BUILTINS_LOCATION,
-		      VAR_DECL, get_identifier ("__fpscr_values"), t);
-      DECL_ARTIFICIAL (t) = 1;
-      DECL_IGNORED_P (t) = 1;
-      DECL_EXTERNAL (t) = 1;
-      TREE_STATIC (t) = 1;
-      TREE_PUBLIC (t) = 1;
-      TREE_USED (t) = 1;
-
-      fpscr_values = t;
-    }
-
-  rtx src = DECL_RTL (fpscr_values);
-  if (!can_create_pseudo_p ())
-    {
-      emit_move_insn (scratch, XEXP (src, 0));
-      if (index != 0)
-	emit_insn (gen_addsi3 (scratch, scratch, GEN_INT (index * 4)));
-      src = adjust_automodify_address (src, SImode, scratch, index * 4);
-    }
-  else
-    src = adjust_address (src, SImode, index * 4);
-
-  emit_insn (gen_lds_fpscr (src));
-}
-
 static rtx get_free_reg (HARD_REG_SET);
 
 /* This function returns a register to use to load the address to load
@@ -8916,9 +8871,46 @@ fpscr_set_from_mem (int mode, HARD_REG_SET regs_live)
 {
   enum attr_fp_mode fp_mode = (enum attr_fp_mode) mode;
   enum attr_fp_mode norm_mode = ACTUAL_NORMAL_MODE (FP_MODE);
+  int index = fp_mode == norm_mode;
 
-  rtx addr_reg = !can_create_pseudo_p () ? get_free_reg (regs_live) : NULL_RTX;
-  emit_fpu_switch (addr_reg, fp_mode == norm_mode);
+  if (fpscr_values == NULL)
+    {
+      tree t = build_index_type (integer_one_node);
+      t = build_array_type (integer_type_node, t);
+      t = build_decl (BUILTINS_LOCATION,
+		      VAR_DECL, get_identifier ("__fpscr_values"), t);
+      DECL_ARTIFICIAL (t) = 1;
+      DECL_IGNORED_P (t) = 1;
+      DECL_EXTERNAL (t) = 1;
+      TREE_STATIC (t) = 1;
+      TREE_PUBLIC (t) = 1;
+      TREE_USED (t) = 1;
+
+      fpscr_values = t;
+    }
+
+  rtx src = DECL_RTL (fpscr_values);
+
+  if (can_create_pseudo_p ())
+    {
+      // Before RA the plain address can be used and RA will adjust it for
+      // the post-inc constraint.
+      src = adjust_address (src, SImode, index * 4);
+      emit_insn (gen_lds_fpscr (force_reg (SImode, src)));
+    }
+  else
+    {
+      // After RA it needs the address with a post-inc mem or else it will
+      // result in an unrecognizable insn.
+      rtx scratch = get_free_reg (regs_live);
+      emit_move_insn (scratch, XEXP (src, 0));
+      if (index != 0)
+	emit_insn (gen_addsi3 (scratch, scratch, GEN_INT (index * 4)));
+      src = adjust_automodify_address (src, SImode,
+				       gen_rtx_POST_INC (Pmode, scratch),
+				       index * 4);
+      add_reg_note (emit_insn (gen_lds_fpscr (src)), REG_INC, scratch);
+    }
 }
 
 /* Is the given character a logical line separator for the assembler?  */
@@ -9277,78 +9269,6 @@ sh_legitimize_address (rtx x, rtx oldx, machine_mode mode)
 	}
     }
   return x;
-}
-
-/* Attempt to replace *p, which is an address that needs reloading, with
-   a valid memory address for an operand of mode MODE.
-   Like for sh_legitimize_address, for the SH we try to get a normal form
-   of the address.  That will allow inheritance of the address reloads.  */
-bool
-sh_legitimize_reload_address (rtx *p, machine_mode mode, int opnum,
-			      int itype)
-{
-  enum reload_type type = (enum reload_type) itype;
-  const int mode_sz = GET_MODE_SIZE (mode);
-
-  if (sh_lra_p ())
-    return false;
-
-  if (GET_CODE (*p) == PLUS && CONST_INT_P (XEXP (*p, 1))
-      && MAYBE_BASE_REGISTER_RTX_P (XEXP (*p, 0), true))
-    {
-      const HOST_WIDE_INT offset = INTVAL (XEXP (*p, 1));
-      struct disp_adjust adj = sh_find_mov_disp_adjust (mode, offset);
-
-      if (TARGET_SH2A && mode == DFmode && (offset & 0x7))
-	{
-	  push_reload (*p, NULL_RTX, p, NULL,
-		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
-	  return true;
-	}
-
-      if (TARGET_SH2E && mode == SFmode)
-	{
-	  *p = copy_rtx (*p);
-	  push_reload (*p, NULL_RTX, p, NULL,
-		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
-	  return true;
-	}
-
-      /* FIXME: Do not allow to legitimize QImode and HImode displacement
-	 moves because then reload has a problem figuring the constraint
-	 that the move insn target/source reg must be R0.
-	 Or maybe some handling is wrong in sh_secondary_reload for this
-	 to work properly? */
-      if ((mode_sz == 4 || mode_sz == 8)
-	  && ! (TARGET_SH4 && mode == DFmode)
-	  && adj.offset_adjust != NULL_RTX && adj.mov_disp != NULL_RTX)
-	{
-	  rtx sum = gen_rtx_PLUS (Pmode, XEXP (*p, 0), adj.offset_adjust);
-	  *p = gen_rtx_PLUS (Pmode, sum, adj.mov_disp);
-	  push_reload (sum, NULL_RTX, &XEXP (*p, 0), NULL,
-		       BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
-	  return true;
-	}
-    }
-
-  /* We must re-recognize what we created before.  */
-  if (GET_CODE (*p) == PLUS
-      && (mode_sz == 4 || mode_sz == 8)
-      && GET_CODE (XEXP (*p, 0)) == PLUS
-      && CONST_INT_P (XEXP (XEXP (*p, 0), 1))
-      && MAYBE_BASE_REGISTER_RTX_P (XEXP (XEXP (*p, 0), 0), true)
-      && CONST_INT_P (XEXP (*p, 1))
-      && ! (TARGET_SH2E && mode == SFmode))
-    {
-      /* Because this address is so complex, we know it must have
-	 been created by LEGITIMIZE_RELOAD_ADDRESS before; thus,
-	 it is already unshared, and needs no further unsharing.  */
-      push_reload (XEXP (*p, 0), NULL_RTX, &XEXP (*p, 0), NULL,
-		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0, opnum, type);
-      return true;
-    }
-
-  return false;
 }
 
 /* In the name of slightly smaller debug output, and to cater to
@@ -10578,8 +10498,10 @@ sh_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
 
   if (mode == V2SFmode)
     {
-      if (((FP_REGISTER_P (regno) && (regno - FIRST_FP_REG) % 2 == 0)
-	   || GENERAL_REGISTER_P (regno)))
+      /* V2SF may not live in general registers when optimizing, see
+	 sh_can_change_mode_class.  Keep it out of general regs so that it's
+	 always treated as fp reg pair.  */
+      if (FP_REGISTER_P (regno) && (regno - FIRST_FP_REG) % 2 == 0)
 	return true;
       else
 	return false;
@@ -11472,30 +11394,37 @@ sh_legitimize_address_displacement (rtx *offset1, rtx *offset2,
   return false;
 }
 
-/* Return true if movsf insn should be split with an additional
-   register.  */
+/* Return true if movsf insn should be split with an fpul register.  */
 bool
-sh_movsf_ie_ra_split_p (rtx op0, rtx op1, rtx op2)
+sh_movsf_ie_y_split_p (rtx op0, rtx op1)
 {
-  /* op0 == op1 */
-  if (rtx_equal_p (op0, op1))
+  /* f, r */
+  if (REG_P (op0)
+      && (SUBREG_P (op1) && GET_MODE (SUBREG_REG (op1)) == SImode))
     return true;
-  /* fy, FQ, reg */
-  if (GET_CODE (op1) == CONST_DOUBLE
-      && ! satisfies_constraint_G (op1)
-      && ! satisfies_constraint_H (op1)
-      && REG_P (op0)
-      && REG_P (op2))
+  /* r, f */
+  if (REG_P (op1)
+      && (SUBREG_P (op0) && GET_MODE (SUBREG_REG (op0)) == SImode))
     return true;
-  /* f, r, y */
-  if (REG_P (op0) && FP_REGISTER_P (REGNO (op0))
-      && REG_P (op1) && GENERAL_REGISTER_P (REGNO (op1))
-      && REG_P (op2) && (REGNO (op2) == FPUL_REG))
+
+  return false;
+}
+
+/* Return true if it moves reg from/to subreg of multiword mode.  */
+bool
+sh_movsf_ie_subreg_multiword_p (rtx op0, rtx op1)
+{
+  if (REG_P (op0)
+      && (SUBREG_P (op1)
+	  && (GET_MODE (SUBREG_REG (op1)) == SCmode
+	      || GET_MODE (SUBREG_REG (op1)) == DImode
+	      || GET_MODE (SUBREG_REG (op1)) == TImode)))
     return true;
-  /* r, f, y */
-  if (REG_P (op1) && FP_REGISTER_P (REGNO (op1))
-      && REG_P (op0) && GENERAL_REGISTER_P (REGNO (op0))
-      && REG_P (op2) && (REGNO (op2) == FPUL_REG))
+  if (REG_P (op1)
+      && (SUBREG_P (op0)
+	  && (GET_MODE (SUBREG_REG (op0)) == SCmode
+	      || GET_MODE (SUBREG_REG (op0)) == DImode
+	      || GET_MODE (SUBREG_REG (op0)) == TImode)))
     return true;
 
   return false;
@@ -12642,13 +12571,6 @@ sh_mode_priority (int entity ATTRIBUTE_UNUSED, int n)
 /*------------------------------------------------------------------------------
   Misc
 */
-
-/* Return true if we use LRA instead of reload pass.  */
-bool
-sh_lra_p (void)
-{
-  return sh_lra_flag;
-}
 
 /* Implement TARGET_USE_BY_PIECES_INFRASTRUCTURE_P.  */
 

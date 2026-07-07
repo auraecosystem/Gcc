@@ -1,3 +1,17 @@
+2026-07-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (solaris_ld_v2_maps): Remove.
+	* configure: Regenerate.
+	* Makefile.in (solaris_ld_v2_maps): Remove.
+	* config/t-slibgcc-sld (libgcc-unwind.map): Remove
+	solaris_ld_v2_maps handling.
+
+2026-07-04  Iain Sandoe  <iain@sandoe.co.uk>
+
+	PR libgcc/123976
+	* config/t-darwin-ehs: Add md-unwind-def.h as a
+	pre-requisite.
+
 2026-06-29  Claudio Bantaloukas  <Claudio.Bantaloukas@arm.com>
 
 	* config/aarch64/__arm_sc_memchr_scalar.S: New file.

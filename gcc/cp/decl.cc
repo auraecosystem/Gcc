@@ -10711,7 +10711,7 @@ cp_finish_decomp (tree decl, cp_decomp *decomp, bool test_p)
 	    }
 	  first = DECL_CHAIN (first);
 	}
-      if (DECL_P (decl) && DECL_NAMESPACE_SCOPE_P (decl))
+      if (DECL_P (decl) && TREE_STATIC (decl))
 	SET_DECL_ASSEMBLER_NAME (decl, get_identifier ("<decomp>"));
       return false;
     }
@@ -13775,6 +13775,8 @@ diagnose_non_c_class_typedef_for_linkage (tree type, tree orig)
 static bool
 maybe_diagnose_non_c_class_typedef_for_linkage (tree type, tree orig, tree t)
 {
+  if (!COMPLETE_TYPE_P (t))
+    return false;
   if (!BINFO_BASE_BINFOS (TYPE_BINFO (t))->is_empty ())
     {
       auto_diagnostic_group d;

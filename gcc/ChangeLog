@@ -1,3 +1,338 @@
+2026-07-07  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR tree-optimization/125758
+	* gimple-range.cc (gimple_ranger::gimple_ranger): Create prefill stack.
+	(gimple_ranger::gimple_ranger): Dispose of prefill stack.
+	(gimple_ranger::prefill_name): Maybe push name on prefill stack.
+	(gimple_ranger::prefill_stmt_dependencies): Implement a DFS
+	stack for dependency satisfaction.
+	* gimple-range.h (struct prefill_frame): New.
+	(m_prefill_stack): New.
+	(prefill_name): Sadjust parameters.
+	(m_active_prefill): New.
+
+2026-07-07  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR tree-optimization/125758
+	* gimple-range-cache.cc (struct time_stamp): New.
+	(set_timestamp): Deleted.
+	(set_timestamp_stored): New.
+	(set_timestamp_calc): New.
+	(set_always_current): Remove a parameter.
+	(temporal_value): Remove.
+	(temporal_value_stored): New.,
+	(temporal_value_calc): New.
+	(m_timestamp): Change to vector of struct time_stamp.
+	(temporal_cache::temporal_cache): Adjust.
+	(temporal_cache::current_p): Use both timestamps.
+	(temporal_cache::set_always_current): 0 means always current.
+	(temporal_cache::always_current_p): Check for 0.
+	(ranger_cache::get_global_range): adjust params.
+	(ranger_cache::update_consumers): Set stored timestamp.
+	(ranger_cache::set_global_range): Use new timestamps.
+
+2026-07-06  Mark Zhuang  <zhuangqiubin@linux.spacemit.com>
+
+	* config/riscv/riscv-cores.def (spacemit-x60): Use rva22u64
+	profile shorthand, add missing entries.
+
+2026-07-06  Richard Biener  <rguenther@suse.de>
+
+	* tree-vect-slp.cc (vect_build_slp_instance): For BB reductions
+	note the first root stmt.
+
+2026-07-06  Andrew Stubbs  <ams@baylibre.com>
+
+	* config/gcn/gcn-valu.md (*vec_set<mode>): Ad TImode instruction.
+
+2026-07-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/vms/vms.h (ADA_LONG_TYPE_SIZE): Delete.
+	* doc/tm.texi.in (ADA_LONG_TYPE_SIZE): Likewise.
+	* doc/tm.texi: Regenerate.
+	* system.h (ADA_LONG_TYPE_SIZE): Poison.
+
+2026-07-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/aarch64/aarch64.h (WIDEST_HARDWARE_FP_SIZE): Delete.
+	* config/alpha/alpha.h (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* config/i386/i386.h (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* config/ia64/vms.h (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* config/pa/pa.h (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* config/rs6000/rs6000.h (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* config/s390/s390.h (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* config/sparc/sparc.h (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* config/visium/visium.h (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* doc/tm.texi.in (WIDEST_HARDWARE_FP_SIZE): Likewise.
+	* doc/tm.texi: Regenerate.
+	* system.h (WIDEST_HARDWARE_FP_SIZE): Poison.
+
+2026-07-06  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	PR tree-optimization/120892
+	* gimple-ssa-split-paths.cc: Remove.
+	* passes.def (pass_split_paths): Remove.
+	* tree-pass.h (make_pass_split_paths): Remove.
+	* Makefile.in (OBJS): Remove gimple-ssa-split-paths.o.
+	* timevar.def (TV_SPLIT_PATHS): Remove.
+	* opts.cc (default_options_table): Remove the OPT_LEVELS_3_PLUS entry
+	for OPT_fsplit_paths.
+	* common.opt (fsplit-paths): Make it a deprecated no-op using Ignore.
+	* doc/invoke.texi (-fsplit-paths): Document as deprecated and remove it
+	from the option summary and the -O3 list.
+
+2026-07-06  H.J. Lu  <hjl.tools@gmail.com>
+	    Richard Biener  <rguenther@suse.de>
+
+	PR target/109780
+	PR target/109093
+	PR target/123210
+	PR target/124098
+	PR target/124165
+	PR target/124684
+	PR target/124759
+	PR target/124789
+	* alias.cc (static_reg_base_value): Moved to rtl.h.
+	(find_base_term): Remove static.
+	* alias.h (find_base_term): New prototype.
+	* function.cc (thread_prologue_and_epilogue_insns): Call
+	init_alias_analysis and end_alias_analysis.
+	* rtl.h (static_reg_base_value): Moved from alias.cc.
+	* config/i386/i386.cc (stack_access_data): Removed.
+	(ix86_find_all_reg_uses_1): Likewise.
+	(ix86_find_all_reg_uses): Likewise.
+	(ix86_access_stack_p): Likewise.
+	(ix86_need_alignment_p_2): Likewise.
+	(ix86_need_alignment_p_1): Likewise.
+	(ix86_need_alignment_p): Likewise.
+	(ix86_update_stack_alignment_2): New function.
+	(ix86_update_stack_alignment_1): Likewise.
+	(ix86_update_stack_alignment): Rewrite.
+	(ix86_find_max_used_stack_alignment): If check_stack_slot is
+	true, call ix86_update_stack_alignment on each INSN.
+
+2026-07-06  liuhongt  <hongtao.liu@intel.com>
+
+	PR target/126098
+	* config/i386/sse.md (VI1_AVX512VNNIBW): Remove.
+	(sdot_prod<ssedvecmodelower><mode>): Use VI1_AVX512 instead of
+	VI1_AVX512VNNIBW so V64QI is enabled only under AVX512BW.
+	(udot_prod<ssedvecmodelower><mode>): Likewise.
+
+2026-07-05  Roger Sayle  <roger@nextmovesoftware.com>
+
+	PR target/126094
+	* config/aarch64/aarch64-simd.md (aarch64_cmtst<mode><vczle><vczbe>):
+	Update pattern to match recent RTL simplification.
+	(*aarch64_cmtst<mode><vczle><vczbe>): Preserve the original.
+	(*aarch64_cmtst_same_<mode><vczle><vczbe>): Additional variant.
+
+2026-07-05  Kael Andrew Alonzo Franco  <kaelfandrew@gmail.com>
+
+	PR tree-optimization/125641
+	* match.pd: Fix #ifdef GIMPLE typo.
+
+2026-07-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_ld_clearcap): Remove.
+	Link clearcap.map to config/sol2-clearcap.map with Solaris ld.
+	* configure: Regenerate.
+	* config.in: Likewise.
+	* config/sol2-clearcap.map: Remove.
+	* config/sol2-clearcapv2.map: Rename to sol2-clearcap.map.
+	* config/t-sol2 (install-clearcap-map): Install source file
+	directly.
+	* config/sol2.h (LINK_CLEARCAP_SPEC): Guard with HAVE_SOLARIS_LD.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/67643
+	PR target/126117
+	* config/sh/sh.cc (fpscr_set_from_mem): Add missing argument to
+	get_free_reg invocation.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/67643
+	* config/sh/sh.cc (fpscr_set_from_mem): Specify a post-inc memory
+	operand for lds_fpscr after RA.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/55212
+	* config/sh/sh-protos.h (sh_lra_p): Remove.
+	(sh_legitimize_reload_address): Remove.
+	* config/sh/sh.h (LEGITIMIZE_RELOAD_ADDRESS): Remove.
+	* config/sh/sh.cc (sh_legitimize_reload_address): Remove.
+	(prepare_move_operands, broken_move): Remove sh_lra_p uses.
+	* config/sh/constraints.md (Rab, Rai, Ssd): Likewise.
+	* config/sh/sh.md: Likewise.  Remove reload-only *addsi3 patterns.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.cc (emit_fpu_switch): Delete and merge into...
+	(fpscr_set_from_mem): ...this.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/116709
+	* config/sh/sh.md (movsf_ie): Mark constant-pool load FPUL
+	alternative with '*'.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/67459
+	PR target/122948
+	* config/sh/sh.md (addc): Fix T bit set expression.
+	(subc): Likewise.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/124778
+	* config/sh/sh.md (extend<mode>si2_short_mem_disp_z): Move after
+	'*extend<mode>si2_compact_mem_disp' patterns.
+
+2026-07-04  Filip Kastl  <fkastl@suse.cz>
+
+	* config/i386/i386.cc: Add override specifier for
+	better_epilogue_loop_than_p.
+
+2026-07-03  Philipp Tomsich  <philipp.tomsich@vrull.eu>
+
+	PR tree-optimization/122569
+	* match.pd (clz_msb_iso_table_index): New match pattern.
+	* tree-ssa-forwprop.cc (gimple_clz_msb_iso_table_index): Declare.
+	(simplify_count_zeroes): Recognize the new pattern; route its
+	table validation through the CTZ checkfn.  Relax the element
+	type check to accept integer types up to 64 bits.
+
+2026-07-03  Philipp Tomsich  <philipp.tomsich@vrull.eu>
+
+	* match.pd (msb_or_cascade_32, msb_or_cascade_64): New match
+	helpers.
+	(clz_table_index): Rewrite the 32-bit and 64-bit forms to use
+	the cascade helpers.
+
+2026-07-03  Andrew Pinski  <andrew.pinski@oss.qualcomm.com>
+
+	PR tree-optimization/106164
+	PR tree-optimization/126042
+	PR tree-optimization/94589
+	* fold-const.cc (combine_comparisons): Split into
+	2 versions. Also handle BIT_AND_EXPR and BIT_IOR_EXPR.
+	* fold-const.h (combine_comparisons): New declaration.
+	* match.pd (`(a CMP1 b) BITOP (a CMP2 b)`): New pattern.
+
+2026-07-03  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.cc (avr_out_plus_1): Handle +/-1 on the
+	lower regs without needing a scratch.
+	* config/avr/avr.md (add<mode>3_clobber, *add<mode>3_clobber)
+	(add<mode>3, *add<mode>3, addpsi3, *addpsi3): Add constraint
+	alternative "Y01 Ym1" for +/-1 without scratch.
+
+2026-07-03  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	* config/riscv/riscv.cc (synthesize_add): Utilize shNadd.uw when
+	appropriate.
+
+2026-07-03  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	* config/riscv/riscv.cc (and_synthesis): Use riscv_integer_cost rather
+	than riscv_const_insns.  Use rotate+clear_bits+rotate when useful.
+
+2026-07-03  Richard Biener  <rguenther@suse.de>
+
+	* tree-vect-slp.cc (vect_bb_vectorization_profitable_p): Make
+	profitabilty decision easier to debug.
+
+2026-07-03  Naveen  <naveen.siddegowda@oss.qualcomm.com>
+
+	PR tree-optimization/102202
+	* tree-call-cdce.cc: Include "tree-ssanames.h", "gimple-fold.h".
+	(len_has_boolean_range_p): New function.
+	(can_shrink_wrap_len_p): New function.
+	(gen_zero_len_conditions): New function.
+	(shrink_wrap_len_call): New function.
+	(shrink_wrap_conditional_dead_built_in_calls): Dispatch to
+	shrink_wrap_one_memset_call for memset calls eligible for the [0, 1]
+	length transform, ahead of the generic LHS and range-test paths.
+	(pass_call_cdce::execute): Collect memset calls satisfying
+	can_shrink_wrap_memset_p as shrink-wrap candidates.
+
+2026-07-03  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	PR target/120027
+	* config/aarch64/aarch64-sve-builtins-base.cc (svext_bhw_impl::fold):
+	New member function.  Fold the unsigned svextb/svexth/svextw
+	intrinsics to a bitwise AND when the merging form has an all-true
+	predicate.
+
+2026-07-03  Tamar Christina  <tamar.christina@arm.com>
+	    Chris Bazley  <Chris.Bazley@arm.com>
+
+	* expr.cc (store_constructor): Handle VLA vec_init support and generic
+	fall through piecewise copy.
+	* doc/md.texi: Document change
+
+2026-07-03  Jeff Law  <jeffrey.law@oss.qualcomm.com>
+
+	* config/riscv/riscv.cc (synthesize_ior_xor): Use riscv_integer_cost
+	rather than riscv_const_insns.
+
+2026-07-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.opt.urls: Renegerate.
+	* config/vax/vax.opt.urls: Renegerate.
+
+2026-07-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/55212
+	* config/sh/sh.opt (mlra): Ignore option but keep it around
+	for compatibility.
+	* config/sh/sh.cc (TARGET_LRA_P): Remove.
+	(sh_lra_p): Move definition ...
+	* config/sh/sh-protos.h (sh_lra_p): ... here.  Always return true.
+	* doc/invoke.texi: Remove mention of -mlra for SH.
+
+2026-07-03  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/55212
+	* config/sh/sh.md (movv2sf, movv2sf_i, unnamed splits): New patterns.
+	* config/sh/sh.cc (sh_hard_regno_mode_ok): Allow V2SF only in fp-regs.
+	(sh_max_mov_insn_displacement): Return 0 for any float mode.
+
+2026-07-03  Kaz Kojima  <kkojima@rr.iij4u.or.jp>
+
+	PR target/55212
+	* config/sh/sh.md (extend<mode>si2_short_mem_disp_z): New
+	insn_and_split.
+	(extend<mode>si2): Use it for LRA.
+	(mov<mode>_store_mem_index, *mov<mode>_store_mem_index): New patterns.
+	(mov<mode>): Use it for LRA.
+	(movsf_ie_store_mem_index, movsf_ie_load_mem_index,
+	*movsf_ie_store_mem_inde, *movsf_ie_load_mem_index): New patterns.
+	(movsf): Use it for LRA.
+
+2026-07-03  Kaz Kojima  <kkojima@rr.iij4u.or.jp>
+
+	PR target/55212
+	* config/sh/predicates.md (pc_relative_load_operand): New predicate.
+	* config/sh/sh-protos.h (sh_movsf_ie_ra_split_p): Remove.
+	(sh_movsf_ie_y_split_p): New proto.
+	(sh_movsf_ie_subreg_multiword_p): New proto.
+	* config/sh/sh.cc: (sh_movsf_ie_ra_split_p): Remove.
+	(sh_movsf_ie_y_split_p): New function.
+	(sh_movsf_ie_subreg_multiword_p): New function.
+	(broken_move): Take movsf_ie_ra into account for fldi cases.
+	* config/sh/sh.md (movdf_i4_F_z): New insn.
+	(movdf): Use it when expanding.
+	(movsf_ie_ra): Use define_insn instead of define_insn_and_split.
+	Adjust alternatives.
+	(movsf_ie_rffr): New insn_and_split.
+	(movsf_ie_F_z, movsf_ie_Q_z, movsf_ie_y): New insns.
+	(movsf): Use new patterns when expanding.
+
 2026-07-02  Pengfei Li  <Pengfei.Li2@arm.com>
 
 	* config/aarch64/aarch64.cc

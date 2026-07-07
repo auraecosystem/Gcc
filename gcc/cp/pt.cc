@@ -19917,7 +19917,15 @@ tsubst_stmt (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 			if (tsubst_decomp_names (decl, pattern_decl, args,
 						 complain, in_decl, decomp)
 			    == error_mark_node)
-			  decomp = NULL;
+			  {
+			    decomp = NULL;
+			    /* As in cp_finish_decomp.  */
+			    if (TREE_STATIC (decl))
+			      {
+				tree id = get_identifier ("<decomp>");
+				SET_DECL_ASSEMBLER_NAME (decl, id);
+			      }
+			  }
 		      }
 
 		    init = tsubst_init (init, decl, args, complain, in_decl);
@@ -23003,8 +23011,25 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	  }
 	else
 	  {
-	    operand_0 = RECUR (operand_0);
-	    RETURN (build_typeid (operand_0, complain));
+	    /* [expr.typeid]/4-5: substitute the operand unevaluated first, then
+	       again evaluated if it is a polymorphic glvalue, so the /4
+	       side-effects occur.  The unevaluated pass instantiates nothing,
+	       so re-substituting has nothing to undo (PR c++/125886).  */
+	    tree operand;
+	    tree uneval;
+	    {
+	      cp_unevaluated u;
+	      uneval = RECUR (operand_0);
+	    }
+	    /* If we're already within an unevaluated operand, everything
+	       in the subtree stays not potentially evaluated regardless
+	       of [expr.typeid]/4 ([basic.def.odr]/3), so the evaluated
+	       re-parse below can have nothing to do; skip it.  */
+	    if (!cp_unevaluated_operand && typeid_evaluated_p (uneval))
+	      operand = RECUR (operand_0);
+	    else
+	      operand = uneval;
+	    RETURN (build_typeid (operand, complain));
 	  }
       }
 
