@@ -12,4 +12,4 @@ foo2 (__dmr1024 *dst, vec_t *src)
 }
 
 /* { dg-final { scan-assembler-times {\mdmxxinstdmr512\M} 2 } } */
-/* { dg-final { scan-assembler-times {\mdmxxextfdmr512\M} 2 } } */
+/* { dg-final { scan-assembler-times {\mlxv\M} 8 } } */
