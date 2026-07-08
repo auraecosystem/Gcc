@@ -1886,7 +1886,7 @@ rs6000_hard_regno_mode_ok_uncached (int regno, machine_mode mode)
   /* Vector pair modes need even/odd VSX register pairs.  Only allow vector
      registers.  */
   if (mode == OOmode)
-    return (TARGET_MMA && VSX_REGNO_P (regno) && (regno & 1) == 0);
+    return ((TARGET_MMA || TARGET_DMF) && VSX_REGNO_P (regno) && (regno & 1) == 0);
 
   /* MMA accumulator modes need FPR registers divisible by 4.  */
   if (mode == XOmode)

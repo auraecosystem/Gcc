@@ -298,7 +298,7 @@
 	(match_operand:OO 1 "input_operand"))]
   ""
 {
-  if (TARGET_MMA)
+  if (TARGET_MMA || TARGET_DMF)
     {
       rs6000_emit_move (operands[0], operands[1], OOmode);
       DONE;
@@ -323,7 +323,7 @@
 (define_insn_and_split "*movoo"
   [(set (match_operand:OO 0 "nonimmediate_operand" "=wa,ZwO,wa")
 	(match_operand:OO 1 "input_operand" "ZwO,wa,wa"))]
-  "TARGET_MMA
+  "(TARGET_MMA || TARGET_DMF)
    && (gpc_reg_operand (operands[0], OOmode)
        || gpc_reg_operand (operands[1], OOmode))"
   "@
@@ -391,7 +391,7 @@
   [(match_operand:OO 0 "vsx_register_operand")
    (match_operand:V16QI 1 "mma_assemble_input_operand")
    (match_operand:V16QI 2 "mma_assemble_input_operand")]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DMF"
 {
   rtx src = gen_rtx_UNSPEC (OOmode,
 			    gen_rtvec (2, operands[1], operands[2]),
@@ -408,7 +408,7 @@
 	(unspec:OO [(match_operand:V16QI 1 "mma_assemble_input_operand" "mwa")
 		    (match_operand:V16QI 2 "mma_assemble_input_operand" "mwa")]
 		   UNSPEC_VSX_ASSEMBLE))]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DMF"
   "#"
   "&& reload_completed"
   [(const_int 0)]
@@ -424,7 +424,7 @@
   [(match_operand:V16QI 0 "mma_disassemble_output_operand")
    (match_operand:OO 1 "vsx_register_operand")
    (match_operand 2 "const_0_to_1_operand")]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DMF"
 {
   rtx src;
   int regoff = INTVAL (operands[2]);
@@ -440,7 +440,7 @@
        (unspec:V16QI [(match_operand:OO 1 "vsx_register_operand" "wa")
                       (match_operand 2 "const_0_to_1_operand")]
                       UNSPEC_MMA_EXTRACT))]
-  "TARGET_MMA
+  "(TARGET_MMA || TARGET_DMF)
    && vsx_register_operand (operands[1], OOmode)"
   "#"
   "&& reload_completed"
@@ -482,7 +482,7 @@
    (match_operand:V16QI 2 "mma_assemble_input_operand")
    (match_operand:V16QI 3 "mma_assemble_input_operand")
    (match_operand:V16QI 4 "mma_assemble_input_operand")]
-  "TARGET_MMA"
+  "TARGET_MMA || TARGET_DMF"
 {
   if (TARGET_DMF)
     {
