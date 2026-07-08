@@ -1130,7 +1130,8 @@ rs6000_gimple_fold_mma_builtin (gimple_stmt_iterator *gsi,
      already expanded it!  Exceptions: lxvp and stxvp.  */
   if (rs6000_builtin_info[fncode].assoc_bif == RS6000_BIF_NONE
       && fncode != RS6000_BIF_LXVP
-      && fncode != RS6000_BIF_STXVP)
+      && fncode != RS6000_BIF_STXVP
+      && fncode != RS6000_BIF_DMMR)
     return false;
 
   bifdata *bd = &rs6000_builtin_info[fncode];

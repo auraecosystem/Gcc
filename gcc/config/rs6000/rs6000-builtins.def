@@ -4050,6 +4050,12 @@
   dmr1024 __builtin_dmsetdmrz_internal ();
     DMSETDMRZ_INTERNAL dmf_dmsetdmrz {dm}
 
+  void __builtin_dmmr (dmr1024 *, dmr1024 *);
+    DMMR nothing {dm,dmint}
+
+  dmr1024 __builtin_dmmr_internal (dmr1024);
+    DMMR_INTERNAL movtdo {dm}
+
   void __builtin_dmxor (dmr1024 *, dmr1024 *);
     DMXOR nothing {dm,dmint,dmr}
 
