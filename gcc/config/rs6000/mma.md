@@ -724,11 +724,11 @@
 
 (define_insn_and_split "*mma_disassemble_acc"
   [(set (match_operand:V16QI 0 "mma_disassemble_output_operand" "=mwa")
-       (unspec:V16QI [(match_operand:XO 1 "fpr_reg_operand" "d")
+       (unspec:V16QI [(match_operand:XO 1 "accumulator_operand" "wD")
                       (match_operand 2 "const_0_to_3_operand")]
                       UNSPEC_MMA_EXTRACT))]
   "TARGET_MMA
-   && fpr_reg_operand (operands[1], XOmode)"
+   && accumulator_operand (operands[1], XOmode)"
   "#"
   "&& reload_completed"
   [(const_int 0)]
@@ -776,7 +776,7 @@
 ;; UNSPEC_VOLATILE.
 
 (define_insn "mma_xxsetaccz"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=d")
+  [(set (match_operand:XO 0 "accumulator_operand" "=wD")
 	(unspec_volatile:XO [(const_int 0)]
 			    UNSPECV_MMA_XXSETACCZ))]
   "TARGET_MMA"
@@ -791,7 +791,7 @@
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<vv>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
 	(unspec:XO [(match_operand:V16QI 1 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")]
 		    MMA_VV))]
@@ -800,8 +800,8 @@
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<avv>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
-	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0,0")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
+	(unspec:XO [(match_operand:XO 1 "accumulator_operand" "0,0")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")]
 		    MMA_AVV))]
@@ -810,7 +810,7 @@
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<pv>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
 	(unspec:XO [(match_operand:OO 1 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")]
 		    MMA_PV))]
@@ -819,8 +819,8 @@
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<apv>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
-	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0,0")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
+	(unspec:XO [(match_operand:XO 1 "accumulator_operand" "0,0")
 		    (match_operand:OO 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")]
 		    MMA_APV))]
@@ -829,7 +829,7 @@
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<vvi4i4i8>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
 	(unspec:XO [(match_operand:V16QI 1 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 3 "const_0_to_15_operand" "n,n")
@@ -842,8 +842,8 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<avvi4i4i8>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
-	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0,0")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
+	(unspec:XO [(match_operand:XO 1 "accumulator_operand" "0,0")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 4 "const_0_to_15_operand" "n,n")
@@ -856,7 +856,7 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<vvi4i4i2>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
 	(unspec:XO [(match_operand:V16QI 1 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 3 "const_0_to_15_operand" "n,n")
@@ -869,8 +869,8 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<avvi4i4i2>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
-	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0,0")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
+	(unspec:XO [(match_operand:XO 1 "accumulator_operand" "0,0")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 4 "const_0_to_15_operand" "n,n")
@@ -883,7 +883,7 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<vvi4i4>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
 	(unspec:XO [(match_operand:V16QI 1 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 3 "const_0_to_15_operand" "n,n")
@@ -895,8 +895,8 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<avvi4i4>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
-	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0,0")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
+	(unspec:XO [(match_operand:XO 1 "accumulator_operand" "0,0")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 4 "const_0_to_15_operand" "n,n")
@@ -908,7 +908,7 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<pvi4i2>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
 	(unspec:XO [(match_operand:OO 1 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 3 "const_0_to_15_operand" "n,n")
@@ -920,8 +920,8 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<apvi4i2>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
-	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0,0")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
+	(unspec:XO [(match_operand:XO 1 "accumulator_operand" "0,0")
 		    (match_operand:OO 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 4 "const_0_to_15_operand" "n,n")
@@ -933,7 +933,7 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<vvi4i4i4>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
 	(unspec:XO [(match_operand:V16QI 1 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 3 "const_0_to_15_operand" "n,n")
@@ -946,8 +946,8 @@
    (set_attr "prefixed" "yes")])
 
 (define_insn "mma_<avvi4i4i4>"
-  [(set (match_operand:XO 0 "fpr_reg_operand" "=&d,&d")
-	(unspec:XO [(match_operand:XO 1 "fpr_reg_operand" "0,0")
+  [(set (match_operand:XO 0 "accumulator_operand" "=&wD,&wD")
+	(unspec:XO [(match_operand:XO 1 "accumulator_operand" "0,0")
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")
 		    (match_operand:SI 4 "const_0_to_15_operand" "n,n")
