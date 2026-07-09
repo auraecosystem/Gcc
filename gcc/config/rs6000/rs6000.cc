@@ -2008,7 +2008,8 @@ static bool
 rs6000_modes_tieable_p (machine_mode mode1, machine_mode mode2)
 {
   if (mode1 == PTImode || mode1 == OOmode || mode1 == XOmode
-      || mode2 == PTImode || mode2 == OOmode || mode2 == XOmode)
+      || mode1 == TDOmode || mode2 == PTImode || mode2 == OOmode
+      || mode2 == XOmode || mode2 == TDOmode)
     return mode1 == mode2;
 
   if (ALTIVEC_OR_VSX_VECTOR_MODE (mode1))
@@ -2775,7 +2776,8 @@ rs6000_setup_reg_addr_masks (void)
 	     only do offset loads.  */
 	  else if ((addr_mask != 0)
 		   && ((TARGET_MMA && (m2 == OOmode || m2 == XOmode))
-		        || (TARGET_DMF && (m2 == TDOmode))))
+		        || (TARGET_DMF
+			    && (m2 == OOmode || m2 == XOmode ||m2 == TDOmode))))
 	    {
 	      addr_mask |= RELOAD_REG_OFFSET;
 	      if (rc == RELOAD_REG_FPR || rc == RELOAD_REG_VMX)
@@ -8745,7 +8747,10 @@ reg_offset_addressing_ok_p (machine_mode mode)
 	 underlying vectors support offset addressing.  */
     case E_OOmode:
     case E_XOmode:
-      return TARGET_MMA;
+      return TARGET_MMA || TARGET_DMF;
+
+    case E_TDOmode:
++      return TARGET_DMF;
 
     case E_SDmode:
       /* If we can do direct load/stores of SDmode, restrict it to reg+reg
