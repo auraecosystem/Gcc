@@ -8750,7 +8750,7 @@ reg_offset_addressing_ok_p (machine_mode mode)
       return TARGET_MMA || TARGET_DMF;
 
     case E_TDOmode:
-+      return TARGET_DMF;
+      return TARGET_DMF;
 
     case E_SDmode:
       /* If we can do direct load/stores of SDmode, restrict it to reg+reg
@@ -14253,6 +14253,18 @@ print_operand (FILE *file, rtx x, int code)
 
     case 'A':
       /* Write the MMA accumulator number associated with VSX register X.  */
+	if (TARGET_DMF)
+	{
+	  if (!REG_P (x) || !DMR_REGNO_P (REGNO (x)))
+	    output_operand_lossage ("invalid %%A value");
+	  else
+#ifdef TARGET_REGNAMES
+	    fprintf (file, "%%dm%d", (REGNO (x) - FIRST_DMR_REGNO));
+#else
+	    fprintf (file, "%d", (REGNO (x) - FIRST_DMR_REGNO));
+#endif
+	  return;
+	}
       if (!REG_P (x) || !FP_REGNO_P (REGNO (x)) || (REGNO (x) % 4) != 0)
 	output_operand_lossage ("invalid %%A value");
       else
