@@ -102,7 +102,7 @@
    UNSPEC_DMF_DMXVI8GERX4PP
    UNSPEC_DMF_PMDMXVI8GERX4
    UNSPEC_DMF_PMDMXVI8GERX4PP
-   UNSPEC_MMA_DMSETDMRZ
+   UNSPEC_DMF_DMSETDMRZ
    UNSPEC_DM_RELOAD_FROM_MEMORY
    UNSPEC_DMF_DMXVI8GERX4SPP
    UNSPEC_DMF_PMDMXVI8GERX4SPP
@@ -855,7 +855,7 @@
 
 (define_insn "dmf_dmsetdmrz"
   [(set (match_operand:TDO 0 "dmr_register_operand" "=wD")
-	(unspec:TDO [(const_int 0)] UNSPEC_MMA_DMSETDMRZ))]
+	(unspec:TDO [(const_int 0)] UNSPEC_DMF_DMSETDMRZ))]
   "TARGET_DMF"
   "dmsetdmrz %0"
   [(set_attr "type" "dmf")])
