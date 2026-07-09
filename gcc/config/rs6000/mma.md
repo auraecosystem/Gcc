@@ -586,7 +586,7 @@
 		    (match_operand 2 "const_0_to_1_operand" "n")]
 		   UNSPEC_DMF_EXTRACT512))]
   "TARGET_DMF"
-  "dmxxextfdmr512 %x0,%Y0,%1,%2"
+  "dmxxextfdmr512 %x0,%W0,%1,%2"
   [(set_attr "type" "dmf")])
 
 ;; TDO (1024-bit dense-math) move expander.
