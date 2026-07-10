@@ -14259,10 +14259,11 @@ print_operand (FILE *file, rtx x, int code)
 	    output_operand_lossage ("invalid %%A value");
 	  else
 #ifdef TARGET_REGNAMES
-	    fprintf (file, "%%dm%d", (REGNO (x) - FIRST_DMR_REGNO));
-#else
-	    fprintf (file, "%d", (REGNO (x) - FIRST_DMR_REGNO));
+	      if (TARGET_REGNAMES)
+		fprintf (file, "%%dm%d", REGNO (x) - FIRST_DMR_REGNO);
+	      else
 #endif
+		fprintf (file, "%d", REGNO (x) - FIRST_DMR_REGNO);
 	  return;
 	}
       if (!REG_P (x) || !FP_REGNO_P (REGNO (x)) || (REGNO (x) % 4) != 0)
