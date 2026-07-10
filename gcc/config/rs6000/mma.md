@@ -606,7 +606,7 @@
    && (gpc_reg_operand (operands[0], TDOmode)
        || gpc_reg_operand (operands[1], TDOmode))"
 {
-  if (which_alternative == 4)
+  if (which_alternative == 3)
     return "dmmr %0,%1";
   else
     return "#";
