@@ -824,11 +824,11 @@
 
 (define_insn_and_split "*mma_disassemble_acc"
   [(set (match_operand:V16QI 0 "mma_disassemble_output_operand" "=mwa")
-       (unspec:V16QI [(match_operand:XO 1 "accumulator_operand" "wD")
+       (unspec:V16QI [(match_operand:XO 1 "fpr_reg_operand" "d")
                       (match_operand 2 "const_0_to_3_operand")]
                       UNSPEC_MMA_EXTRACT))]
   "TARGET_MMA
-   && accumulator_operand (operands[1], XOmode)"
+   && fpr_reg_operand (operands[1], XOmode)"
   "#"
   "&& reload_completed"
   [(const_int 0)]
