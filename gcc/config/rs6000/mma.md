@@ -166,6 +166,7 @@
 					 UNSPEC_MMA_XVF32GERNN])
 
 ;; MMA instructions with 1 vector pair and 1 vector arguments
+;; DMF instructions with 1 vector pair and 1 vector arguments
 (define_int_iterator MMA_PV		[UNSPEC_MMA_XVF64GER])
 
 ; DMF instructions with 1 vector pair and 1 vector arguments
@@ -276,6 +277,14 @@
 				 (UNSPEC_MMA_XVBF16GER2		"xvbf16ger2")
 				 (UNSPEC_MMA_XVF32GER		"xvf32ger")])
 
+(define_int_attr dmvv		[(UNSPEC_MMA_XVI4GER8		"dmxvi4ger8")
+				 (UNSPEC_MMA_XVI8GER4		"dmxvi8ger4")
+				 (UNSPEC_MMA_XVI16GER2		"dmxvi16ger2")
+				 (UNSPEC_MMA_XVI16GER2S		"dmxvi16ger2s")
+				 (UNSPEC_MMA_XVF16GER2		"dmxvf16ger2")
+				 (UNSPEC_MMA_XVBF16GER2		"dmxvbf16ger2")
+				 (UNSPEC_MMA_XVF32GER		"dmxvf32ger")])
+
 (define_int_attr avv		[(UNSPEC_MMA_XVI4GER8PP		"xvi4ger8pp")
 				 (UNSPEC_MMA_XVI8GER4PP		"xvi8ger4pp")
 				 (UNSPEC_MMA_XVI8GER4SPP	"xvi8ger4spp")
@@ -294,15 +303,41 @@
 				 (UNSPEC_MMA_XVF32GERNP		"xvf32gernp")
 				 (UNSPEC_MMA_XVF32GERNN		"xvf32gernn")])
 
-(define_int_attr pv		[(UNSPEC_MMA_XVF64GER		"xvf64ger")
-				 (UNSPEC_DMF_DMXVI8GERX4        "dmxvi8gerx4")
-				 (UNSPEC_DMF_DMXVBF16GERX2      "dmxvbf16gerx2")
-				 (UNSPEC_DMF_DMXVF16GERX2	"dmxvf16gerx2")])
+(define_int_attr dmavv		[(UNSPEC_MMA_XVI4GER8PP		"dmxvi4ger8pp")
+				 (UNSPEC_MMA_XVI8GER4PP		"dmxvi8ger4pp")
+				 (UNSPEC_MMA_XVI8GER4SPP	"dmxvi8ger4spp")
+				 (UNSPEC_MMA_XVI16GER2PP	"dmxvi16ger2pp")
+				 (UNSPEC_MMA_XVI16GER2SPP	"dmxvi16ger2spp")
+				 (UNSPEC_MMA_XVF16GER2PP	"dmxvf16ger2pp")
+				 (UNSPEC_MMA_XVF16GER2PN	"dmxvf16ger2pn")
+				 (UNSPEC_MMA_XVF16GER2NP	"dmxvf16ger2np")
+				 (UNSPEC_MMA_XVF16GER2NN	"dmxvf16ger2nn")
+				 (UNSPEC_MMA_XVBF16GER2PP	"dmxvbf16ger2pp")
+				 (UNSPEC_MMA_XVBF16GER2PN	"dmxvbf16ger2pn")
+				 (UNSPEC_MMA_XVBF16GER2NP	"dmxvbf16ger2np")
+				 (UNSPEC_MMA_XVBF16GER2NN	"dmxvbf16ger2nn")
+				 (UNSPEC_MMA_XVF32GERPP		"dmxvf32gerpp")
+				 (UNSPEC_MMA_XVF32GERPN		"dmxvf32gerpn")
+				 (UNSPEC_MMA_XVF32GERNP		"dmxvf32gernp")
+				 (UNSPEC_MMA_XVF32GERNN		"dmxvf32gernn")])
+
+(define_int_attr pv		[(UNSPEC_MMA_XVF64GER		"xvf64ger")])
+
+(define_int_attr dmpv		[(UNSPEC_MMA_XVF64GER		"dmxvf64ger")])
+
+(define_int_attr newdmpv	 [(UNSPEC_DMF_DMXVI8GERX4        "dmxvi8gerx4")
+                                 (UNSPEC_DMF_DMXVBF16GERX2      "dmxvbf16gerx2")
+                                 (UNSPEC_DMF_DMXVF16GERX2       "dmxvf16gerx2")])
 
 (define_int_attr apv		[(UNSPEC_MMA_XVF64GERPP		"xvf64gerpp")
 				 (UNSPEC_MMA_XVF64GERPN		"xvf64gerpn")
 				 (UNSPEC_MMA_XVF64GERNP		"xvf64gernp")
 				 (UNSPEC_MMA_XVF64GERNN		"xvf64gernn")])
+
+(define_int_attr dmapv		[(UNSPEC_MMA_XVF64GERPP		"dmxvf64gerpp")
+				 (UNSPEC_MMA_XVF64GERPN		"dmxvf64gerpn")
+				 (UNSPEC_MMA_XVF64GERNP		"dmxvf64gernp")
+				 (UNSPEC_MMA_XVF64GERNN		"dmxvf64gernn")])
 
 (define_int_attr dpv		[(UNSPEC_DMF_DMXVI8GERX4PP	"dmxvi8gerx4pp")
 				 (UNSPEC_DMF_DMXVI8GERX4SPP	"dmxvi8gerx4spp")
@@ -317,12 +352,21 @@
 
 (define_int_attr vvi4i4i8	[(UNSPEC_MMA_PMXVI4GER8		"pmxvi4ger8")])
 
+(define_int_attr dmvvi4i4i8	[(UNSPEC_MMA_PMXVI4GER8		"pmdmxvi4ger8")])
+
 (define_int_attr avvi4i4i8	[(UNSPEC_MMA_PMXVI4GER8PP	"pmxvi4ger8pp")])
+
+(define_int_attr dmavvi4i4i8	[(UNSPEC_MMA_PMXVI4GER8PP	"pmdmxvi4ger8pp")])
 
 (define_int_attr vvi4i4i2	[(UNSPEC_MMA_PMXVI16GER2	"pmxvi16ger2")
 				 (UNSPEC_MMA_PMXVI16GER2S	"pmxvi16ger2s")
 				 (UNSPEC_MMA_PMXVF16GER2	"pmxvf16ger2")
 				 (UNSPEC_MMA_PMXVBF16GER2	"pmxvbf16ger2")])
+
+(define_int_attr dmvvi4i4i2	[(UNSPEC_MMA_PMXVI16GER2	"pmdmxvi16ger2")
+				 (UNSPEC_MMA_PMXVI16GER2S	"pmdmxvi16ger2s")
+				 (UNSPEC_MMA_PMXVF16GER2	"pmdmxvf16ger2")
+				 (UNSPEC_MMA_PMXVBF16GER2	"pmdmxvbf16ger2")])
 
 (define_int_attr avvi4i4i2	[(UNSPEC_MMA_PMXVI16GER2PP	"pmxvi16ger2pp")
 				 (UNSPEC_MMA_PMXVI16GER2SPP	"pmxvi16ger2spp")
@@ -335,24 +379,54 @@
 				 (UNSPEC_MMA_PMXVBF16GER2NP	"pmxvbf16ger2np")
 				 (UNSPEC_MMA_PMXVBF16GER2NN	"pmxvbf16ger2nn")])
 
+(define_int_attr dmavvi4i4i2	[(UNSPEC_MMA_PMXVI16GER2PP	"pmdmxvi16ger2pp")
+				 (UNSPEC_MMA_PMXVI16GER2SPP	"pmdmxvi16ger2spp")
+				 (UNSPEC_MMA_PMXVF16GER2PP	"pmdmxvf16ger2pp")
+				 (UNSPEC_MMA_PMXVF16GER2PN	"pmdmxvf16ger2pn")
+				 (UNSPEC_MMA_PMXVF16GER2NP	"pmdmxvf16ger2np")
+				 (UNSPEC_MMA_PMXVF16GER2NN	"pmdmxvf16ger2nn")
+				 (UNSPEC_MMA_PMXVBF16GER2PP	"pmdmxvbf16ger2pp")
+				 (UNSPEC_MMA_PMXVBF16GER2PN	"pmdmxvbf16ger2pn")
+				 (UNSPEC_MMA_PMXVBF16GER2NP	"pmdmxvbf16ger2np")
+				 (UNSPEC_MMA_PMXVBF16GER2NN	"pmdmxvbf16ger2nn")])
+
 (define_int_attr vvi4i4		[(UNSPEC_MMA_PMXVF32GER		"pmxvf32ger")])
+
+(define_int_attr dmvvi4i4	[(UNSPEC_MMA_PMXVF32GER		"pmdmxvf32ger")])
 
 (define_int_attr avvi4i4	[(UNSPEC_MMA_PMXVF32GERPP	"pmxvf32gerpp")
 				 (UNSPEC_MMA_PMXVF32GERPN	"pmxvf32gerpn")
 				 (UNSPEC_MMA_PMXVF32GERNP	"pmxvf32gernp")
 				 (UNSPEC_MMA_PMXVF32GERNN	"pmxvf32gernn")])
 
+(define_int_attr dmavvi4i4	[(UNSPEC_MMA_PMXVF32GERPP	"pmdmxvf32gerpp")
+				 (UNSPEC_MMA_PMXVF32GERPN	"pmdmxvf32gerpn")
+				 (UNSPEC_MMA_PMXVF32GERNP	"pmdmxvf32gernp")
+				 (UNSPEC_MMA_PMXVF32GERNN	"pmdmxvf32gernn")])
+
 (define_int_attr pvi4i2		[(UNSPEC_MMA_PMXVF64GER		"pmxvf64ger")])
+
+(define_int_attr dmpvi4i2	[(UNSPEC_MMA_PMXVF64GER		"pmdmxvf64ger")])
 
 (define_int_attr apvi4i2	[(UNSPEC_MMA_PMXVF64GERPP	"pmxvf64gerpp")
 				 (UNSPEC_MMA_PMXVF64GERPN	"pmxvf64gerpn")
 				 (UNSPEC_MMA_PMXVF64GERNP	"pmxvf64gernp")
 				 (UNSPEC_MMA_PMXVF64GERNN	"pmxvf64gernn")])
 
+(define_int_attr dmapvi4i2	[(UNSPEC_MMA_PMXVF64GERPP	"pmdmxvf64gerpp")
+				 (UNSPEC_MMA_PMXVF64GERPN	"pmdmxvf64gerpn")
+				 (UNSPEC_MMA_PMXVF64GERNP	"pmdmxvf64gernp")
+				 (UNSPEC_MMA_PMXVF64GERNN	"pmdmxvf64gernn")])
+
 (define_int_attr vvi4i4i4	[(UNSPEC_MMA_PMXVI8GER4		"pmxvi8ger4")])
+
+(define_int_attr dmvvi4i4i4	[(UNSPEC_MMA_PMXVI8GER4		"pmdmxvi8ger4")])
 
 (define_int_attr avvi4i4i4	[(UNSPEC_MMA_PMXVI8GER4PP	"pmxvi8ger4pp")
 				 (UNSPEC_MMA_PMXVI8GER4SPP	"pmxvi8ger4spp")])
+
+(define_int_attr dmavvi4i4i4	[(UNSPEC_MMA_PMXVI8GER4PP	"pmdmxvi8ger4pp")
+				 (UNSPEC_MMA_PMXVI8GER4SPP	"pmdmxvi8ger4spp")])
 
 (define_int_attr pvi8i4i4	[(UNSPEC_DMF_PMDMXVI8GERX4      "pmdmxvi8gerx4")])
 
@@ -880,7 +954,11 @@
 	(unspec_volatile:XO [(const_int 0)]
 			    UNSPECV_MMA_XXSETACCZ))]
   "TARGET_MMA"
-  "xxsetaccz %A0"
+  {
+    if (TARGET_DMF)
+      return "dmxxsetaccz %A0";
+    return "xxsetaccz %A0";
+  }
   [(set_attr "type" "mma")])
 
 (define_insn "dmf_dmsetdmrz"
@@ -896,7 +974,11 @@
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")]
 		    MMA_VV))]
   "TARGET_MMA"
-  "<vv> %A0,%x1,%x2"
+  {
+    if (TARGET_DMF)
+      return "<dmvv> %A0,%x1,%x2";
+    return "<vv> %A0,%x1,%x2";
+  }
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<avv>"
@@ -906,7 +988,11 @@
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")]
 		    MMA_AVV))]
   "TARGET_MMA"
-  "<avv> %A0,%x2,%x3"
+  {
+    if (TARGET_DMF)
+      return "<dmavv> %A0,%x2,%x3";
+    return "<avv> %A0,%x2,%x3";
+  }
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<pv>"
@@ -915,7 +1001,11 @@
 		    (match_operand:V16QI 2 "vsx_register_operand" "v,?wa")]
 		    MMA_PV))]
   "TARGET_MMA"
-  "<pv> %A0,%x1,%x2"
+  {
+    if (TARGET_DMF)
+      return "<dmpv> %A0,%x1,%x2";
+    return "<pv> %A0,%x1,%x2";
+  }
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<apv>"
@@ -925,7 +1015,11 @@
 		    (match_operand:V16QI 3 "vsx_register_operand" "v,?wa")]
 		    MMA_APV))]
   "TARGET_MMA"
-  "<apv> %A0,%x2,%x3"
+  {
+    if (TARGET_DMF)
+      return "<dmapv> %A0,%x2,%x3";
+    return "<apv> %A0,%x2,%x3";
+  }
   [(set_attr "type" "mma")])
 
 (define_insn "mma_<vvi4i4i8>"
@@ -937,7 +1031,11 @@
 		    (match_operand:SI 5 "u8bit_cint_operand" "n,n")]
 		    MMA_VVI4I4I8))]
   "TARGET_MMA"
-  "<vvi4i4i8> %A0,%x1,%x2,%3,%4,%5"
+  {
+    if (TARGET_DMF)
+      return "<dmvvi4i4i8> %A0,%x1,%x2,%3,%4,%5";
+    return "<vvi4i4i8> %A0,%x1,%x2,%3,%4,%5";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -951,7 +1049,11 @@
 		    (match_operand:SI 6 "u8bit_cint_operand" "n,n")]
 		    MMA_AVVI4I4I8))]
   "TARGET_MMA"
-  "<avvi4i4i8> %A0,%x2,%x3,%4,%5,%6"
+  {
+    if (TARGET_DMF)
+      return "<dmavvi4i4i8> %A0,%x2,%x3,%4,%5,%6";
+    return "<avvi4i4i8> %A0,%x2,%x3,%4,%5,%6";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -964,7 +1066,11 @@
 		    (match_operand:SI 5 "const_0_to_3_operand" "n,n")]
 		    MMA_VVI4I4I2))]
   "TARGET_MMA"
-  "<vvi4i4i2> %A0,%x1,%x2,%3,%4,%5"
+  {
+    if (TARGET_DMF)
+      return "<dmvvi4i4i2> %A0,%x1,%x2,%3,%4,%5";
+    return "<vvi4i4i2> %A0,%x1,%x2,%3,%4,%5";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -978,7 +1084,11 @@
 		    (match_operand:SI 6 "const_0_to_3_operand" "n,n")]
 		    MMA_AVVI4I4I2))]
   "TARGET_MMA"
-  "<avvi4i4i2> %A0,%x2,%x3,%4,%5,%6"
+  {
+    if (TARGET_DMF)
+      return "<dmavvi4i4i2> %A0,%x2,%x3,%4,%5,%6";
+    return "<avvi4i4i2> %A0,%x2,%x3,%4,%5,%6";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -990,7 +1100,11 @@
 		    (match_operand:SI 4 "const_0_to_15_operand" "n,n")]
 		    MMA_VVI4I4))]
   "TARGET_MMA"
-  "<vvi4i4> %A0,%x1,%x2,%3,%4"
+  {
+    if (TARGET_DMF)
+      return "<dmvvi4i4> %A0,%x1,%x2,%3,%4";
+    return "<vvi4i4> %A0,%x1,%x2,%3,%4";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -1003,7 +1117,11 @@
 		    (match_operand:SI 5 "const_0_to_15_operand" "n,n")]
 		    MMA_AVVI4I4))]
   "TARGET_MMA"
-  "<avvi4i4> %A0,%x2,%x3,%4,%5"
+  {
+    if (TARGET_DMF)
+      return "<dmavvi4i4> %A0,%x2,%x3,%4,%5";
+    return "<avvi4i4> %A0,%x2,%x3,%4,%5";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -1015,7 +1133,11 @@
 		    (match_operand:SI 4 "const_0_to_3_operand" "n,n")]
 		    MMA_PVI4I2))]
   "TARGET_MMA"
-  "<pvi4i2> %A0,%x1,%x2,%3,%4"
+  {
+    if (TARGET_DMF)
+      return "<dmpvi4i2> %A0,%x1,%x2,%3,%4";
+    return "<pvi4i2> %A0,%x1,%x2,%3,%4";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -1028,7 +1150,11 @@
 		    (match_operand:SI 5 "const_0_to_3_operand" "n,n")]
 		    MMA_APVI4I2))]
   "TARGET_MMA"
-  "<apvi4i2> %A0,%x2,%x3,%4,%5"
+  {
+    if (TARGET_DMF)
+      return "<dmapvi4i2> %A0,%x2,%x3,%4,%5";
+    return "<apvi4i2> %A0,%x2,%x3,%4,%5";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -1041,7 +1167,11 @@
 		    (match_operand:SI 5 "const_0_to_15_operand" "n,n")]
 		    MMA_VVI4I4I4))]
   "TARGET_MMA"
-  "<vvi4i4i4> %A0,%x1,%x2,%3,%4,%5"
+  {
+    if (TARGET_DMF)
+      return "<dmvvi4i4i4> %A0,%x1,%x2,%3,%4,%5";
+    return "<vvi4i4i4> %A0,%x1,%x2,%3,%4,%5";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -1055,7 +1185,11 @@
 		    (match_operand:SI 6 "const_0_to_15_operand" "n,n")]
 		    MMA_AVVI4I4I4))]
   "TARGET_MMA"
-  "<avvi4i4i4> %A0,%x2,%x3,%4,%5,%6"
+  {
+    if (TARGET_DMF)
+      return "<dmavvi4i4i4> %A0,%x2,%x3,%4,%5,%6";
+    return "<avvi4i4i4> %A0,%x2,%x3,%4,%5,%6";
+  }
   [(set_attr "type" "mma")
    (set_attr "prefixed" "yes")])
 
@@ -1110,14 +1244,14 @@
    (set_attr "type" "vecload")])
 
 
-(define_insn "dmf_<pv>"
+(define_insn "dmf_<newdmpv>"
   [(set (match_operand:TDO 0 "dmr_register_operand" "=wD")
        (unspec:TDO [(match_operand:OO 1 "vsx_register_operand" "wa")
                    (match_operand:V16QI 2 "vsx_register_operand" "wa")]
                    DMF_PV))]
   "TARGET_DMF"
 {
-  return "<pv> %0,%x1,%x2";
+  return "<newdmpv> %0,%x1,%x2";
 }
   [(set_attr "type" "dmf")])
 
