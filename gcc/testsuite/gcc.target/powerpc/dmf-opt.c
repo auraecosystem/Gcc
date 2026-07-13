@@ -11,4 +11,4 @@ test1 (__vector_quad *dst)
   *dst = acc;
 }
 
-/* { dg-final { scan-assembler-times {\mxxsetaccz\M} 1 } } */
+/* { dg-final { scan-assembler-times {\mdmxxsetaccz\M} 1 } } */
