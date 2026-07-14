@@ -7503,6 +7503,8 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	 the trans_assignment below will set the vptr.  */
       if (al_vptr != NULL_TREE && (!code->expr3 || code->expr3->mold))
 	{
+	  if (TREE_CODE (al_vptr) == NOP_EXPR)
+	    al_vptr = TREE_OPERAND (al_vptr, 0);
 	  if (expr3_vptr != NULL_TREE)
 	    /* The vtab is already known, so just assign it.  */
 	    gfc_add_modify (&block, al_vptr,
