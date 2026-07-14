@@ -10670,13 +10670,6 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl, tree dest,
 	      else
 		nelems = build_int_cst (size_type_node, 1);
 
-	      if (CLASS_DATA (c)->attr.dimension
-		  || CLASS_DATA (c)->attr.codimension)
-		{
-		  src_data = gfc_conv_descriptor_data_get (src_data);
-		  dst_data = gfc_conv_descriptor_data_get (dst_data);
-		}
-
 	      gfc_init_block (&tmpblock);
 
 	      gfc_add_modify (&tmpblock, gfc_class_vptr_get (dcmp),
@@ -10710,9 +10703,17 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl, tree dest,
 	      tmp = gfc_finish_block (&tmpblock);
 
 	      gfc_init_block (&tmpblock);
-	      gfc_add_modify (&tmpblock, dst_data,
-			      fold_convert (TREE_TYPE (dst_data),
-					    null_pointer_node));
+	      if (CLASS_DATA (c)->attr.dimension
+		  || CLASS_DATA (c)->attr.codimension)
+		{
+		  gfc_conv_descriptor_data_set (&tmpblock, dst_data,
+						null_pointer_node);
+		  src_data = gfc_conv_descriptor_data_get (src_data);
+		}
+	      else
+		gfc_add_modify (&tmpblock, dst_data,
+				fold_convert (TREE_TYPE (dst_data),
+					      null_pointer_node));
 	      null_data = gfc_finish_block (&tmpblock);
 
 	      null_cond = fold_build2_loc (input_location, NE_EXPR,
