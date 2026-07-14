@@ -1834,16 +1834,23 @@ gfc_deallocate_with_status (tree pointer, tree status, tree errmsg, tree errlen,
 	    {
 	      token = caf_token;
 	      if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (pointer)))
-		pointer = gfc_conv_descriptor_data_get (pointer);
+		{
+		  descr = pointer;
+		  pointer = gfc_conv_descriptor_data_get (descr);
+		}
 	    }
 	  else
 	    {
-	      tree caf_type, caf_decl = pointer;
+	      tree caf_type;
+	      tree caf_decl = pointer;
 	      pointer = gfc_conv_descriptor_data_get (caf_decl);
 	      caf_type = TREE_TYPE (caf_decl);
 	      STRIP_NOPS (pointer);
 	      if (GFC_DESCRIPTOR_TYPE_P (caf_type))
-		token = gfc_conv_descriptor_token (caf_decl);
+		{
+		  descr = caf_decl;
+		  token = gfc_conv_descriptor_token (caf_decl);
+		}
 	      else if (DECL_LANG_SPECIFIC (caf_decl)
 		       && GFC_DECL_TOKEN (caf_decl) != NULL_TREE)
 		token = GFC_DECL_TOKEN (caf_decl);
@@ -1869,7 +1876,10 @@ gfc_deallocate_with_status (tree pointer, tree status, tree errmsg, tree errlen,
 	}
       else if (flag_coarray == GFC_FCOARRAY_SINGLE
 	       && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (pointer)))
-	pointer = gfc_conv_descriptor_data_get (pointer);
+	{
+	  descr = pointer;
+	  pointer = gfc_conv_descriptor_data_get (descr);
+	}
     }
   else if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (pointer)))
     {
@@ -1943,8 +1953,11 @@ gfc_deallocate_with_status (tree pointer, tree status, tree errmsg, tree errlen,
 			    omp_tmp, tmp);
 	}
       gfc_add_expr_to_block (&non_null, tmp);
-      gfc_add_modify (&non_null, pointer, build_int_cst (TREE_TYPE (pointer),
-							 0));
+      if (descr != nullptr)
+	gfc_conv_descriptor_data_set (&non_null, descr, null_pointer_node);
+      else
+	gfc_add_modify (&non_null, pointer,
+			build_int_cst (TREE_TYPE (pointer), 0));
       if (flag_openmp_allocators && descr)
 	gfc_conv_descriptor_version_set (&non_null, descr, integer_zero_node);
 
@@ -2024,6 +2037,8 @@ gfc_deallocate_with_status (tree pointer, tree status, tree errmsg, tree errlen,
 				 tmp, nullify);
 	  gfc_add_expr_to_block (&non_null, tmp);
 	}
+      else if (descr != nullptr)
+	gfc_conv_descriptor_data_set (&non_null, descr, null_pointer_node);
       else
 	gfc_add_modify (&non_null, pointer, build_int_cst (TREE_TYPE (pointer),
 							   0));
