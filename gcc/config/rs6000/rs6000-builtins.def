@@ -4056,10 +4056,10 @@
   dmr1024 __builtin_dmmr_internal (dmr1024);
     DMMR_INTERNAL movtdo {dm}
 
-  void __builtin_mma_dmr_extract512 (void *, dmr1024 *, const int<2>);
+  void __builtin_dmr_extract512 (void *, dmr1024 *, const int<2>);
     DM_EXTRACT512 nothing {dm,dmint}
 
-  v512 __builtin_mma_dmr_extract512_internal (dmr1024, const int<2>);
+  v512 __builtin_dmr_extract512_internal (dmr1024, const int<2>);
     DM_EXTRACT512_INTERNAL dm_extract512 {dm}
 
   void __builtin_dmxor (dmr1024 *, dmr1024 *);
@@ -4074,7 +4074,7 @@
   dmr1024 __builtin_build_dmr_internal (vuc, vuc, vuc, vuc, vuc, vuc, vuc, vuc);
     BUILD_DMR_INTERNAL dmf_build_dmr {dm}
 
-  void __builtin_mma_disassemble_dmr (void *, dmr1024 *);
+  void __builtin_disassemble_dmr (void *, dmr1024 *);
     DISASSEMBLE_DMR nothing {dm}
 
   void __builtin_mma_dmxvi8gerx4 (dmr1024 *, v256, vuc);

@@ -9,7 +9,7 @@ void
 bar (vec_t *dst, __dmr1024 *src)
 {
   vec_t res[4];
-  __builtin_mma_dmr_extract512 (res, src, 0);
+  __builtin_dmr_extract512 (res, src, 0);
   dst[0] = res[0];
   dst[2] = res[1];
   dst[4] = res[2];
