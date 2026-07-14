@@ -11985,6 +11985,9 @@ gfc_trans_scalar_assign (gfc_se *lse, gfc_se *rse, gfc_typespec ts,
 	    }
 	  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (lse->expr)))
 	    lse->expr = gfc_conv_array_data (lse->expr);
+	  /* We create those for scalar coarrays.  */
+	  else if (TREE_CODE (lse->expr) == NOP_EXPR)
+	    lse->expr = TREE_OPERAND (lse->expr, 0);
 	  if (flag_coarray == GFC_FCOARRAY_SINGLE && assoc_assign
 	      && !POINTER_TYPE_P (TREE_TYPE (rse->expr)))
 	    rse->expr = gfc_build_addr_expr (NULL_TREE, rse->expr);
