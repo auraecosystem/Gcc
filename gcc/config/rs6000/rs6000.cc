@@ -2011,7 +2011,8 @@ static bool
 rs6000_modes_tieable_p (machine_mode mode1, machine_mode mode2)
 {
   if (mode1 == PTImode || mode1 == OOmode || mode1 == XOmode
-      || mode2 == PTImode || mode2 == OOmode || mode2 == XOmode)
+      || mode1 == TDOmode || mode2 == PTImode || mode2 == OOmode
+      || mode2 == XOmode || mode2 == TDOmode)
     return mode1 == mode2;
 
   if (ALTIVEC_OR_VSX_VECTOR_MODE (mode1))
@@ -8749,7 +8750,10 @@ reg_offset_addressing_ok_p (machine_mode mode)
 	 underlying vectors support offset addressing.  */
     case E_OOmode:
     case E_XOmode:
-      return TARGET_MMA;
+      return TARGET_MMA || TARGET_DMF;
+
+    case E_TDOmode:
+      return TARGET_DMF;
 
     case E_SDmode:
       /* If we can do direct load/stores of SDmode, restrict it to reg+reg
@@ -13740,6 +13744,26 @@ rs6000_secondary_reload_class (enum reg_class rclass, machine_mode mode,
   /* We can copy among the CR registers.  */
   if ((rclass == CR_REGS || rclass == CR0_REGS)
       && regno >= 0 && CR_REGNO_P (regno))
+    return NO_REGS;
+
+  /* DMR registers can only be moved to/from VSX registers.
+     - DMR -> VSX or VSX -> DMR: direct, no scratch register needed.
+     - DMR -> memory or memory -> DMR: must route through VSX; request
+     VSX_REGS as the intermediate scratch class.
+     - DMR -> DMR: direct move, no scratch needed.  */
+  if (rclass == DMR_REGS)
+    {
+      /* VSX register or another DMR register: direct move, no scratch.  */
+      if (regno >= 0 && (VSX_REGNO_P (regno) || DMR_REGNO_P (regno)))
+       return NO_REGS;
+
+      /* Memory (regno == -1) or unresolved pseudo: need a VSX intermediate.  */
+      return VSX_REGS;
+    }
+
+  /* Copying into a VSX register from a DMR register: direct.  */
+  if ((rclass == VSX_REGS || rclass == FLOAT_REGS || rclass == ALTIVEC_REGS)
+      && regno >= 0 && DMR_REGNO_P (regno))
     return NO_REGS;
 
   /* Otherwise, we need GENERAL_REGS.  */
@@ -22879,6 +22903,31 @@ rs6000_debug_address_cost (rtx x, machine_mode mode,
 }
 
 
+static int
+rs6000_dmr_register_move_cost (machine_mode mode, reg_class_t rclass)
+{
+  const int base_cost = 2;
+  HARD_REG_SET vsx_set = (reg_class_contents[rclass]
+			  & reg_class_contents[VSX_REGS]);
+
+  if (TARGET_DMF && !hard_reg_set_empty_p (vsx_set))
+    {
+      /* XOmode can be copied in 1 instruction.  */
+      if (mode == XOmode)
+       return base_cost;
+
+      /* TDOmode can be copied in 2 instructions.  */
+      else if (mode == TDOmode)
+       return base_cost * 2;
+
+      else
+       return base_cost * 2 * hard_regno_nregs (FIRST_DMR_REGNO, mode);
+    }
+
+  return 1000 * 2 * hard_regno_nregs (FIRST_DMR_REGNO, mode);
+}
+
+
 /* A C expression returning the cost of moving data from a register of class
    CLASS1 to one of CLASS2.  */
 
@@ -22899,10 +22948,20 @@ rs6000_register_move_cost (machine_mode mode,
   HARD_REG_SET to_vsx, from_vsx;
   to_vsx = reg_class_contents[to] & reg_class_contents[VSX_REGS];
   from_vsx = reg_class_contents[from] & reg_class_contents[VSX_REGS];
-  if (!hard_reg_set_empty_p (to_vsx)
-      && !hard_reg_set_empty_p (from_vsx)
-      && (TARGET_VSX
-	  || hard_reg_set_intersect_p (to_vsx, from_vsx)))
+
+  if ((mode == TDOmode || mode==XOmode) && from == DMR_REGS && to == DMR_REGS)
+    ret = 2 * hard_regno_nregs (FIRST_DMR_REGNO, mode);
+
+  else if (from == DMR_REGS)
+    ret = rs6000_dmr_register_move_cost (mode, to);
+
+  else if (to == DMR_REGS)
+    ret = rs6000_dmr_register_move_cost (mode, from);
+
+  else if (!hard_reg_set_empty_p (to_vsx)
+	   && !hard_reg_set_empty_p (from_vsx)
+	   && (TARGET_VSX
+	       || hard_reg_set_intersect_p (to_vsx, from_vsx)))
     {
       int reg = FIRST_FPR_REGNO;
       if (TARGET_VSX
@@ -22998,6 +23057,9 @@ rs6000_memory_move_cost (machine_mode mode, reg_class_t rclass,
     ret = 4 * hard_regno_nregs (32, mode);
   else if (reg_classes_intersect_p (rclass, ALTIVEC_REGS))
     ret = 4 * hard_regno_nregs (FIRST_ALTIVEC_REGNO, mode);
+  else if (reg_classes_intersect_p (rclass, DMR_REGS))
+    ret = (rs6000_dmr_register_move_cost (mode, VSX_REGS)
+	   + rs6000_memory_move_cost (mode, VSX_REGS, false));
   else
     ret = 4 + rs6000_register_move_cost (mode, rclass, GENERAL_REGS);
 
