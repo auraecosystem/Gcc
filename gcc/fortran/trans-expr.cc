@@ -9101,8 +9101,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  gfc_add_expr_to_block (&se->pre, tmp);
 
 	  /* Finally free the temporary's data field.  */
-	  tmp = gfc_conv_descriptor_data_get (tmp2);
-	  tmp = gfc_deallocate_with_status (tmp, NULL_TREE, NULL_TREE,
+	  tmp = gfc_deallocate_with_status (tmp2, NULL_TREE, NULL_TREE,
 					    NULL_TREE, NULL_TREE, true,
 					    NULL, GFC_CAF_COARRAY_NOCOARRAY);
 	  gfc_add_expr_to_block (&se->pre, tmp);
