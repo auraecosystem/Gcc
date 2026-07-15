@@ -10693,8 +10693,11 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl, tree dest,
 		{
 		  ftn_tree = builtin_decl_explicit (BUILT_IN_MALLOC);
 		  tmp = build_call_expr_loc (input_location, ftn_tree, 1, size);
-		  gfc_add_modify (&tmpblock, dst_data,
-				  fold_convert (TREE_TYPE (dst_data), tmp));
+		  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (dst_data)))
+		    gfc_conv_descriptor_data_set (&tmpblock, dst_data, tmp);
+		  else
+		    gfc_add_modify (&tmpblock, dst_data,
+				    fold_convert (TREE_TYPE (dst_data), tmp));
 		}
 
 	      tmp = gfc_copy_class_to_class (comp, dcmp, nelems,
