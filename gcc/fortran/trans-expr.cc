@@ -11853,6 +11853,10 @@ gfc_trans_scalar_assign (gfc_se *lse, gfc_se *rse, gfc_typespec ts,
       tree tmp_var = NULL_TREE;
       cond = NULL_TREE;
 
+      if (in_coarray
+	  && TREE_CODE (lse->expr) == NOP_EXPR)
+	lse->expr = TREE_OPERAND (lse->expr, 0);
+
       /* Are the rhs and the lhs the same?  */
       if (deep_copy)
 	{
@@ -11931,6 +11935,11 @@ gfc_trans_scalar_assign (gfc_se *lse, gfc_se *rse, gfc_typespec ts,
       gfc_add_block_to_block (&block, &rse->pre);
       gfc_add_block_to_block (&block, &lse->finalblock);
       gfc_add_block_to_block (&block, &lse->pre);
+
+      if (in_coarray
+	  && TREE_CODE (lse->expr) == NOP_EXPR)
+	lse->expr = TREE_OPERAND (lse->expr, 0);
+
       tmp = fold_build1_loc (input_location, VIEW_CONVERT_EXPR,
 			     TREE_TYPE (lse->expr), rse->expr);
       gfc_add_modify (&block, lse->expr, tmp);
