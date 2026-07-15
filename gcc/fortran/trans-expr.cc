@@ -11308,8 +11308,11 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 			    build_zero_cst (TREE_TYPE (lse.string_length)));
 	}
 
-      gfc_add_modify (&block, lse.expr,
-		      fold_convert (TREE_TYPE (lse.expr), rse.expr));
+      tree dest = lse.expr;
+      if (TREE_CODE (dest) == NOP_EXPR)
+	dest = TREE_OPERAND (dest, 0);
+      gfc_add_modify (&block, dest,
+		      fold_convert (TREE_TYPE (dest), rse.expr));
 
       if (flag_coarray == GFC_FCOARRAY_LIB)
 	{
