@@ -13114,8 +13114,8 @@ trans_class_assignment (stmtblock_t *block, gfc_expr *lhs, gfc_expr *rhs,
 	  re = build_call_expr_loc (input_location,
 				    builtin_decl_explicit (BUILT_IN_REALLOC),
 				    2, tmp, size);
-	  re = fold_build2_loc (input_location, MODIFY_EXPR, TREE_TYPE (tmp),
-				tmp, re);
+	  re = fold_build2_loc (input_location, MODIFY_EXPR,
+				TREE_TYPE (class_han), class_han, re);
 	  tmp = fold_build2_loc (input_location, NE_EXPR,
 				 logical_type_node, rhs_vptr, old_vptr);
 	  re = fold_build3_loc (input_location, COND_EXPR, void_type_node,
