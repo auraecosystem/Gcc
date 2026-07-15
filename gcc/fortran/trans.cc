@@ -848,7 +848,10 @@ gfc_allocate_using_malloc (stmtblock_t * block, tree pointer,
     tmp = build3_loc (input_location, COND_EXPR, TREE_TYPE (tmp), cond,
 		      alt_alloc, tmp);
 
-  gfc_add_modify (block, pointer, fold_convert (TREE_TYPE (pointer), tmp));
+  tree lhs = pointer;
+  if (TREE_CODE (lhs) == NOP_EXPR)
+    lhs = TREE_OPERAND (lhs, 0);
+  gfc_add_modify (block, lhs, fold_convert (TREE_TYPE (lhs), tmp));
 
   /* What to do in case of error.  */
   gfc_start_block (&on_error);
