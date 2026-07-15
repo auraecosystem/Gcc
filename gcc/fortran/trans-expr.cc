@@ -12838,16 +12838,22 @@ alloc_scalar_allocatable_for_assignment (stmtblock_t *block,
 				 builtin_decl_explicit (BUILT_IN_CALLOC),
 				 2, build_one_cst (size_type_node),
 				 size_in_bytes);
-      tmp = fold_convert (TREE_TYPE (lse.expr), tmp);
-      gfc_add_modify (block, lse.expr, tmp);
+      tree dest = lse.expr;
+      if (TREE_CODE (dest) == NOP_EXPR)
+	dest = TREE_OPERAND (dest, 0);
+      tmp = fold_convert (TREE_TYPE (dest), tmp);
+      gfc_add_modify (block, dest, tmp);
     }
   else
     {
       tmp = build_call_expr_loc (input_location,
 				 builtin_decl_explicit (BUILT_IN_MALLOC),
 				 1, size_in_bytes);
-      tmp = fold_convert (TREE_TYPE (lse.expr), tmp);
-      gfc_add_modify (block, lse.expr, tmp);
+      tree dest = lse.expr;
+      if (TREE_CODE (dest) == NOP_EXPR)
+	dest = TREE_OPERAND (dest, 0);
+      tmp = fold_convert (TREE_TYPE (dest), tmp);
+      gfc_add_modify (block, dest, tmp);
     }
 
   if (expr1->ts.type == BT_CHARACTER && expr1->ts.deferred)
@@ -12894,8 +12900,11 @@ alloc_scalar_allocatable_for_assignment (stmtblock_t *block,
 	  tmp = build3_loc (input_location, COND_EXPR, TREE_TYPE (tmp),
 			    omp_cond, omp_tmp, tmp);
 	}
-      tmp = fold_convert (TREE_TYPE (lse.expr), tmp);
-      gfc_add_modify (block, lse.expr, tmp);
+      tree dest = lse.expr;
+      if (TREE_CODE (dest) == NOP_EXPR)
+	dest = TREE_OPERAND (dest, 0);
+      tmp = fold_convert (TREE_TYPE (dest), tmp);
+      gfc_add_modify (block, dest, tmp);
       if (omp_cond)
 	gfc_add_expr_to_block (block,
 			       build3_loc (input_location, COND_EXPR,
