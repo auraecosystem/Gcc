@@ -1317,8 +1317,7 @@ gfc_conv_intrinsic_caf_get (gfc_se *se, gfc_expr *expr, tree lhs,
       opt_dest_desc = gfc_build_addr_expr (NULL_TREE, opt_dest_desc);
       if (may_realloc)
 	{
-	  tmp = gfc_conv_descriptor_data_get (res_var);
-	  tmp = gfc_deallocate_with_status (tmp, NULL_TREE, NULL_TREE,
+	  tmp = gfc_deallocate_with_status (res_var, NULL_TREE, NULL_TREE,
 					    NULL_TREE, NULL_TREE, true, NULL,
 					    GFC_CAF_COARRAY_NOCOARRAY);
 	  gfc_add_expr_to_block (&se->post, tmp);
