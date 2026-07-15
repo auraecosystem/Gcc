@@ -7694,7 +7694,10 @@ gfc_conv_cfi_to_gfc (stmtblock_t *init, stmtblock_t *finally,
 			     size_var, gfc_get_cfi_desc_elem_len (cfi));
       tree call = builtin_decl_explicit (BUILT_IN_MALLOC);
       call = build_call_expr_loc (input_location, call, 1, tmp);
-      gfc_add_modify (&block2, data, fold_convert (TREE_TYPE (data), call));
+      if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (gfc_desc)))
+	gfc_conv_descriptor_data_set (&block2, gfc_desc, call);
+      else
+	gfc_add_modify (&block2, data, fold_convert (TREE_TYPE (data), call));
 
       /* Copy the data:
 	 for (idx = 0; idx < size; ++idx)
