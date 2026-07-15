@@ -4554,16 +4554,16 @@ rs6000_option_override_internal (bool global_init_p)
     }
 
   /* Enable -mdense_math by default on future systems.  */
-  if (TARGET_FUTURE && (rs6000_isa_flags_explicit & OPTION_MASK_DMF) == 0)
-    rs6000_isa_flags |= OPTION_MASK_DMF;
+  if (TARGET_FUTURE && (rs6000_isa_flags_explicit & OPTION_MASK_DENSE_MATH) == 0)
+    rs6000_isa_flags |= OPTION_MASK_DENSE_MATH;
 
   /* Turn off DMF options on non-future systems.  */
   else if (!TARGET_FUTURE && TARGET_DENSE_MATH)
     {
-      if ((rs6000_isa_flags_explicit & OPTION_MASK_DMF) != 0)
+      if ((rs6000_isa_flags_explicit & OPTION_MASK_DENSE_MATH) != 0)
 	error ("%qs requires %qs", "-mdense_math", "-mcpu=future");
 
-      rs6000_isa_flags &= ~OPTION_MASK_DMF;
+      rs6000_isa_flags &= ~OPTION_MASK_DENSE_MATH;
     }
 
   /* Enable power10 fusion if we are tuning for power10, even if we aren't
@@ -24914,7 +24914,7 @@ static struct rs6000_opt_mask const rs6000_opt_masks[] =
   { "power10",			OPTION_MASK_POWER10,		false, true  },
   { "power11",			OPTION_MASK_POWER11,		false, false },
   { "future",			OPTION_MASK_FUTURE,		false, false },
-  { "dense-math",		OPTION_MASK_DMF,		false, true  },
+  { "dense-math",		OPTION_MASK_DENSE_MATH,		false, true  },
   { "hard-dfp",			OPTION_MASK_DFP,		false, true  },
   { "htm",			OPTION_MASK_HTM,		false, true  },
   { "float16",			OPTION_MASK_FLOAT16,		false, true  },
