@@ -116,8 +116,9 @@ struct cbl_loc_t : public cbl_loc_base_t {
         last_line, last_column
       }
   {}
+  // cppcheck-suppress noExplicitConstructor
   cbl_loc_t( const cbl_loc_base_t& base )
-    : cbl_loc_base_t(base)   // cppcheck-suppress noExplicitConstructor
+    : cbl_loc_base_t(base)   
   {}
 
   explicit cbl_loc_t(   int line )
@@ -171,6 +172,7 @@ enum cbl_diag_id_t : uint64_t {
   LexReplaceE,
   LexSeparatorE,
 
+  IbmCallFd,
   IbmCdf,
   IbmEjectE,
   IbmEqualAssignE,

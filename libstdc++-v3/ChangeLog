@@ -1,3 +1,193 @@
+2026-07-14  François Dumont  <frs.dumont@gmail.com>
+
+	* include/debug/safe_iterator.h
+	(_Safe_iterator::_Iter_base, _Safe_iterator::_Safe_base): Remove.
+	(_Safe_iterator(const _Safe_iterator&, _Unchecked)): Delegate to correct base classes
+	constructors.
+	* include/debug/safe_local_iterator.h
+	(_Safe_local_iterator::_Iter_base, _Safe_local_iterator::_Safe_base): Remove.
+	(_Safe_local_iterator(const _Safe_local_iterator&, _Unchecked)): Delegate to the correct
+	base classes constructors.
+
+2026-07-14  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	PR libstdc++/125548
+	* doc/html/manual/using_macros.html:
+	(_GLIBCXX_USE_OLD_PIECEWISE_DISTRIBUTIONS): Mention PR125548
+	* doc/xml/manual/using.xml: Regenerate
+	* include/bits/random.tcc
+	(piecewise_linear_distribution::param_type::param_type(size_t, _RealType, ...)):
+	Update weight computation.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/operators/serialize2.cc:
+	Updated expected values.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/cons/pr125548.cc:
+	New test.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/cons/pr125548_fallback.cc:
+	Run pr125548.cc with _GLIBCXX_USE_OLD_PIECEWISE_DISTRIBUTIONS.
+
+2026-07-14  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	PR libstdc++/82749
+	* doc/xml/manual/using.xml
+	(_GLIBCXX_USE_OLD_PICEWISE_DISTRIBUTIONS): Add entry.
+	(_GLIBCXX_USE_RESULT_TYPE_FOR_PIECEWISE_DENSITIES): Add entry.
+	* doc/html/manual/using_macros.html: Regenerate.
+	* include/bits/random.h
+	(__detail::__piecewise_distributions_storage)
+	(__detail::__piecewise_distributions_storage_t)
+	(piecewise_constant_distribution::_StorageType)
+	(piecewise_linear_distribution::_StorageType): Define.
+	(piecewise_constant_distribution::param_type::_M_den)
+	(piecewise_constant_distribution::param_type::_M_cp)
+	(piecewise_linear_distribution::param_type::_M_den)
+	(piecewise_linear_distribution::param_type::_M_cp)
+	(piecewise_linear_distribution::param_type::_M_m): Use _StorageType
+	as element type.
+	(piecewise_constant_distribution::param_type::densities)
+	(piecewise_linear_distribution::param_type::densities)
+	[!_GLIBCXX_USE_OLD_PICEWISE_DISTRIBUTIONS]: Change return type
+	to vector<result_type>, mark with "__rt" ABI tag, and adjust
+	implementation.
+	(piecewise_constant_distribution::param_type::intervals)
+	(piecewise_linear_distribution::param_type::intervals): Use
+	result_type alias in return type.
+	(piecewise_constant_distribution::densities)
+	(piecewise_linear_distribution::densities): Delegate to param_type
+	method, additional change return type and  mark as always_inline
+	if _GLIBCXX_USE_OLD_PICEWISE_DISTRIBUTIONS is not defined.
+	(piecewise_constant_distribution::intervals)
+	(piecewise_linear_distribution::intervals): Delegate to param_type
+	method and use result_type alias in return type.
+	* include/bits/random.tcc
+	(operator<<(basic_ostream&, const piecewise_constant_distribution&))
+	(operator<<(basic_ostream&, const piecewise_linear_distribution&)):
+	Parse vector of _StorageType for densities, to preserve behavior.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/operators/accessors.cc:
+	New test.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/operators/accessors.cc:
+	New test.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/operators/accessors_exact.cc:
+	Run accessors.cc with _GLIBCXX_USE_RESULT_TYPE_FOR_PIECEWISE_DENSITIES.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/operators/accessors_exact.cc:
+	Likewise.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/operators/accessors_fallback.cc:
+	Run accessors.cc with _GLIBCXX_USE_OLD_PICEWISE_DISTRIBUTIONS.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/operators/accessors_fallback.cc:
+	Likewise.
+
+2026-07-13  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/std/mdspan (layout_stride::mapping::_M_check_unique):
+	Define.
+	(layout_stride::mapping(const extents_type&, span<....>)):
+	Add __glibcxx_assert on _M_check_unique.
+	* testsuite/23_containers/mdspan/layouts/stride_neg.cc:
+	Test for the new added assertions.
+
+2026-07-10  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* testsuite/std/memory/start_lifetime_as/neg.cc: Fix
+	typos in comment and remove trailing whitespaces.
+
+2026-07-10  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/119143
+	* include/tr1/bessel_function.tcc (__cyl_bessel_jn_asymp):
+	Return zero for infinite x.
+	* testsuite/special_functions/08_cyl_bessel_j/check_inf.cc: New
+	test.
+	* testsuite/special_functions/10_cyl_neumann/check_inf.cc: New
+	test.
+	* testsuite/tr1/5_numerical_facilities/special_functions/11_cyl_neumann/check_inf.cc:
+	New test.
+	* testsuite/tr1/5_numerical_facilities/special_functions/09_cyl_bessel_j/check_inf.cc:
+	New test.
+
+2026-07-10  Jonathan Wakely  <jwakely@redhat.com>
+
+	* src/c++17/fs_ops.cc (windows_read_symlink_handle): Use
+	__detail::__is_handle_symlink and report an error for
+	non-symlinks.
+	(filesystem::read_symlink): Remove error handling for
+	non-symlinks.
+	* src/filesystem/ops-common.h (__detail::__open_for_stat): Use
+	std::error_code parameter to report errors instead of setting
+	errno.
+	(__detail::__check_handle_type): Likewise.
+	(__detail::__is_handle_symlink): Likewise.
+	(__detail::__stat_windows): Pass std::error_code to helper
+	functions and set errno to report errors.
+
+2026-07-10  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* testsuite/20_util/has_unique_object_representations/neg.cc:
+	New test.
+
+2026-07-10  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/bits/stl_construct.h (std::start_lifetime_as_array):
+	static_assert that _Tp is complete type.
+	* testsuite/std/memory/start_lifetime_as/neg.cc: New test.
+
+2026-07-10  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/std/ranges (repeat_view::repeat_view): Assert that
+	__bound >= 0 consistently. Replace !same_as<unreachable_sentinel>
+	with __is_signed_integer_like check.
+
+2026-07-09  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	* configure.host: Remove s390 host part; keep s390x.
+
+2026-07-08  Nathan Myers  <ncm@cantrip.org>
+
+	PR libstdc++/118851
+	* include/bits/stl_tree.h (_M_equal_range_tr): Rewrite to match
+	non-heterogeneous equal_range implementation.
+	* testsuite/23_containers/map/operations/hetero/equal_range.cc:
+	New test.
+	* testsuite/23_containers/multimap/operations/hetero/equal_range.cc:
+	Same.
+	* testsuite/23_containers/multiset/operations/hetero/equal_range.cc:
+	Same.
+	* testsuite/23_containers/set/operations/hetero/equal_range.cc: Same.
+
+2026-07-07  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/std/mdspan
+	(layout_stride::mapping::mapping(const extent_type&, span<...>)):
+	Convert strides using __index_type_cast, which bring asserts
+	for negative and unrepresentable values.
+	* testsuite/23_containers/mdspan/layouts/stride_neg.cc: New test.
+
+2026-07-07  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* config/abi/pre/gnu.ver (GLIBCXX_3.4.36): Export basic_format_arg
+	_M_handle_unrecognized method of specializations of
+	format_context and wformat_context.
+	* include/std/format (basic_format_arg::_M_handle_unrecognized):
+	Declare with explicit specializations for (w)format_context
+	if _GLIBCXX_EXTERN_TEMPLATE, and define otherwise.
+	(basic_format_arg::_M_visit): Remove __type parameter, and use
+	_M_type instead. Call _M_handle_unrecognized for unrecognized
+	_Arg_t values.
+	(basic_format_arg::_M_visit_user): Remove __type parameter,
+	and use _M_type instead. Adjust calls to _M_visit.
+	(basic_format_arg::visit, std::visit_format_arg)
+	(__format::__visit_format_arg): Remove _M_type argument from
+	_M_visit(_user) calls.
+	* src/c++20/format-inst.cc
+	(basic_format_arg::_M_handle_unrecognized): Define and export
+	explicit specializations for (w)format_context.
+
+2026-07-07  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/bits/version.def (allocate_at_least): Add comment
+	listing papers adding values and LWG3887.
+	* include/bits/stl_iterator.h: Add comment for LWG3953.
+	* include/std/format: Add comment for LWG3892.
+	* include/std/type_traits: Add comment for LWG3655.
+
 2026-07-06  Thomas Schwinge  <tschwinge@baylibre.com>
 	    Jonathan Wakely  <jwakely@redhat.com>
 

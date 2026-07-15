@@ -1,3 +1,37 @@
+2026-07-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124948
+	* c-common.cc (sync_resolve_size): Return -1 for fetch ops
+	on _BitInt types with padding bits where the target requires
+	extension into the padding bits.
+	(atomic_bitint_fetch_using_cas_loop): Handle also __sync_*
+	fetch builtins.
+
+2026-07-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/120635
+	* c.opt (Winvalid-specialization): New option.
+	* c.opt.urls: Regenerate.
+	* c-lex.cc (c_common_has_attribute): Don't advertise
+	gnu::no_specializations attribute availability.
+
+2026-07-13  Marek Polacek  <polacek@redhat.com>
+
+	PR c++/126066
+	* c-common.cc (verify_tree): Add a comment.
+
+2026-07-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/107187
+	* c-lex.cc (c_common_has_attribute): Don't advertise
+	__has_cpp_attribute (gnu::trivial_abi) in C++.
+
+2026-07-08  Martin Uecker  <uecker@tugraz.at>
+
+	* c-attribs.cc (handle_counted_by_attribute): Adapt.
+	* c-common.h (c_flexible_array_member_type_p): Remove.
+	* c-common.cc (c_flexible_array_member_type_p): Remove.
+
 2026-06-30  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/125837

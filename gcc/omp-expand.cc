@@ -5190,38 +5190,6 @@ expand_omp_for_static_nochunk (struct omp_region *region,
 	  release_ssa_name (gimple_assign_lhs (g));
 	}
     }
-  /* Fetch the thread/team id and the number of threads/teams in a single
-     call to GOMP_loop_static_worksharing or GOMP_distribute_static_worksharing.
-     The helper returns both values packed into one complex int, with
-     the id as the imaginary part and the count as the real part.  Returning
-     (rather than writing through pointers) keeps both values as plain SSA
-     names, which lets later passes - notably IPA-CP propagating constants
-     into the outlined kernel - reason about them.  */
-  tree decl;
-  switch (gimple_omp_for_kind (fd->for_stmt))
-    {
-    case GF_OMP_FOR_KIND_FOR:
-      decl = builtin_decl_explicit (BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING);
-      break;
-    case GF_OMP_FOR_KIND_DISTRIBUTE:
-      decl = builtin_decl_explicit (BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING);
-      break;
-    default:
-      gcc_unreachable ();
-    }
-  {
-    tree packed = build_call_expr (decl, 0);
-    packed = force_gimple_operand_gsi (&gsi, packed, true, NULL_TREE,
-				       true, GSI_SAME_STMT);
-    threadid = fold_build1 (IMAGPART_EXPR, integer_type_node, packed);
-    threadid = fold_convert (itype, threadid);
-    threadid = force_gimple_operand_gsi (&gsi, threadid, true, NULL_TREE,
-					 true, GSI_SAME_STMT);
-    nthreads = fold_build1 (REALPART_EXPR, integer_type_node, packed);
-    nthreads = fold_convert (itype, nthreads);
-    nthreads = force_gimple_operand_gsi (&gsi, nthreads, true, NULL_TREE,
-					 true, GSI_SAME_STMT);
-  }
 
   n1 = fd->loop.n1;
   n2 = fd->loop.n2;
@@ -5256,6 +5224,45 @@ expand_omp_for_static_nochunk (struct omp_region *region,
     t = fold_build2 (TRUNC_DIV_EXPR, itype, t, step);
   t = fold_convert (itype, t);
   n = force_gimple_operand_gsi (&gsi, t, true, NULL_TREE, true, GSI_SAME_STMT);
+
+  {
+    /* Fetch the thread/team id and the number of threads/teams in a single
+       call to GOMP_loop_static_worksharing or
+       GOMP_distribute_static_worksharing. The helper returns both values packed
+       into one complex int, with the id as the imaginary part and the count as
+       the real part.  Returning (rather than writing through pointers) keeps
+       both values as plain SSA names, which lets later passes - notably IPA-CP
+       propagating constants into the outlined kernel - reason about them.
+       Also pass the total number of iterations for OMPT.  */
+    tree decl;
+    switch (gimple_omp_for_kind (fd->for_stmt))
+      {
+      case GF_OMP_FOR_KIND_FOR:
+	decl = builtin_decl_explicit (
+	  flag_openmp_ompt ? BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING_START
+			   : BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING);
+	break;
+      case GF_OMP_FOR_KIND_DISTRIBUTE:
+	decl = builtin_decl_explicit (
+	  flag_openmp_ompt ? BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING_START
+			   : BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING);
+	break;
+      default:
+	gcc_unreachable ();
+      }
+    tree n_ull = fold_convert (long_long_unsigned_type_node, n);
+    tree packed = build_call_expr (decl, 1, n_ull);
+    packed = force_gimple_operand_gsi (&gsi, packed, true, NULL_TREE,
+				       true, GSI_SAME_STMT);
+    threadid = fold_build1 (IMAGPART_EXPR, integer_type_node, packed);
+    threadid = fold_convert (itype, threadid);
+    threadid = force_gimple_operand_gsi (&gsi, threadid, true, NULL_TREE,
+					 true, GSI_SAME_STMT);
+    nthreads = fold_build1 (REALPART_EXPR, integer_type_node, packed);
+    nthreads = fold_convert (itype, nthreads);
+    nthreads = force_gimple_operand_gsi (&gsi, nthreads, true, NULL_TREE,
+					 true, GSI_SAME_STMT);
+  }
 
   q = create_tmp_reg (itype, "q");
   t = fold_build2 (TRUNC_DIV_EXPR, itype, n, nthreads);
@@ -5576,8 +5583,53 @@ expand_omp_for_static_nochunk (struct omp_region *region,
 						   cont_bb, body_bb);
     }
 
-  /* Replace the GIMPLE_OMP_RETURN with a barrier, or nothing.  */
+  if (flag_openmp_ompt_detailed)
+    {
+      /* Insert call to GOMP_*_static_worksharing_dispatch at the end of
+	 seq_start_bb.  */
+      gsi = gsi_last_nondebug_bb (seq_start_bb);
+      tree decl;
+      switch (gimple_omp_for_kind (fd->for_stmt))
+	{
+	case GF_OMP_FOR_KIND_FOR:
+	  decl = builtin_decl_explicit (
+	    BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING_DISPATCH);
+	  break;
+	case GF_OMP_FOR_KIND_DISTRIBUTE:
+	  decl = builtin_decl_explicit (
+	    BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING_DISPATCH);
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
+      gcall *g = gimple_build_call (decl, 0);
+      gsi_insert_before (&gsi, g, GSI_SAME_STMT);
+    }
+
   gsi = gsi_last_nondebug_bb (exit_bb);
+  if (flag_openmp_ompt)
+    {
+      /* Insert call to GOMP_*_static_worksharing_end at the end of exit_bb.
+       */
+      tree decl;
+      switch (gimple_omp_for_kind (fd->for_stmt))
+	{
+	case GF_OMP_FOR_KIND_FOR:
+	  decl
+	    = builtin_decl_explicit (BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING_END);
+	  break;
+	case GF_OMP_FOR_KIND_DISTRIBUTE:
+	  decl = builtin_decl_explicit (
+	    BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING_END);
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
+      gcall *g = gimple_build_call (decl, 0);
+      gsi_insert_after (&gsi, g, GSI_SAME_STMT);
+    }
+
+  /* Replace the GIMPLE_OMP_RETURN with a barrier, or nothing.  */
   if (!gimple_omp_return_nowait_p (gsi_stmt (gsi)))
     {
       t = gimple_omp_return_lhs (gsi_stmt (gsi));
@@ -5646,6 +5698,7 @@ expand_omp_for_static_nochunk (struct omp_region *region,
       exit3_bb = split_block (exit2_bb, g)->dest;
       gsi = gsi_after_labels (exit3_bb);
     }
+
   gsi_remove (&gsi, true);
 
   /* Connect all the blocks.  */
@@ -5958,38 +6011,6 @@ expand_omp_for_static_chunk (struct omp_region *region,
 	  release_ssa_name (gimple_assign_lhs (g));
 	}
     }
-  /* Fetch the thread/team id and the number of threads/teams in a single
-     call to GOMP_loop_static_worksharing or GOMP_distribute_static_worksharing.
-     The helper returns both values packed into one complex int, with
-     the id as the imaginary part and the count as the real part.  Returning
-     (rather than writing through pointers) keeps both values as plain SSA
-     names, which lets later passes - notably IPA-CP propagating constants
-     into the outlined kernel - reason about them.  */
-  tree decl;
-  switch (gimple_omp_for_kind (fd->for_stmt))
-    {
-    case GF_OMP_FOR_KIND_FOR:
-      decl = builtin_decl_explicit (BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING);
-      break;
-    case GF_OMP_FOR_KIND_DISTRIBUTE:
-      decl = builtin_decl_explicit (BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING);
-      break;
-    default:
-      gcc_unreachable ();
-    }
-  {
-    tree packed = build_call_expr (decl, 0);
-    packed = force_gimple_operand_gsi (&gsi, packed, true, NULL_TREE,
-				       true, GSI_SAME_STMT);
-    threadid = fold_build1 (IMAGPART_EXPR, integer_type_node, packed);
-    threadid = fold_convert (itype, threadid);
-    threadid = force_gimple_operand_gsi (&gsi, threadid, true, NULL_TREE,
-					 true, GSI_SAME_STMT);
-    nthreads = fold_build1 (REALPART_EXPR, integer_type_node, packed);
-    nthreads = fold_convert (itype, nthreads);
-    nthreads = force_gimple_operand_gsi (&gsi, nthreads, true, NULL_TREE,
-					 true, GSI_SAME_STMT);
-  }
 
   n1 = fd->loop.n1;
   n2 = fd->loop.n2;
@@ -6031,6 +6052,45 @@ expand_omp_for_static_chunk (struct omp_region *region,
   t = fold_convert (itype, t);
   n = force_gimple_operand_gsi (&gsi, t, true, NULL_TREE,
 				true, GSI_SAME_STMT);
+
+  {
+    /* Fetch the thread/team id and the number of threads/teams in a single
+       call to GOMP_loop_static_worksharing or
+       GOMP_distribute_static_worksharing. The helper returns both values packed
+       into one complex int, with the id as the imaginary part and the count as
+       the real part.  Returning (rather than writing through pointers) keeps
+       both values as plain SSA names, which lets later passes - notably IPA-CP
+       propagating constants into the outlined kernel - reason about them.
+       Also pass the total number of iterations for OMPT.  */
+    tree decl;
+    switch (gimple_omp_for_kind (fd->for_stmt))
+      {
+      case GF_OMP_FOR_KIND_FOR:
+	decl = builtin_decl_explicit (
+	  flag_openmp_ompt ? BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING_START
+			   : BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING);
+	break;
+      case GF_OMP_FOR_KIND_DISTRIBUTE:
+	decl = builtin_decl_explicit (
+	  flag_openmp_ompt ? BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING_START
+			   : BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING);
+	break;
+      default:
+	gcc_unreachable ();
+      }
+    tree n_ull = fold_convert (long_long_unsigned_type_node, n);
+    tree packed = build_call_expr (decl, 1, n_ull);
+    packed = force_gimple_operand_gsi (&gsi, packed, true, NULL_TREE, true,
+				       GSI_SAME_STMT);
+    threadid = fold_build1 (IMAGPART_EXPR, integer_type_node, packed);
+    threadid = fold_convert (itype, threadid);
+    threadid = force_gimple_operand_gsi (&gsi, threadid, true, NULL_TREE, true,
+					 GSI_SAME_STMT);
+    nthreads = fold_build1 (REALPART_EXPR, integer_type_node, packed);
+    nthreads = fold_convert (itype, nthreads);
+    nthreads = force_gimple_operand_gsi (&gsi, nthreads, true, NULL_TREE, true,
+					 GSI_SAME_STMT);
+  }
 
   trip_var = create_tmp_reg (itype, ".trip");
   if (gimple_in_ssa_p (cfun))
@@ -6303,8 +6363,30 @@ expand_omp_for_static_chunk (struct omp_region *region,
       gsi_insert_after (&gsi, assign_stmt, GSI_CONTINUE_LINKING);
     }
 
-  /* Replace the GIMPLE_OMP_RETURN with a barrier, or nothing.  */
   gsi = gsi_last_nondebug_bb (exit_bb);
+  if (flag_openmp_ompt)
+    {
+      /* Insert call to GOMP_*_static_worksharing_end at the end of exit_bb.
+       */
+      tree decl;
+      switch (gimple_omp_for_kind (fd->for_stmt))
+	{
+	case GF_OMP_FOR_KIND_FOR:
+	  decl
+	    = builtin_decl_explicit (BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING_END);
+	  break;
+	case GF_OMP_FOR_KIND_DISTRIBUTE:
+	  decl = builtin_decl_explicit (
+	    BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING_END);
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
+      gcall *g = gimple_build_call (decl, 0);
+      gsi_insert_after (&gsi, g, GSI_SAME_STMT);
+    }
+
+  /* Replace the GIMPLE_OMP_RETURN with a barrier, or nothing.  */
   if (!gimple_omp_return_nowait_p (gsi_stmt (gsi)))
     {
       t = gimple_omp_return_lhs (gsi_stmt (gsi));
@@ -6339,6 +6421,29 @@ expand_omp_for_static_chunk (struct omp_region *region,
       gsi_insert_after (&gsi, g, GSI_SAME_STMT);
     }
   gsi_remove (&gsi, true);
+
+  if (flag_openmp_ompt_detailed)
+    {
+      /* Insert call to GOMP_*_static_worksharing_dispatch at the end of
+	 seq_start_bb.  */
+      gsi = gsi_last_nondebug_bb (seq_start_bb);
+      tree decl;
+      switch (gimple_omp_for_kind (fd->for_stmt))
+	{
+	case GF_OMP_FOR_KIND_FOR:
+	  decl = builtin_decl_explicit (
+	    BUILT_IN_GOMP_LOOP_STATIC_WORKSHARING_DISPATCH);
+	  break;
+	case GF_OMP_FOR_KIND_DISTRIBUTE:
+	  decl = builtin_decl_explicit (
+	    BUILT_IN_GOMP_DISTRIBUTE_STATIC_WORKSHARING_DISPATCH);
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
+      gcall *g = gimple_build_call (decl, 0);
+      gsi_insert_before (&gsi, g, GSI_SAME_STMT);
+    }
 
   /* Connect the new blocks.  */
   find_edge (iter_part_bb, seq_start_bb)->flags = EDGE_TRUE_VALUE;
@@ -9909,6 +10014,7 @@ expand_omp_target (struct omp_region *region)
   tree clauses = gimple_omp_target_clauses (entry_stmt);
 
   bool is_ancestor = false;
+  bool is_host_only = false;
   child_fn = child_fn2 = NULL_TREE;
   child_cfun = NULL;
   if (offloaded)
@@ -9916,6 +10022,9 @@ expand_omp_target (struct omp_region *region)
       c = omp_find_clause (clauses, OMP_CLAUSE_DEVICE);
       if (ENABLE_OFFLOADING && c)
 	is_ancestor = OMP_CLAUSE_DEVICE_ANCESTOR (c);
+      c = omp_find_clause (clauses, OMP_CLAUSE_DEVICE_TYPE);
+      if (c && OMP_CLAUSE_DEVICE_TYPE_KIND (c) == OMP_CLAUSE_DEVICE_TYPE_HOST)
+	is_host_only = true;
       child_fn = gimple_omp_target_child_fn (entry_stmt);
       child_cfun = DECL_STRUCT_FUNCTION (child_fn);
     }
@@ -10106,7 +10215,7 @@ expand_omp_target (struct omp_region *region)
 	{
 	  if (in_lto_p)
 	    DECL_PRESERVE_P (child_fn) = 1;
-	  if (!is_ancestor)
+	  if (!is_ancestor && !is_host_only)
 	    vec_safe_push (offload_funcs, child_fn);
 	}
 
@@ -10288,8 +10397,10 @@ expand_omp_target (struct omp_region *region)
     }
   else
     {
-      c = omp_find_clause (clauses, OMP_CLAUSE_DEVICE);
-      if (c)
+      if (is_host_only)
+	device = build_int_cst (integer_type_node,
+				GOMP_DEVICE_HOST_FALLBACK - 1);
+      else if ((c = omp_find_clause (clauses, OMP_CLAUSE_DEVICE)) != NULL_TREE)
 	{
 	  device = OMP_CLAUSE_DEVICE_ID (c);
 	  /* Ensure 'device' is of the correct type.  */

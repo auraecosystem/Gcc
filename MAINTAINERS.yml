@@ -1455,6 +1455,15 @@ users:
   roles:
   - WriteAfter
   account: mpf
+- sn: Franco
+  cn: Kael Andrew Franco
+  email:
+  - kael@gcc.gnu.org
+  - kaelfandrew@gmail.com
+  roles:
+  - WriteAfter
+  - DCO: kaelfandrew@gmail.com
+  account: kael
 - sn: Franke
   cn: Daniel Franke
   email:
@@ -1710,6 +1719,15 @@ users:
   - WriteAfter
   account: carrot
   inactive: true
+- sn: Gupta
+  cn: Eikansh Gupta
+  email:
+  - eikansh.gupta@oss.qualcomm.com
+  - eikansh@gcc.gnu.org
+  roles:
+  - WriteAfter
+  - DCO: eikansh.gupta@oss.qualcomm.com
+  account: eikansh
 - sn: Gupta
   cn: Vineet Gupta
   email:

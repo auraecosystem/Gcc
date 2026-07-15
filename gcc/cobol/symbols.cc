@@ -39,6 +39,7 @@
 
 #include <search.h>
 #include <iconv.h>
+#include "tm.h"
 #include "../../libgcobol/ec.h"
 #include "../../libgcobol/common-defs.h"
 #include "util.h"
@@ -47,6 +48,7 @@
 #include "inspect.h"
 #include "../../libgcobol/io.h"
 #include "genapi.h"
+#include "../../libgcobol/cobol-endian.h"
 #include "../../libgcobol/charmaps.h"
 
 #pragma GCC diagnostic ignored "-Wunused-result"
@@ -386,6 +388,7 @@ special_pair_cmp( const cbl_special_name_t& key,
  * Key                 Element       New    Effect
  * type  parent  line  type  parent  type
  * None     -          None     -           unqualified ref matches decl
+ * None     S          Para     -             qualified ref matches forward decl
  * None     -          Sect     -           unqualified ref matches section
  * None     -          Para     x           unqualified ref matches any para
  * Sect     -          None     -    Sect   section definition updates decl
@@ -407,14 +410,13 @@ static bool label_cmp( const cbl_label_t& key,
   switch( key.type ) {
 
   case LblNone:
-    assert(0 == key.explicit_parent());
     assert(0 == key.line);
     switch( elem.type ) {
-    case LblNone:
     case LblSection:
       assert(!elem.explicit_parent());
       return true;
       break;
+    case LblNone:
     case LblParagraph:
       return true;
       break;
@@ -427,6 +429,7 @@ static bool label_cmp( const cbl_label_t& key,
     assert(0 == key.explicit_parent());
     switch( elem.type ) {
     case LblNone:
+      return true;
     case LblSection:
       assert(!elem.explicit_parent());
       return true;
@@ -439,17 +442,18 @@ static bool label_cmp( const cbl_label_t& key,
   case LblParagraph:
     switch( elem.type ) {
     case LblNone:
-      if(elem.explicit_parent()) {
-        cbl_errx( "%s:%d: LblNone '%s' has parent #%zu",
-             __func__, __LINE__, elem.name, elem.parent );
+      // dbgmsg("%s:%d: para %s: key parent %zu, LblNone elem parent %zu", __func__, __LINE__, 
+      //        key.name, key.parent, elem.parent);
+      // Undefined label element with matching parent or no parent.
+      if( key.parent == elem.parent || elem.parent == 0 ) { 
+        return key.line == 0 || elem.line == 0 || key.line == elem.line;
       }
-      assert(!elem.explicit_parent());
-      return true;
       break;
     case LblParagraph:
-      if( key.parent == elem.parent ) { // explicit or implicit
+      // dbgmsg("%s:%d: para %s: key parent %zu, elem parent %zu", __func__, __LINE__, 
+      //        key.name, key.parent, elem.parent);
+      if( key.parent == 0 || key.parent == elem.parent ) { // explicit or implicit
         return key.line == 0 || elem.line == 0 || key.line == elem.line;
-        // negative key.line never matches (causing insertion)
       }
       break;
     default:
@@ -562,24 +566,7 @@ symbol_elem_cmp( const void *K, const void *E )
   return strcasecmp(cbl_field_of(k)->name, cbl_field_of(e)->name);
 }
 
-cbl_label_ref_t::
-cbl_label_ref_t( size_t program, const cbl_label_t& context, int line,
-                 const char name[], size_t isect )
-  : qualified(isect != 0)
-  , context(context)
-  , line(line)
-  , handle(NULL)
-{
-  cbl_label_type_t type = isect? LblParagraph : LblNone;
-  struct cbl_label_t label = { type, isect, line };
-  assert(strlen(name) < sizeof(label.name));
-  strcpy(label.name, name);
-
-  target = symbol_label_add(program, &label);
-  assert(target);
-}
-
-struct cbl_label_t *
+cbl_label_t *
 symbol_label( size_t program, cbl_label_type_t type, size_t section,
               const char name[],
               const char os_name[] )
@@ -608,7 +595,7 @@ symbol_label( size_t program, cbl_label_type_t type, size_t section,
                       break;
                     case LblNone: case LblSection: case LblParagraph:
                       return label_cmp(key, elem, true);
-                        break;
+                      break;
                     default:
                       if( key.parent != elem.parent ) { // allow zero parent of LblNone
                         if( !(elem.type == LblNone && elem.explicit_parent() == 0) ) return false;
@@ -1141,8 +1128,9 @@ symbols_dump( size_t first, bool header ) {
       }
       break;
     case SymLabel:
+      if( cbl_label_of(e)->type == LblLoop ) continue;
       s = xasprintf("%4" GCC_PRISZ "u %-18s %s", (fmt_size_t)e->program,
-                    "Labe1l", e->elem.label.str());
+                    "Label", e->elem.label.str());
       if( LblProgram == cbl_label_of(e)->type ) {
         const auto& L = *cbl_label_of(e);
         if( L.os_name ) {
@@ -1730,7 +1718,7 @@ symbols_alphabet_set( size_t program, const char name[]) {
   struct alpha {
     void operator()( symbol_elem_t& elem ) const {
       if( elem.type == SymAlphabet ) {
-        parser_alphabet( *cbl_alphabet_of(&elem) );
+        parser_alphabet( cbl_alphabet_of(&elem) );
       }
     }
   };
@@ -1744,7 +1732,7 @@ symbols_alphabet_set( size_t program, const char name[]) {
     if( !e ) {
       return false;
     }
-    parser_alphabet_use(*cbl_alphabet_of(e));
+    parser_alphabet_use(cbl_alphabet_of(e));
   }
   return true;
 // End older version
@@ -2071,7 +2059,10 @@ symbols_update( size_t first, bool parsed_ok ) {
         ninvalid++;
         continue;
       }
-    if( parsed_ok ) parser_file_add(&file);
+      if( parsed_ok ) {
+        parser_file_add(&file);
+        update_symbol_map2(file); // Add FD name as a name for the default record. 
+      }
     } else {
       if( p->type == SymField ) {
         auto f = cbl_field_of(p);
@@ -2584,21 +2575,9 @@ symbol_add( struct symbol_elem_t *elem )
     cbl_field_of(elem)->our_index = symbols.nelem;
   }
 
-  struct symbol_elem_t *p =
-    static_cast<struct symbol_elem_t *>(lsearch( elem, symbols.elems,
+  auto p = static_cast<symbol_elem_t *>(lsearch( elem, symbols.elems,
                                                  &symbols.nelem, sizeof(*elem),
                                                  symbol_elem_cmp ) );
-  assert(symbols.nelem > 1);
-
-  if( is_program(*p) ) {
-    assert(p->program == 0 || p->elem.label.os_name != NULL);
-    p->program = p - symbols.elems;
-  }
-
-  if( p->program == 0 ) {
-    p->program = p[-1].program;
-  }
-
   return p;
 }
 
@@ -2919,7 +2898,7 @@ symbol_typedef( size_t program, const char name[] )
   auto beg = std::reverse_iterator<symbol_elem_t *>(symbols_end());
   auto end = std::reverse_iterator<symbol_elem_t *>(symbols_begin(program));
 
-  auto p = std::find_if( beg, end,
+  auto p = std::find_if( ++beg, end,
                          [name]( const symbol_elem_t& sym ) {
                            if( sym.type == SymField ) {
                              auto f = cbl_field_of(&sym);
@@ -3482,7 +3461,7 @@ cbl_alphabet_t::reencode( const cbl_loc_t& loc )  {
   const char *fromcode = __gg__encoding_iconv_name(CP1252_e);
   const char *tocode =
               __gg__encoding_iconv_name(current_encoding(display_encoding_e));
-  iconv_t cd = iconv_open(tocode, fromcode);
+  iconv_t cd = helpful_iconv_open(tocode, fromcode);
   if( cd == iconv_t(-1) ) {
     error_msg(loc, "cannot convert from %qs to %qs: %s",
               fromcode, tocode, xstrerror(errno));
@@ -3534,17 +3513,38 @@ cbl_alphabet_t::reencode( const cbl_loc_t& loc )  {
       continue;
     }
 
+    /* We have a problem.  We originally did collation sequences for
+       single-byte-coded (SBC) character sets, like ASCII and EBCDIC.  But we
+       have the capability of multi-byte sets like UTF-16LE/BE and
+       UTF-32/LE/BE.  What collation means in those environments is unknown to
+       me at this time.  So, for now I am simply assuming that whatever we are
+       doing here fits into a single byte.
+       
+       So, for SBC or little-endian character sets, we just pick up the value
+       at pos[0].  For big-endian character sets, we find the low-order byte.
+       */
+
+    unsigned char ch_pos;
+    if( charmap_disp->is_big_endian() )
+      {
+      ch_pos = pos[stride-1];
+      }
+    else
+      {
+      ch_pos = pos[0];
+      }
+
     if( ch == low_index ) {
-      low_index = pos[0];
+      low_index = ch_pos;
     }
     if( ch == last_index ) {
-      last_index = pos[0];
+      last_index = ch_pos;
     }
     if( ch == high_index ) {
-     high_index = pos[0];
+     high_index = ch_pos;
     }
 
-    tgt.at(pos[0]) = *p;
+    tgt.at(ch_pos) = *p;
   }
 
   std::copy(tgt.begin(), tgt.end(), collation_sequence);
@@ -4202,7 +4202,7 @@ iconv_cd( cbl_encoding_t tgt ) {
     const char *tocode   = __gg__encoding_iconv_name(tgt);    
     gcc_assert(fromcode && tocode);
     
-    if( (cd = iconv_open(tocode, fromcode)) == iconv_t(-1) ) {
+    if( (cd = helpful_iconv_open(tocode, fromcode)) == iconv_t(-1) ) {
       return cd;
     }
     cds[key] = cd;
@@ -4408,7 +4408,7 @@ cbl_label_t::str() const {
   char *buf;
   switch(type) {
   case LblParagraph:
-    buf = xasprintf("%-12s %s OF '%s', line %d", type_str() + 3, name,
+    buf = xasprintf("%-12s %s OF #%ld %s, line %d", type_str() + 3, name, parent, 
                     parent? cbl_label_of(symbol_at(parent))->name : "", line);
     break;
   case LblProgram:
@@ -4514,40 +4514,29 @@ common_callables_update( const size_t iprog ) {
 cbl_label_t *
 symbol_label_add( size_t program, cbl_label_t *input )
 {
-  cbl_label_t *label = symbol_label(program, input->type,
-                                    input->parent, input->name);
-
-  if( label && label->type == LblNone ) {
-    label->type = input->type;
-    label->parent = input->parent;
-    label->line = input->line;
-
-    return label;
-  }
-
-  // Set the program's mangled name, dehyphenated and uniqified by parent index.
   if( input->type == LblProgram ) {
+    // Set the program's mangled name, dehyphenated and uniqified by parent index.
     char *psz = cobol_name_mangler(input->name);
     input->mangled_name = xasprintf("%s." HOST_SIZE_T_PRINT_UNSIGNED,
                                     psz, (fmt_size_t)input->parent);
     free(psz);
   }
 
-  struct symbol_elem_t
-    elem { program, *input }, *e = &elem;
+  symbol_elem_t elem { program, *input }, *e;
 
-  assert(0 <= e->elem.label.line);
-  e->elem.label.line = -e->elem.label.line; // force insertion
-
-  if( (e = symbol_add(&elem)) == NULL ) {
-    cbl_errx("%s:%d: could not add '%s'", __func__, __LINE__, label->name);
-  }
+  e = symbol_append(elem);
   assert(e);
 
-  common_callables_update( symbol_index(e) );
+  if( is_program(*e) ) {
+    assert(e->program == 0 || e->elem.label.os_name != NULL);
+    e->program = e - symbols.elems;
+  }
 
-  // restore munged line number unless symbol_add returned an existing label
-  if( e->elem.label.line < 0 ) e->elem.label.line = -e->elem.label.line;
+  if( e->program == 0 ) {
+    e->program = e[-1].program;
+  }
+
+  common_callables_update( symbol_index(e) );
 
   symbols.labelmap_add(e);
   return cbl_label_of(e);

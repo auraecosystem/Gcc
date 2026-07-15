@@ -1885,21 +1885,33 @@ struct GTY(()) tree_tu_local_entity {
 #define TU_LOCAL_ENTITY_LOCATION(NODE) \
   (((struct tree_tu_local_entity *)TU_LOCAL_ENTITY_CHECK (NODE))->loc)
 
-
+/* Representation of a requires-expression.  */
+struct GTY(()) tree_requires_expr {
+  struct tree_typed typed;
+  tree parms;
+  tree reqs;
+  tree extra_args;
+  location_t loc;
+};
+
 /* The list of local parameters introduced by this requires-expression,
    in the form of a chain of PARM_DECLs.  */
 #define REQUIRES_EXPR_PARMS(NODE) \
-  TREE_OPERAND (TREE_CHECK (NODE, REQUIRES_EXPR), 0)
+  (((struct tree_requires_expr *) REQUIRES_EXPR_CHECK (NODE))->parms)
 
 /* A TREE_LIST of the requirements for this requires-expression.
    The requirements are stored in lexical order within the TREE_VALUE
    of each TREE_LIST node.  The TREE_PURPOSE of each node is unused.  */
 #define REQUIRES_EXPR_REQS(NODE) \
-  TREE_OPERAND (TREE_CHECK (NODE, REQUIRES_EXPR), 1)
+  (((struct tree_requires_expr *) REQUIRES_EXPR_CHECK (NODE))->reqs)
 
 /* Like PACK_EXPANSION_EXTRA_ARGS, for requires-expressions.  */
 #define REQUIRES_EXPR_EXTRA_ARGS(NODE) \
-  TREE_OPERAND (TREE_CHECK (NODE, REQUIRES_EXPR), 2)
+  (((struct tree_requires_expr *) REQUIRES_EXPR_CHECK (NODE))->extra_args)
+
+/* The source location of the requires-expression.  */
+#define REQUIRES_EXPR_LOCATION(NODE) \
+  (((struct tree_requires_expr *) REQUIRES_EXPR_CHECK (NODE))->loc)
 
 /* True iff TYPE is cv decltype(^^int).  */
 #define REFLECTION_TYPE_P(TYPE) (TREE_CODE (TYPE) == META_TYPE)
@@ -2029,7 +2041,8 @@ enum cp_tree_node_structure_enum {
   TS_CP_TEMPLATE_INFO,
   TS_CP_CONSTRAINT_INFO,
   TS_CP_USERDEF_LITERAL,
-  TS_CP_TU_LOCAL_ENTITY
+  TS_CP_TU_LOCAL_ENTITY,
+  TS_CP_REQUIRES_EXPR
 };
 
 /* The resulting tree type.  */
@@ -2062,6 +2075,8 @@ union GTY((desc ("cp_tree_node_structure (&%h)"),
     userdef_literal;
   struct tree_tu_local_entity GTY ((tag ("TS_CP_TU_LOCAL_ENTITY")))
     tu_local_entity;
+  struct tree_requires_expr GTY ((tag ("TS_CP_REQUIRES_EXPR")))
+    requires_expr;
 };
 
 
@@ -2256,25 +2271,6 @@ public:
   }
 };
 
-/* RAII sentinel that saves the value of a variable, optionally
-   overrides it right away, and restores its value when the sentinel
-   id destructed.  */
-
-template <typename T>
-class temp_override
-{
-  T& overridden_variable;
-  T saved_value;
-public:
-  temp_override(T& var) : overridden_variable (var), saved_value (var) {}
-  temp_override(T& var, T overrider)
-    : overridden_variable (var), saved_value (var)
-  {
-    overridden_variable = overrider;
-  }
-  ~temp_override() { overridden_variable = saved_value; }
-};
-
 /* Wrapping a template parameter in type_identity_t hides it from template
    argument deduction.  */
 #if __cpp_lib_type_identity
@@ -2285,6 +2281,25 @@ struct type_identity { typedef T type; };
 template <typename T>
 using type_identity_t = typename type_identity<T>::type;
 #endif
+
+/* RAII sentinel that saves the value of a variable, optionally
+   overrides it right away, and restores its value when the sentinel
+   id destructed.  */
+
+template <typename T>
+class temp_override
+{
+  T& overridden_variable;
+  T saved_value;
+public:
+  temp_override (T& var) : overridden_variable (var), saved_value (var) {}
+  temp_override (T& var, type_identity_t<T> overrider)
+    : overridden_variable (var), saved_value (var)
+  {
+    overridden_variable = overrider;
+  }
+  ~temp_override() { overridden_variable = saved_value; }
+};
 
 /* Object generator function for temp_override, so you don't need to write the
    type of the object as a template argument.
@@ -7486,7 +7501,7 @@ extern tree current_nonlambda_class_type	(void);
 extern tree finish_struct			(tree, tree);
 extern void finish_struct_1			(tree);
 extern int resolves_to_fixed_type_p		(tree, int * = NULL);
-extern bool typeid_evaluated_p (tree);
+extern bool typeid_evaluated_p (tree, int * = nullptr);
 extern void init_class_processing		(void);
 extern int is_empty_class			(tree);
 extern bool is_really_empty_class		(tree, bool);
@@ -9122,6 +9137,8 @@ cp_expr_location (const_tree t_)
       return TRAIT_EXPR_LOCATION (t);
     case PTRMEM_CST:
       return PTRMEM_CST_LOCATION (t);
+    case REQUIRES_EXPR:
+      return REQUIRES_EXPR_LOCATION (t);
     default:
       return EXPR_LOCATION (t);
     }

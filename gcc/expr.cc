@@ -3062,6 +3062,28 @@ emit_group_load_1 (rtx *tmps, rtx dst, rtx orig_src, tree type,
 	       && known_eq (bytelen, GET_MODE_SIZE (mode)))
 	/* Let emit_move_complex do the bulk of the work.  */
 	tmps[i] = src;
+      else if (SCALAR_INT_MODE_P (mode)
+	       && COMPLEX_MODE_P (GET_MODE (src))
+	       && known_eq (GET_MODE_SIZE (mode),
+			    GET_MODE_SIZE (GET_MODE (src)))
+	       && known_eq (bytelen, GET_MODE_SIZE (mode)))
+	{
+	  /* When passing a complex value in an integer mode of the same
+	     size, explicitly construct (highpart<<isize)+lowpart to
+	     avoid spilling to memory before reload.  */
+	  rtx tmp = read_complex_part (src, !BYTES_BIG_ENDIAN);
+	  scalar_int_mode imode = int_mode_for_mode (GET_MODE (tmp)).require();
+	  tmp = gen_lowpart (imode, tmp);
+	  tmp = simplify_gen_unary (ZERO_EXTEND, mode, tmp, imode);
+	  rtx result = force_reg (mode, tmp);
+	  result = expand_shift (LSHIFT_EXPR, mode, result,
+				 GET_MODE_BITSIZE (imode), NULL_RTX, 1);
+	  tmp = read_complex_part (src, BYTES_BIG_ENDIAN);
+	  tmp = gen_lowpart (imode, tmp);
+	  tmp = simplify_gen_unary (ZERO_EXTEND, mode, tmp, imode);
+	  result = simplify_gen_binary (PLUS, mode, result, tmp);
+	  tmps[i] = force_reg (mode, result);
+	}
       else if (GET_CODE (src) == CONCAT)
 	{
 	  poly_int64 slen = GET_MODE_SIZE (GET_MODE (src));
@@ -11382,6 +11404,45 @@ expand_expr_real_gassign (gassign *g, rtx target, machine_mode tmode,
   return r;
 }
 
+/* A subroutine of expand_expr_real_1.  Attempt to VIEW_CONVERT_EXPR
+   the complex expression OP0 to the vector mode MODE.  Store the
+   result at TARGET if possible (if TARGET is nonzero).  Returns
+   NULL_RTX on failure.  */
+static rtx
+try_expand_complex_as_vector (machine_mode mode, rtx op0, rtx target)
+{
+  if (COMPLEX_MODE_P (GET_MODE (op0))
+      && VECTOR_MODE_P (mode)
+      && known_eq (GET_MODE_NUNITS (mode), 2)
+      && GET_MODE_INNER (mode) == GET_MODE_INNER (GET_MODE (op0)))
+    {
+      enum insn_code icode = convert_optab_handler (vec_init_optab, mode,
+						    GET_MODE_INNER (mode));
+      if (icode != CODE_FOR_nothing)
+	{
+	  if (!target || !REG_P (target))
+	    target = gen_reg_rtx (mode);
+	  rtx rpart = read_complex_part (op0, false);
+	  rtx ipart = read_complex_part (op0, true);
+	  if (!REG_P (rpart) && !CONSTANT_P (rpart))
+	    rpart = force_reg (GET_MODE_INNER (mode), rpart);
+	  if (!REG_P (ipart) && !CONSTANT_P (ipart))
+	    ipart = force_reg (GET_MODE_INNER (mode), ipart);
+	  rtvec vec = rtvec_alloc (2);
+	  RTVEC_ELT (vec, 0) = rpart;
+	  RTVEC_ELT (vec, 1) = ipart;
+	  rtx par = gen_rtx_PARALLEL (mode, vec);
+	  rtx_insn *insn = GEN_FCN (icode) (target, par);
+	  if (insn)
+	    {
+	      emit_insn (insn);
+	      return target;
+	    }
+	}
+    }
+  return NULL_RTX;
+}
+
 rtx
 expand_expr_real_1 (tree exp, rtx target, machine_mode tmode,
 		    enum expand_modifier modifier, rtx *alt_rtl,
@@ -12798,6 +12859,12 @@ expand_expr_real_1 (tree exp, rtx target, machine_mode tmode,
 	return extract_bit_field (op0, TYPE_PRECISION (type), 0,
 				  TYPE_UNSIGNED (type), NULL_RTX,
 				  mode, mode, false, NULL);
+      /* If source is a complex number and destination is a
+	 two-component vector with same inner type, try to use
+	 vector initialization.  */
+      else if ((temp = try_expand_complex_as_vector (mode, op0, target))
+	       != NULL_RTX)
+	return temp;
       /* As a last resort, spill op0 to memory, and reload it in a
 	 different mode.  */
       else if (!MEM_P (op0))

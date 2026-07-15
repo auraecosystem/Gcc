@@ -78,7 +78,7 @@ cbl_division_t cbl_syntax_only = not_syntax_only;
 void
 mode_syntax_only( cbl_division_t division ) {
   cbl_syntax_only = division;
-  dbgmsg("%s: parsing %s, %zu errors", __func__, 
+  dbgmsg("%s: parsing %s, %zu errors", __func__,
          cbl_syntax_only == not_syntax_only? "resumes" : "syntax only",
          nparse_error);
 }
@@ -93,7 +93,7 @@ mode_syntax_only( const char func[], bool yn ) {
             __func__, cbl_syntax_only, nparse_error );
   }
   if( was_syntax_only != cbl_syntax_only ) {
-    dbgmsg("%s: parsing %s, %zu errors", func, 
+    dbgmsg("%s: parsing %s, %zu errors", func,
            cbl_syntax_only == not_syntax_only? "resumes" : "syntax only",
            nparse_error);
   }
@@ -129,6 +129,15 @@ static bool successful_parse() {
 
 void input_file_status_notify();
 
+static void
+yylocation_print(FILE* file, const cbl_loc_t& loc) {
+  fprintf(file, "%d.%d-%d.%d", 
+          loc.first_line, loc.first_column, 
+          loc.last_line, loc.last_column);
+}
+
+#define YYLOCATION_PRINT(File, Loc) yylocation_print(File, *Loc)
+
 #define YYLLOC_DEFAULT(Current, Rhs, N)                                 \
   do {                                                                  \
       if (N)                                                            \
@@ -160,11 +169,11 @@ extern int yydebug;
 // These programs in libgcobol/compat are allowed to use ANY LENGTH even though
 // they look like top-level programs.
 static const std::set<std::string> compat_programs {
-  "CBL_ALLOC_MEM", 
-  "CBL_CHECK_FILE_EXIST", 
+  "CBL_ALLOC_MEM",
+  "CBL_CHECK_FILE_EXIST",
   "CBL_CLOSE_FILE",
-  "CBL_DELETE_FILE", 
-  "CBL_FREE_MEM", 
+  "CBL_DELETE_FILE",
+  "CBL_FREE_MEM",
   "CBL_GET_PROGRAM_INFO",
   "CBL_OPEN_FILE",
   "CBL_READ_FILE",
@@ -941,10 +950,15 @@ struct tgt_list_t {
   list<cbl_num_result_t> targets;
 };
 
-static struct cbl_label_t *
+static cbl_label_t *
 label_add( const cbl_loc_t& loc, enum cbl_label_type_t type, const char name[] );
-static struct cbl_label_t *
+static cbl_label_t *
+label_add_once( cbl_label_type_t type, const char name[] );
+static cbl_label_t *
 label_add( enum cbl_label_type_t type, const char name[], int line );
+static cbl_label_t *
+label_instantiate( const cbl_loc_t& loc, size_t program,
+                   cbl_label_type_t type, size_t section, const char name[]);
 
 static struct cbl_label_t *
 paragraph_reference( const cbl_loc_t& loc, const char name[], size_t section );
@@ -1714,6 +1728,7 @@ static class current_t {
   program_stack_t programs;
   unique_typedefs_t typedefs;
   std::set<function_descr_t> udfs;
+  std::set<size_t> undefined_labels;
   int first_statement;
   bool in_declaratives;
   // from command line or early TURN
@@ -1979,6 +1994,14 @@ static class current_t {
     return client->second;
   }
 
+  void forward_add( size_t isym ) {
+    assert( LblNone == cbl_label_of(symbol_at(isym))->type );
+    undefined_labels.insert(isym);
+  }
+  auto& forwards() {
+    return undefined_labels;
+  }
+
   void alpha_encoding( size_t isym, cbl_encoding_t encoding ) {
     prog_descr_t& program = programs.top();
     program.alphabet.alpha.set(isym, encoding);
@@ -2147,7 +2170,7 @@ static class current_t {
     assert(!programs.empty());
 
     match_proc::statements_verify();
-    
+
     const procref_t *ref = ambiguous_reference(program_index());
     std::set<std::string> externals = programs.top().external_targets();
 
@@ -2189,7 +2212,6 @@ static class current_t {
         }
       callers_we_have_seen.insert(caller);
       }
-      if( yydebug ) parser_call_targets_dump();
     }
 
     parser_leave_paragraph( programs.top().paragraph );
@@ -2414,7 +2436,7 @@ struct prototype_type_t : public cbl_label_t {
 
 /*
  * For any name, there may be one prototype and one definition.  A Function-ID
- * cannot share a name with a Program-ID.  
+ * cannot share a name with a Program-ID.
  *
  * std::set::insert returns an iterator to the element and boolean indicating
  * whether the insertion succeeded.  If false, the iterator points to the
@@ -2431,12 +2453,12 @@ static bool is_allowed_name( size_t isym, const cbl_label_t *L ) {
   if( ! p.second ) {
     const cbl_label_t& extant(*p.first);
 
-    // cannot have program and function by same name. 
+    // cannot have program and function by same name.
     if( extant.type != L->type ) return false;
-    
-    // ok if both are prototypes of type, not if neither is. 
+
+    // ok if both are prototypes of type, not if neither is.
     if( extant.prototype == L->prototype ) {
-      return extant.prototype; 
+      return extant.prototype;
     }
   }
   return p.second; // otherwise known as true
@@ -2470,7 +2492,7 @@ prototype_args( const cbl_label_t *L, size_t esym ) {
     size_t iprog = symbol_elem_of(L)->program;
     assert(iprog == 0); // no containing program
     iprog = symbol_index(symbol_elem_of(L));
-    
+
     if( iprog < esym ) {
       auto p = function_prototypes.find(iprog);
       if( p != function_prototypes.end() ) {
@@ -2487,12 +2509,12 @@ prototype_args( const char *name, size_t esym ) {
   auto L = symbol_program(0, name, true);         // seek program prototype
   if( !L ) L = symbol_program(0, name);           // else use definition
   if( !L ) L = symbol_function_any(0, name);      // else prototype or definition
-  
+
   return prototype_args(L, esym);
 }
 
 static void
-verify_args( const cbl_loc_t& loc, 
+verify_args( const cbl_loc_t& loc,
              const char name[], size_t narg,
              const cbl_ffi_arg_t args[] );
 
@@ -2575,7 +2597,7 @@ size_t program_level() { return current.program_level(); }
 static size_t constant_index( int token );
 
 static bool
-valid_pointer_relop( const cbl_loc_t& lloc, const cbl_loc_t& oloc, const cbl_loc_t& rloc, 
+valid_pointer_relop( const cbl_loc_t& lloc, const cbl_loc_t& oloc, const cbl_loc_t& rloc,
                      cbl_refer_t *lhs, relop_t op, cbl_refer_t *rhs );
 
 static relop_t relop_of(int);
@@ -2874,6 +2896,13 @@ field_find( cbl_loc_t loc, const std::list<const char *>& names ) {
     }
   }
   symbol_elem_t *e = symbol_find(names);
+  if( e && SymField == e->type && was_fd_name(cbl_field_of(e)) ) {
+    if( dialect_ok(loc, IbmCallFd, "CALL USING FD unimplemented") ) {
+      // No other COBOL compiler interprets the FD as a buffer.  This feature
+      // requires further development.
+      warn_msg(loc, "CALL USING FD passes file buffer, not handle");
+    }
+  }
   return e? cbl_field_of(e) : NULL;
 }
 
@@ -3183,41 +3212,35 @@ field_capacity_error( const cbl_loc_t& loc, const cbl_field_t *field ) {
 #define ERROR_IF_CAPACITY(L, F)                                 \
   do { if( field_capacity_error(L, F) ) YYERROR; } while(0)
 
-template <typename T>
-static void
-blankit( T* beg, size_t n, T ch ) {
-  std::fill(beg, beg + n, ch);
-}
-
 /*
  * Normally blank_initial takes just a length argument and initializes
  * data.initial to all blanks according to the field's encoding.  Optionally it
- * applies a figurative constant and uses that instead. 
+ * applies a figurative constant and uses that instead. We are going to take
+ * that one character, convert it to the target encoding, and then duplicate
+ * as necessary.
  */
 void
 cbl_field_t::blank_initial( size_t nchar, cbl_figconst_t figconst ) {
-  charmap_t *charmap = __gg__get_charmap(codeset.encoding);
-  cbl_char_t space_char = figconst == normal_value_e?
-    charmap->mapped_character(ascii_space)
-  : charmap->figconst_character(figconst);
-  
+  // Set our "from" buffer to a single space
+  char space[] = " ";
+  if( figconst ) {
+    *space = char_from_figconst(figconst);
+  }
+
+  // Convert that character to the encoded version:
+  size_t nbytes;
+  const char *converted =  __gg__iconverter(DEFAULT_SOURCE_ENCODING,
+                                            codeset.encoding,
+                                            space,
+                                            1,
+                                            &nbytes);
+  // Duplicate that encoded character throughout the target range:
   size_t nbyte = nchar * codeset.stride();
   char *init = static_cast<char *>(xmalloc(nbyte+4));
-  char *enit = init + nbyte;
-  std::fill(enit, enit + 4, '\0'); // append for NULs
-  
-  switch(codeset.stride()) {
-  case 1: 
-    blankit( reinterpret_cast<uint8_t*>(init), nchar, uint8_t(space_char%0x100) );
-    break;
-  case 2:
-    blankit( reinterpret_cast<uint16_t*>(init), nchar, uint16_t(space_char%0x10000) );
-    break;
-  case 4:
-    blankit( reinterpret_cast<uint32_t*>(init), nchar, uint32_t(space_char) );
-    break;
-  default:
-    gcc_unreachable();
+  char *d = init;
+  for(size_t i=0; i<nchar; i++) {
+    memcpy(d, converted, codeset.stride());
+    d += codeset.stride();
   }
   data.initial = init;
 }
@@ -3230,13 +3253,13 @@ cbl_field_t::blank_initial( size_t nchar, cbl_figconst_t figconst ) {
  */
 void
 cbl_field_t::set_initial( size_t nchar, const cbl_loc_t& loc ) {
-  auto srclen = data.capacity(); 
+  auto srclen = data.capacity();
   set_capacity(nchar);
   blank_initial( char_capacity() );
   if( data.original() ) {
     attr |= cbl_figconst_of(data.original());
     if( has_attr(hex_encoded_e) ) {
-      // If initial value is too long, the caller should report it. 
+      // If initial value is too long, the caller should report it.
       auto len = std::min(srclen, data.capacity());
       std::copy(data.original(), data.original() + len,
                 const_cast<char*>(data.initial));
@@ -3410,6 +3433,11 @@ parser_move_carefully( const char */*F*/, int /*L*/,
   for( const auto& num_result : tgt_list->targets ) {
     const cbl_refer_t& tgt = num_result.refer;
 
+    if( was_fd_name(tgt.field) ) { 
+      error_msg(src.loc, "cannot compare anything to FD %qs", tgt.field->name);
+      return false;
+    }
+
     if( is_index ) {
       if( tgt.field->type != FldIndex && src.field->type != FldIndex) {
         error_msg(src.loc, "invalid SET %qs (%s) TO %qs (%s): not a field index",
@@ -3526,8 +3554,8 @@ ast_enter_exit_section( cbl_label_t * section ) {
     parser_leave_section(prior.sect);
   }
   if( section ) {
-    dbgmsg( "%s:%d: entering section %s", __func__, __LINE__,
-            section->name );
+    dbgmsg( "%s:%d: entering section #%lu %s", __func__, __LINE__,
+            (unsigned long)symbol_index(symbol_elem_of(section)), section->name );
     parser_enter_section(section);
     parser_enter_paragraph(paragraph);
   }
@@ -3574,7 +3602,7 @@ data_division_ready() {
   // Tell codegen about symbols.
   static size_t nsymbol = 0;
   size_t again(nsymbol);
-  
+
   if( (nsymbol = symbols_update(nsymbol, nparse_error == 0)) > 0 ) {
     if( ! mode_syntax_only() ) {
       if( ! literally_one ) {
@@ -3853,7 +3881,7 @@ void internal_ebcdic_unlock();
 static cbl_field_type_t
 field_binary_usage( cbl_loc_t loc, cbl_field_t *field,
                     cbl_field_type_t type, uint32_t capacity,
-                    bool signable ); 
+                    bool signable );
 
 void
 ast_end_program(const char name[]  ) {
@@ -3881,7 +3909,7 @@ ast_end_program(const char name[]  ) {
   }
   parser_end_program(name);
   internal_ebcdic_unlock();
-  resume_parsing(); 
+  resume_parsing();
 }
 
 static bool

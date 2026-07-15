@@ -3199,6 +3199,8 @@ namespace __detail
 	       piecewise_constant_distribution<_RealType>& __x)
     {
       using __ios_base = typename basic_istream<_CharT, _Traits>::ios_base;
+      using _StorageType
+	= typename piecewise_constant_distribution<_RealType>::_StorageType;
 
       const typename __ios_base::fmtflags __flags = __is.flags();
       __is.flags(__ios_base::dec | __ios_base::skipws);
@@ -3209,7 +3211,7 @@ namespace __detail
 	  std::vector<_RealType> __int_vec;
 	  if (__detail::__extract_params(__is, __int_vec, __n + 1))
 	    {
-	      std::vector<double> __den_vec;
+	      std::vector<_StorageType> __den_vec;
 	      if (__detail::__extract_params(__is, __den_vec, __n))
 		{
 		  __x.param({ __int_vec.begin(), __int_vec.end(),
@@ -3353,12 +3355,21 @@ namespace __detail
       {
 	const size_t __n = __nw == 0 ? 1 : __nw;
 	const _RealType __delta = (__xmax - __xmin) / __n;
+	const auto __cfw = [&] (_RealType __v)
+	  {
+#ifdef _GLIBCXX_USE_OLD_PIECEWISE_DISTRIBUTIONS
+	    return __fw(__v + __delta);
+#else
+	    return __fw(__v);
+#endif
+	  };
+
 	if (__n == 1)
 	  {
 	    _RealType __ints[2] = { __xmin, __xmin + __delta };
 	    _RealType __dens[2];
-	    __dens[0] = __fw(__ints[0]);
-	    __dens[1] = __fw(__ints[1]);
+	    __dens[0] = __cfw(__ints[0]);
+	    __dens[1] = __cfw(__ints[1]);
 	    _M_initialize2(__ints, __dens);
 	    return;
 	  }
@@ -3368,7 +3379,7 @@ namespace __detail
 	for (size_t __k = 0; __k <= __nw; ++__k)
 	  {
 	    _M_int.push_back(__xmin + __k * __delta);
-	    _M_den.push_back(__fw(_M_int[__k] + __delta));
+	    _M_den.push_back(__cfw(_M_int[__k]));
 	  }
 
 	_M_configure();
@@ -3466,6 +3477,8 @@ namespace __detail
 	       piecewise_linear_distribution<_RealType>& __x)
     {
       using __ios_base = typename basic_istream<_CharT, _Traits>::ios_base;
+      using _StorageType
+	= typename piecewise_linear_distribution<_RealType>::_StorageType;
 
       const typename __ios_base::fmtflags __flags = __is.flags();
       __is.flags(__ios_base::dec | __ios_base::skipws);
@@ -3476,7 +3489,7 @@ namespace __detail
 	  vector<_RealType> __int_vec;
 	  if (__detail::__extract_params(__is, __int_vec, __n + 1))
 	    {
-	      vector<double> __den_vec;
+	      vector<_StorageType> __den_vec;
 	      if (__detail::__extract_params(__is, __den_vec, __n + 1))
 		{
 		  __x.param({ __int_vec.begin(), __int_vec.end(),

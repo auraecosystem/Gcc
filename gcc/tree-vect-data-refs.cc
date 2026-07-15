@@ -1037,10 +1037,10 @@ vect_slp_analyze_store_dependences (vec_info *vinfo, slp_tree node)
   stmt_vec_info last_access_info = vect_find_last_scalar_stmt_in_slp (node);
   gcc_assert (DR_IS_WRITE (STMT_VINFO_DATA_REF (last_access_info)));
 
-  for (unsigned k = 0; k < SLP_TREE_SCALAR_STMTS (node).length (); ++k)
+  for (auto stmt_vinfo : SLP_TREE_SCALAR_STMTS (node))
     {
       stmt_vec_info access_info
-	= vect_orig_stmt (SLP_TREE_SCALAR_STMTS (node)[k]);
+	= vect_orig_stmt (stmt_vinfo);
       if (access_info == last_access_info)
 	continue;
       data_reference *dr_a = STMT_VINFO_DATA_REF (access_info);
@@ -1103,12 +1103,12 @@ vect_slp_analyze_load_dependences (vec_info *vinfo, slp_tree node,
   stmt_vec_info first_access_info = vect_find_first_scalar_stmt_in_slp (node);
   gcc_assert (DR_IS_READ (STMT_VINFO_DATA_REF (first_access_info)));
 
-  for (unsigned k = 0; k < SLP_TREE_SCALAR_STMTS (node).length (); ++k)
+  for (auto stmt_vinfo : SLP_TREE_SCALAR_STMTS (node))
     {
-      if (! SLP_TREE_SCALAR_STMTS (node)[k])
+      if (! stmt_vinfo)
 	continue;
       stmt_vec_info access_info
-	= vect_orig_stmt (SLP_TREE_SCALAR_STMTS (node)[k]);
+	= vect_orig_stmt (stmt_vinfo);
       if (access_info == first_access_info)
 	continue;
       data_reference *dr_a = STMT_VINFO_DATA_REF (access_info);
@@ -1245,8 +1245,8 @@ vect_slp_analyze_instance_dependence (vec_info *vinfo, slp_instance instance)
 
       /* Mark stores in this instance and remember the last one.  */
       last_store_info = vect_find_last_scalar_stmt_in_slp (store);
-      for (unsigned k = 0; k < SLP_TREE_SCALAR_STMTS (store).length (); ++k)
-	gimple_set_visited (SLP_TREE_SCALAR_STMTS (store)[k]->stmt, true);
+      for (auto stmt_vinfo : SLP_TREE_SCALAR_STMTS (store))
+	gimple_set_visited (STMT_VINFO_STMT (stmt_vinfo), true);
     }
 
   bool res = true;
@@ -1265,8 +1265,8 @@ vect_slp_analyze_instance_dependence (vec_info *vinfo, slp_instance instance)
 
   /* Unset the visited flag.  */
   if (store)
-    for (unsigned k = 0; k < SLP_TREE_SCALAR_STMTS (store).length (); ++k)
-      gimple_set_visited (SLP_TREE_SCALAR_STMTS (store)[k]->stmt, false);
+    for (auto stmt_vinfo : SLP_TREE_SCALAR_STMTS (store))
+      gimple_set_visited (STMT_VINFO_STMT (stmt_vinfo), false);
 
   /* If this is a SLP instance with a store check if there's a dependent
      load that cannot be forwarded from a previous iteration of a loop
@@ -5729,7 +5729,13 @@ vect_create_addr_base_for_vector_ref (vec_info *vinfo, stmt_vec_info stmt_info,
   innermost_loop_behavior *drb = vect_dr_behavior (vinfo, dr_info);
 
   tree data_ref_base = unshare_expr (drb->base_address);
-  tree base_offset = unshare_expr (get_dr_vinfo_offset (vinfo, dr_info, true));
+  tree vector_offset = NULL_TREE;
+  if (loop_vinfo && dr_info->offset)
+    vector_offset = unshare_expr (dr_info->offset);
+  tree base_offset = unshare_expr (vector_offset
+				   ? drb->offset
+				   : get_dr_vinfo_offset (vinfo, dr_info,
+							  true));
   tree init = unshare_expr (drb->init);
 
   if (loop_vinfo)
@@ -5767,7 +5773,27 @@ vect_create_addr_base_for_vector_ref (vec_info *vinfo, stmt_vec_info stmt_info,
 
   vect_ptr_type = build_pointer_type (TREE_TYPE (DR_REF (dr)));
   dest = vect_get_new_vect_var (vect_ptr_type, vect_pointer_var, base_name);
-  addr_base = force_gimple_operand (addr_base, &seq, true, dest);
+
+  /* Keep vectorizer-added offsets separate from the original scalar access
+     address.  Forming "base + scalar offset" first gives the target a better
+     chance of sharing it with other address calculations, such as the
+     misalignment check used for masked alignment peeling.  */
+  if (vector_offset)
+    {
+      tree scalar_dest = vect_get_new_vect_var (vect_ptr_type,
+						vect_pointer_var, base_name);
+      gimple_seq addr_seq = NULL;
+      addr_base = force_gimple_operand (addr_base, &addr_seq, true,
+					scalar_dest);
+      gimple_seq_add_seq (&seq, addr_seq);
+      addr_base = fold_build_pointer_plus (addr_base,
+					   fold_convert (sizetype,
+							 vector_offset));
+    }
+
+  gimple_seq addr_seq = NULL;
+  addr_base = force_gimple_operand (addr_base, &addr_seq, true, dest);
+  gimple_seq_add_seq (&seq, addr_seq);
   gimple_seq_add_seq (new_stmt_list, seq);
 
   if (TREE_CODE (addr_base) == SSA_NAME

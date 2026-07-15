@@ -265,7 +265,7 @@ c_incomplete_type_error (location_t loc, const_tree value, const_tree type)
 	case ARRAY_TYPE:
 	  if (TYPE_DOMAIN (type))
 	    {
-	      if (TYPE_MAX_VALUE (TYPE_DOMAIN (type)) == NULL)
+	      if (flexible_array_member_type_p (type))
 		{
 		  error_at (loc, "invalid use of flexible array member");
 		  return;
@@ -392,8 +392,7 @@ c_verify_type (tree type)
       if (!TYPE_STRUCTURAL_EQUALITY_P (type)
 	  && TYPE_STRUCTURAL_EQUALITY_P (TREE_TYPE (type)))
 	return false;
-
-     default:
+    default:
        break;
     }
 
@@ -420,6 +419,29 @@ c_verify_type (tree type)
 	  if (!C_TYPE_VARIABLE_SIZE (type))
 	    return false;
 	  if (!C_TYPE_VARIABLY_MODIFIED (type))
+	    return false;
+	}
+
+      /* va_list violates this, accept such types here.  */
+      if (!COMPLETE_TYPE_P (TREE_TYPE (type)))
+	return true;
+
+      if (COMPLETE_TYPE_P (type))
+	{
+	  /* If the size is unknown, it can not be complete.  */
+	  if (NULL_TREE == TYPE_DOMAIN (type))
+	    return false;
+
+	  /* Zero-length arrays must have size zero.  */
+	  if (zero_length_array_type_p (type)
+	      && !integer_zerop (TYPE_SIZE (type)))
+	    return false;
+	}
+      else
+	{
+	  /* If not complete but has a domain, it must be a FAM.  */
+	  if (NULL_TREE != TYPE_DOMAIN (type)
+	      && !flexible_array_member_type_p (type))
 	    return false;
 	}
     default:
@@ -507,7 +529,6 @@ c_build_array_type (tree type, tree domain)
   return c_set_type_bits (ret, type);
 }
 
-
 /* Build an array type of unspecified size.  */
 tree
 c_build_array_type_unspecified (tree type)
@@ -517,6 +538,20 @@ c_build_array_type_unspecified (tree type)
   return c_build_array_type (type, build_index_type (upper));
 }
 
+/* Build an array type of zero size.  */
+tree
+c_build_array_type_zero_size (tree type)
+{
+  /* The GCC extension for zero-length arrays differs from
+     ISO flexible array members in that sizeof yields
+     zero.  */
+  type = c_build_array_type (type, build_index_type (NULL_TREE));
+  type = build_distinct_type_copy (TYPE_MAIN_VARIANT (type));
+  TYPE_SIZE (type) = bitsize_zero_node;
+  TYPE_SIZE_UNIT (type) = size_zero_node;
+  SET_TYPE_STRUCTURAL_EQUALITY (type);
+  return type;
+}
 
 tree
 c_build_type_attribute_qual_variant (tree type, tree attrs, int quals)
@@ -824,17 +859,16 @@ composite_type_internal (tree t1, tree t2, tree cond,
 	gcc_assert (!TYPE_QUALS_NO_ADDR_SPACE (t1)
 		    && !TYPE_QUALS_NO_ADDR_SPACE (t2));
 
-	bool t1_complete = COMPLETE_TYPE_P (t1);
-	bool t2_complete = COMPLETE_TYPE_P (t2);
-
-	bool d1_zero = d1 == NULL_TREE || !TYPE_MAX_VALUE (d1);
-	bool d2_zero = d2 == NULL_TREE || !TYPE_MAX_VALUE (d2);
+	bool d1_zero = zero_length_array_type_p (t1)
+		       || flexible_array_member_type_p (t1);
+	bool d2_zero = zero_length_array_type_p (t2)
+		       || flexible_array_member_type_p (t2);
 
 	bool d1_variable = top_array_vla_p (t1);
 	bool d2_variable = top_array_vla_p (t2);
 
-	bool use1 = d1 && (d2_variable || d2_zero || !d1_variable);
-	bool use2 = d2 && (d1_variable || d1_zero || !d2_variable);
+	bool use1 = d1 && (d2_variable || !d2 || d2_zero || !d1_variable);
+	bool use2 = d2 && (d1_variable || !d1 || d1_zero || !d2_variable);
 
 	/* If the first is an unspecified size pick the other one.  */
 	if (d2_variable && c_type_unspecified_p (t1))
@@ -889,24 +923,18 @@ composite_type_internal (tree t1, tree t2, tree cond,
 	int quals = TYPE_QUALS (strip_array_types (elt));
 	tree unqual_elt = c_build_qualified_type (elt, TYPE_UNQUALIFIED);
 
-	t1 = c_build_array_type (unqual_elt, td);
+	if ((!d1 || d1_zero) && (!d2 || d2_zero) && (d1 || d2))
+	  t1 = c_build_array_type_zero_size (unqual_elt);
+	else
+	  t1 = c_build_array_type (unqual_elt, td);
 
 	/* Check that a type which has a varying outermost dimension
-	   got marked has having a variable size.  */
+	   got marked as having a variable size.  */
 	bool varsize = (d1_variable && d2_variable)
-		       || (d1_variable && !t2_complete)
-		       || (d2_variable && !t1_complete);
+		       || (d1_variable && !d2)
+		       || (d2_variable && !d1);
 	gcc_checking_assert (!varsize || C_TYPE_VARIABLE_SIZE (t1));
 
-	/* Ensure a composite type involving a zero-length array type
-	   is a zero-length type not an incomplete type.  */
-	if (d1_zero && d2_zero
-	    && (t1_complete || t2_complete)
-	    && !COMPLETE_TYPE_P (t1))
-	  {
-	    TYPE_SIZE (t1) = bitsize_zero_node;
-	    TYPE_SIZE_UNIT (t1) = size_zero_node;
-	  }
 	t1 = c_build_qualified_type (t1, quals);
 	return c_build_type_attribute_variant (t1, attributes);
       }
@@ -1809,9 +1837,6 @@ comptypes_internal (const_tree type1, const_tree type2,
 	if (d1 == NULL_TREE || d2 == NULL_TREE || d1 == d2)
 	  return true;
 
-	bool d1_zero = !TYPE_MAX_VALUE (d1);
-	bool d2_zero = !TYPE_MAX_VALUE (d2);
-
 	bool d1_variable = top_array_vla_p (t1);
 	bool d2_variable = top_array_vla_p (t2);
 
@@ -1819,10 +1844,19 @@ comptypes_internal (const_tree type1, const_tree type2,
 	  data->different_types_p = true;
 	if (d1_variable || d2_variable)
 	  return true;
+
+	bool d1_zero = zero_length_array_type_p (t1)
+		       || flexible_array_member_type_p (t1);
+
+	bool d2_zero = zero_length_array_type_p (t2)
+		       || flexible_array_member_type_p (t2);
+
 	if (d1_zero && d2_zero)
 	  return true;
-	if (d1_zero || d2_zero
-	    || !tree_int_cst_equal (TYPE_MIN_VALUE (d1), TYPE_MIN_VALUE (d2))
+	if (d1_zero || d2_zero)
+	  return false;
+
+	if (!tree_int_cst_equal (TYPE_MIN_VALUE (d1), TYPE_MIN_VALUE (d2))
 	    || !tree_int_cst_equal (TYPE_MAX_VALUE (d1), TYPE_MAX_VALUE (d2)))
 	  return false;
 
@@ -3089,7 +3123,7 @@ check_counted_by_attribute (location_t loc, tree ref)
   tree subdatum = TREE_OPERAND (ref, 1);
   tree sub_type = TREE_TYPE (subdatum);
 
-  if (!c_flexible_array_member_type_p (sub_type)
+  if (!flexible_array_member_type_p (sub_type)
       && TREE_CODE (sub_type) != POINTER_TYPE)
     return;
 
@@ -3137,7 +3171,7 @@ build_counted_by_ref (tree datum, tree subdatum,
 		      tree *counted_by_type)
 {
   tree sub_type = TREE_TYPE (subdatum);
-  if (!c_flexible_array_member_type_p (sub_type)
+  if (!flexible_array_member_type_p (sub_type)
       && TREE_CODE (sub_type) != POINTER_TYPE)
     return NULL_TREE;
 
@@ -3232,10 +3266,10 @@ build_access_with_size_for_counted_by (location_t loc, tree ref,
 				       tree counted_by_ref,
 				       tree counted_by_type)
 {
-  gcc_assert (c_flexible_array_member_type_p (TREE_TYPE (ref))
+  gcc_assert (flexible_array_member_type_p (TREE_TYPE (ref))
 	      || TREE_CODE (TREE_TYPE (ref)) == POINTER_TYPE);
 
-  bool is_fam = c_flexible_array_member_type_p (TREE_TYPE (ref));
+  bool is_fam = flexible_array_member_type_p (TREE_TYPE (ref));
 
   /* The result type of the call is a pointer to the flexible array type;
      or is the original pointer type to the pointer field with counted_by.  */
@@ -3285,7 +3319,7 @@ handle_counted_by_for_component_ref (location_t loc, tree ref)
   tree subdatum = TREE_OPERAND (ref, 1);
   tree counted_by_type = NULL_TREE;
 
-  if (!(c_flexible_array_member_type_p (TREE_TYPE (ref))
+  if (!(flexible_array_member_type_p (TREE_TYPE (ref))
 	|| TREE_CODE (TREE_TYPE (ref)) == POINTER_TYPE))
     return ref;
 
@@ -9944,7 +9978,7 @@ digest_init (location_t init_loc, tree decl, tree type, tree init,
 	  expr.m_decimal = 0;
 	  maybe_warn_string_init (init_loc, type, expr);
 
-	  if (TYPE_DOMAIN (type) && !TYPE_MAX_VALUE (TYPE_DOMAIN (type)))
+	  if (flexible_array_member_type_p (type))
 	    pedwarn_init (init_loc, OPT_Wpedantic,
 			  "initialization of a flexible array member");
 
@@ -10915,12 +10949,9 @@ pop_init_level (location_t loc, int implicit,
 
   p = constructor_stack;
 
-  /* Error for initializing a flexible array member, or a zero-length
-     array member in an inappropriate context.  */
+  /* Error for initializing a flexible array member.  */
   if (constructor_type && constructor_fields
-      && TREE_CODE (constructor_type) == ARRAY_TYPE
-      && TYPE_DOMAIN (constructor_type)
-      && !TYPE_MAX_VALUE (TYPE_DOMAIN (constructor_type)))
+      && flexible_array_member_type_p (constructor_type))
     {
       /* Silently discard empty initializations.  The parser will
 	 already have pedwarned for empty brackets for C17 and earlier.  */

@@ -342,6 +342,11 @@ class locale_tgt_t {
 #include "cobol-system.h"
 #include "coretypes.h"
 #include "tree.h"
+#include "tree-iterator.h"
+#include "stringpool.h"
+#include "diagnostic-core.h"
+#include "target.h"
+#include "tm.h"
 #undef cobol_dialect
 #undef cobol_exceptions
 #undef yy_flex_debug
@@ -356,6 +361,7 @@ class locale_tgt_t {
 #include "genapi.h"
 #include "../../libgcobol/exceptl.h"
 #include "exceptg.h"
+#include "../../libgcobol/cobol-endian.h"
 #include "../../libgcobol/charmaps.h"
 #include "parse_ante.h"
 %}
@@ -1636,7 +1642,7 @@ cobol_words1:	COBOL_WORDS EQUATE NAME[keyword] WITH NAME[name] {
 		  if( ! cdf_tokens.reserve(@name, $name) ) { YYERROR; }
 		}
         |       PROCESS {
-                  cbl_message(@1, IbmCdf, "%qs", $1);
+                  cbl_message(@1, IbmCdf, "CDF directive ignored: %qs", $1);
                 }
 		;
 
@@ -5468,19 +5474,17 @@ sign_separate:  %empty              { $$ = false; }
 type_clause: TYPE to typename
                 {
                   cbl_field_t *field = current_field();
-                  if( $typename ) {
-                    const auto e = symbol_field_same_as(field, $typename);
-		    symbol_field_location( symbol_index(e), @typename );
-                  }
+                  assert( $typename );
+                  const auto e = symbol_field_same_as(field, $typename);
+                  symbol_field_location( symbol_index(e), @typename );
                 }
         |       USAGE is typename
                 {
                   dialect_ok(@typename, MfUsageTypename, "USAGE TYPENAME");
                   cbl_field_t *field = current_field();
-                  if( $typename ) {
-                    const auto e = symbol_field_same_as(field, $typename);
-		    symbol_field_location( symbol_index(e), @typename );
-                  }
+                  assert( $typename );
+                  const auto e = symbol_field_same_as(field, $typename);
+                  symbol_field_location( symbol_index(e), @typename );
                 }
                 ;
 
@@ -5647,10 +5651,11 @@ sentences:      sentence {
         |       paragraph_name[para] '.'
                 {
                   location_set(@para);
-                  cbl_label_t *label = label_add(@para, LblParagraph, $para);
-                  if( !label ) {
-                    YYERROR;
-                  }
+                  cbl_label_t
+                    *label = label_instantiate(@para, PROGRAM, LblParagraph,
+                                               current.program_section(),
+                                               $para);
+                  assert(label);
                   ast_enter_paragraph(@para, label);
                   current.new_paragraph(label);
                   apply_declaratives();
@@ -5664,10 +5669,11 @@ sentences:      sentence {
         |       sentences paragraph_name[para] '.'
                 {
                   location_set(@para);
-                  cbl_label_t *label = label_add(@para, LblParagraph, $para);
-                  if( !label ) {
-                    YYERROR;
-                  }
+                  cbl_label_t
+                    *label = label_instantiate(@para, PROGRAM, LblParagraph,
+                                               current.program_section(),
+                                               $para);
+                  assert(label);
                   ast_enter_paragraph(@para, label);
                   current.new_paragraph(label);
                   apply_declaratives();
@@ -7048,7 +7054,7 @@ if_statements:  %empty        %prec ADD
         |       statements    %prec ADD
         |       NEXT SENTENCE %prec ADD
                 {
-                  next_sentence = label_add(LblNone, "next_sentence", 0);
+                  next_sentence = label_add_once(LblNone, "next_sentence");
                   parser_label_goto(next_sentence);
                 }
                 ;
@@ -7110,7 +7116,7 @@ eval_case:      eval_objects statements %prec ADD {
                 {
 		  auto& ev( eval_stack.current() );
 		  ev.write_when_label();
-                  next_sentence = label_add(LblNone, "next_sentence", 0);
+                  next_sentence = label_add_once(LblNone, "next_sentence");
                   parser_label_goto(next_sentence);
                 }
                 ;
@@ -7413,7 +7419,7 @@ typename:       NAME
                 {
                   auto e = symbol_typedef(PROGRAM, $NAME);
                   if( ! e ) {
-		    error_msg(@1, "DATA-ITEM '%s' not found", $NAME );
+		    error_msg(@1, "TYPE %qs not found", $NAME );
                     YYERROR;
                   }
                   $$ = cbl_field_of(e);
@@ -8017,14 +8023,14 @@ cce_factor:     NUMSTR {
 section_name:	NAME section_kw '.'
                 {
                   statement_begin(@1, SECTION);
-		  $$ = label_add(@1, LblSection, $1);
+		  $$ = label_instantiate(@1, PROGRAM, LblSection, 0, $1);
                   ast_enter_section(@1, $$);
                   apply_declaratives();
                 }
 	|	NAME section_kw // lexer swallows '.' before USE
                 <label>{
                   statement_begin(@1, SECTION);
-		  $$ = label_add(@1, LblSection, $1);
+		  $$ = label_instantiate(@1, PROGRAM, LblSection, 0, $1);
                   ast_enter_section(@1, $$);
                   apply_declaratives();
                 } [label]
@@ -9812,7 +9818,7 @@ search_2_case:  WHEN { parser_bsearch_conditional(search_current()); }
 
 search_stmts:   statements    %prec ADD
         |       NEXT SENTENCE %prec ADD {
-                  next_sentence = label_add(LblNone, "next_sentence", 0);
+                  next_sentence = label_add_once(LblNone, "next_sentence");
                   parser_label_goto(next_sentence);
                 }
                 ;
@@ -9875,6 +9881,10 @@ sort_table:     SORT tableref[table] sort_keys sort_dup sort_seq {
                   statement_begin(@1, SORT);
 		  if( ! is_table($table->field) ) {
 		    error_msg(@1, "%s has no OCCURS clause", $table->field->name);
+                    YYERROR;
+		  }
+		  if( !$table->field->occurs.keys ) {
+		    error_msg(@1, "%s: no key defined", $table->field->name);
                     YYERROR;
 		  }
                   cbl_key_t
@@ -10891,13 +10901,16 @@ label_1:        qname
 
                   if( namelocs.size() == 2 ) {
 		    auto nameloc = namelocs.front();
-                    cbl_label_t *sect = label_add(nameloc.loc, LblSection, nameloc.name);
+                    cbl_label_t *sect = symbol_label(PROGRAM,
+                                                     LblSection, 0, nameloc.name);
+                    if( !sect ) sect = label_add(nameloc.loc, LblNone, nameloc.name);
                     isect = symbol_index(symbol_elem_of(sect));
                   }
 
                   $$ = paragraph_reference(@1, para, isect);
                   assert($$);
-                  dbgmsg( "using procedure %s of line %d", $$->name, $$->line );
+                  size_t isym = symbol_index(symbol_elem_of($$));
+                  dbgmsg( "using procedure #%lu %s of line %d", isym, $$->name, $$->line );
                 }
         |       NUMSTR
                 {
@@ -13213,7 +13226,7 @@ class label_named {
 typedef label_named<LblSection> section_named;
 typedef label_named<LblParagraph> paragraph_named;
 
-static struct cbl_label_t *
+static cbl_label_t *
 label_add( const cbl_loc_t& loc,
 	   enum cbl_label_type_t type, const char name[] ) {
   size_t parent = 0;
@@ -13256,7 +13269,28 @@ label_add( const cbl_loc_t& loc,
 
   assert( !(p->type == LblSection && p->parent > 0) );
 
+  if( type == LblNone ) {
+    auto isym = symbol_index(symbol_elem_of(p));
+    current.forward_add(isym);
+    dbgmsg("%s: add forward %s %s #%lu", __func__,
+           p->type_str(), p->name, (unsigned long)isym);
+  }
   return p;
+}
+
+/*
+ * Special treatment for the "next_sentence" label, which the compiler creates and
+ * remains LblNone.
+ */
+static cbl_label_t *
+label_add_once( cbl_label_type_t type, const char name[] ) {
+  cbl_label_t *L = symbol_label(PROGRAM, type, 0, name);
+  if( L ) return L;
+
+  cbl_label_t label = { type, 0, 0 }; // no parent, line 0
+  strcpy(label.name, name);
+  
+  return symbol_label_add(PROGRAM, &label);
 }
 
 /*
@@ -13264,10 +13298,55 @@ label_add( const cbl_loc_t& loc,
  * bounds. Often they are created far away from the yacc metavariables, so
  * there's no location to access.
  */
-static struct cbl_label_t *
+static cbl_label_t *
 label_add( enum cbl_label_type_t type, const char name[], int line ) {
   cbl_loc_t loc { line, 1, line, 1 };
   return label_add(loc, type, name);
+}
+
+// When a Section or Paragraph is defined, first see if a LblNone exists for
+// it.  If so, imbue it as now defined. Else create one.  
+static cbl_label_t *
+label_instantiate( const cbl_loc_t& loc, size_t program,
+                          cbl_label_type_t type, size_t section,
+                          const char name[] )
+{
+  cbl_label_t *label = symbol_label(program, type, section, name);
+  if( ! label && type == LblParagraph ) {
+    // A forward reference could be mistakenly attached to a section with no
+    // such paragraph.
+    auto& forwards = current.forwards();
+
+    for( auto isym : forwards ) {
+      auto para = cbl_label_of(symbol_at(isym));
+      if( para->type == LblNone ) {
+        if( 0 == strcasecmp(para->name, name) ) {
+          assert(para->parent);
+          auto sect = cbl_label_of(symbol_at(para->parent));            
+          if( 0 == strcasecmp(sect->name, current.section()->name) ) {
+            // The current section has the same name as a prior one, and that
+            // prior one was parsed without instantiating a forward reference
+            // that was attached to it.  So, use it.  
+            label = para;
+            forwards.erase(isym);
+            break;
+          }
+        }
+      }
+    }
+  }
+  if( label && label->type == LblNone ) {
+    label->type = type;
+    label->parent = section;
+    label->line = loc.first_line;
+    dbgmsg("%s:%d: instantiated %s", __func__, __LINE__, label->str());
+    return label;
+  }
+
+  label = label_add(loc, type, name);
+  dbgmsg("%s:%d: add %s", __func__, __LINE__, label->str());
+  
+  return label;
 }
 
 cbl_label_t *
@@ -13309,15 +13388,28 @@ perform_t::ec_labels_t::new_label( cbl_label_type_t type,
 static struct cbl_label_t *
 paragraph_reference( const cbl_loc_t& loc, const char name[], size_t section )
 {
-  // A reference has line == 0.  It is LblParagraph if the section is
-  // explicitly named, else LblNone (because we don't know).
-  struct cbl_label_t *p, label = { section? LblParagraph : LblNone, section };
+  dbgmsg("%s: find '%s' in section #%lu", __func__, name, (unsigned long)section);
+  // A reference has line == 0.  It is LblNone, possibly with a parent, until instantiated.
+  cbl_label_t label = { LblNone, section };
   assert(strlen(name) < sizeof(label.name)); // caller ensures
   strcpy(label.name, name);
-  if( label.type == LblNone ) assert(label.parent == 0);
 
-  p = symbol_label_add(PROGRAM, &label);
-  assert(p);
+  auto p = symbol_label(PROGRAM, LblParagraph, label.parent, label.name);
+  if( !p && section == 0 ) {
+    p = symbol_label(PROGRAM, LblSection, label.parent, label.name);
+  }
+  if( ! p  ) {
+    p = symbol_label_add(PROGRAM, &label);
+    assert(p);
+    if( p->type == LblNone ) {
+      auto isym = symbol_index(symbol_elem_of(p));
+      current.forward_add(isym);
+      dbgmsg("%s: add forward %s %s #%lu in section %lu", __func__,
+             p->type_str(), p->name,
+             (unsigned long)isym, (unsigned long)p->parent);
+    }
+  }
+  
   const char *para_name = p->name;
   const char *sect_name = section? cbl_label_of(symbol_at(section))->name : NULL;
   
@@ -13586,6 +13678,12 @@ ast_op( const cbl_loc_t& loc, cbl_refer_t *lhs, char op, cbl_refer_t *rhs ) {
 static void
 ast_relop( const cbl_loc_t& loc, cbl_field_t *tgt,
            cbl_refer_t lhs, relop_t op, cbl_refer_t rhs ) {
+  if( was_fd_name(lhs.field) || was_fd_name(rhs.field) ) {
+    const char *name = was_fd_name(lhs.field) ? lhs.field->name : rhs.field->name;
+    error_msg(loc, "cannot compare anything to FD %qs", name);
+    return;
+  }
+
   if( ! (valid_move(lhs.field, rhs.field) && valid_move(rhs.field, lhs.field)) ) {
     if( is_numeric(lhs.field) != is_numeric(rhs.field) ) {
       if( (lhs.field->type == FldFloat) || (rhs.field->type == FldFloat) ) {
@@ -14761,66 +14859,73 @@ literal_refmod_valid( cbl_loc_t loc, const cbl_refer_t& r ) {
 
   unsigned int nchar = r.field->char_capacity();
   const cbl_span_t& refmod(r.refmod);
+  const char *len_name = refmod.len? nice_name_of(refmod.len->field) : "";
 
   // Check ANY LENGTH for initial refmod FROM literal 0. A bit specific....
   if( r.field->has_attr(any_length_e) ) {
     if( is_literal(refmod.from->field) ) {
-      auto edge = refmod.from->field->as_integer();
-      if( edge < 1 ) {
+      auto from = refmod.from->field->as_integer();
+      if( from < 1 ) {
         error_msg(loc,"%s(%zu:%s) out of bounds, must be within 1:%u",
                   r.field->name,
                   size_t(refmod.from->field->as_integer()),
-                  nice_name_of(refmod.len->field),
+                  len_name,
                   nchar );
         return false;
       }
     }
     return true;
   }
-  
+
+  // from is unknown
   if( ! is_literal(refmod.from->field) ) {
     if( ! refmod.len ) return true;
     if( ! is_literal(refmod.len->field) ) return true;
-    auto edge = refmod.len->field->as_integer();
-    if( 0 < edge ) {
-      if( edge-1 < nchar ) return true;
+    auto len = refmod.len->field->as_integer();
+    if( 0 < len ) {
+      if( len-1 < nchar ) return true; // len is less than the field's size
     }
-    // len < 0 or not: 0 < from + len <= capacity
+    // len too big: 0 < from + len <= capacity
     error_msg(loc, "%s(%s:%zu) out of bounds, "
 	           "size is %u",
 	      r.field->name,
 	      refmod.from->name(),
-	      size_t(edge),
+	      size_t(len),
 	      nchar );
     return false;
   }
 
-  auto edge = refmod.from->field->as_integer();
-  if( 0 < edge ) {
-    if( --edge < nchar ) {
-      if( ! refmod.len ) return true;
-      if( ! is_literal(refmod.len->field) ) return true;
-      auto len = refmod.len->field->as_integer();
-      if( len > 0 ) {
-	edge += len;
-	if( --edge < nchar ) return true;
-      }
-      // len < 0 or not: 0 < from + len <= capacity
-      loc = symbol_field_location(field_index(r.field));
-      error_msg(loc, "%s(%zu:%zu) out of bounds, "
-		"size is %u",
-		r.field->name,
-		size_t(refmod.from->field->as_integer()),
-		size_t(len),
-		nchar );
-      return false;
+  gcc_assert(is_literal(refmod.from->field));
+
+  // from is known
+  auto from = refmod.from->field->as_integer();
+  if( 0 < from && from <= nchar ) {
+    // from is in bounds
+    if( ! refmod.len ) return true;
+    if( ! is_literal(refmod.len->field) ) return true;
+    // len is known
+    auto len = refmod.len->field->as_integer();
+    if( 0 < len ) {
+      if( from + len - 2 < nchar ) return true;
     }
+    // from + len too big: 0 < from + len <= capacity
+    loc = symbol_field_location(field_index(r.field));
+    error_msg(loc, "%s(%zu:%zu) out of bounds, "
+      	"size is %u",
+      	r.field->name,
+      	size_t(from),
+      	size_t(len),
+      	nchar );
+    return false;
   }
+
+  // from is too big or 0
+  gcc_assert(from < 1 || nchar <= from);
 
   error_msg(loc,"%s(%zu:%s) out of bounds, must be within 1:%u",
 	    r.field->name,
-	    size_t(refmod.from->field->as_integer()),
-            nice_name_of(refmod.len->field),
+	    size_t(from),
+            len_name,
 	    nchar );
   return false;
 }
@@ -15062,6 +15167,10 @@ field_binary_usage( cbl_loc_t loc, cbl_field_t *field,
     field->attr |= big_endian_e;
     __attribute__((fallthrough));
   case FldNumericBin5:
+    if( cobol_target_big_endian() ) // cppcheck-suppress knownConditionTrueFalse
+      {
+      field->attr |= big_endian_e;
+      }
     // If no capacity yet, then no picture, infer $comp.capacity.
     // If field has capacity, ensure USAGE is compatible.
     if( field->data.capacity() > 0 ) { // PICTURE before USAGE

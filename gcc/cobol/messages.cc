@@ -37,6 +37,7 @@
 #include <cobol-system.h>
 #include <coretypes.h>
 #include <tree.h>
+#include "target.h"
 #undef yy_flex_debug
 
 #include <langinfo.h>
@@ -61,6 +62,7 @@
 #include "../../libgcobol/io.h"
 #include "genapi.h"
 #include "genutil.h"
+#include "../../libgcobol/cobol-endian.h"
 #include "../../libgcobol/charmaps.h"
 
 
@@ -122,6 +124,7 @@ std::set<cbl_diag_t> cbl_diagnostics {
 
   { EcUnknownW, "-Wec-unknown", diagnostics::kind::warning },
 
+  { IbmCallFd, "-Wcall-fd", diagnostics::kind::error, dialect_ibm_e },
   { IbmCdf, "-Wibm-cdf", diagnostics::kind::error, dialect_ibm_e },
   { IbmEjectE, "-Wcobol-eject", diagnostics::kind::error, dialect_ibm_e },
   { IbmLengthOf, "-Wlength-of", diagnostics::kind::error, dialect_ibm_mf_gnu },

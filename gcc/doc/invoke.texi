@@ -202,15 +202,15 @@ in the following sections.
 
 @item C Language Options
 @xref{C Dialect Options,,Options Controlling C Dialect}.
-@gccoptlist{-ansi  -std=@var{standard}  -aux-info @var{filename}
--fno-asm
--fno-builtin  -fno-builtin-@var{function}  -fcond-mismatch
+@gccoptlist{-ansi  --ansi  -std=@var{standard}  -aux-info @var{filename}
+-fno-asm  -fno-builtin  -fno-builtin-@var{function}  -fcond-mismatch
+-fdeps-file=@var{file}  -fdeps-format=@var{format}  -fdeps-target=@var{file}
 -ffreestanding  -fgimple  -fgnu-tm  -fgnu89-inline  -fhosted
 -flax-vector-conversions  -fms-extensions
 -fpermitted-flt-eval-methods=@var{standard}
 -fplan9-extensions  -fsigned-bitfields  -funsigned-bitfields
--fsigned-char  -funsigned-char  -fstrict-flex-arrays[=@var{n}]
--fsso-struct=@var{endianness}  --ansi}
+-fsigned-char  -funsigned-char  -fsso-struct=@var{endianness}
+-fstrict-flex-arrays[=@var{n}]}
 
 @item C++ Language Options
 @xref{C++ Dialect Options,,Options Controlling C++ Dialect}.
@@ -280,7 +280,7 @@ in the following sections.
 -Wextra-semi  -Wno-global-module  -Wno-inaccessible-base
 -Wno-inherited-variadic-ctor  -Wno-init-list-lifetime
 -Winvalid-constexpr  -Winvalid-imported-macros
--Wno-invalid-offsetof  -Wno-literal-suffix
+-Wno-invalid-offsetof  -Wno-invalid-specialization  -Wno-literal-suffix
 -Wmismatched-new-delete  -Wmismatched-tags
 -Wmultiple-inheritance  -Wnamespaces  -Wnarrowing
 -Wnoexcept  -Wnoexcept-type  -Wnon-virtual-dtor
@@ -323,7 +323,8 @@ Objective-C and Objective-C++ Dialects}.
 @xref{OpenMP and OpenACC Options,,Options Controlling OpenMP and OpenACC}.
 @gccoptlist{-foffload=@var{arg}  -foffload-options=@var{arg}
 -fopenacc  -fopenacc-dim=@var{geom}
--fopenmp  -fopenmp-simd  -fopenmp-target-simd-clone@r{[}=@var{device-type}@r{]}}
+-fopenmp  -fopenmp-simd  -fopenmp-ompt  -fopenmp-ompt-detailed
+-fopenmp-target-simd-clone@r{[}=@var{device-type}@r{]}}
 
 @item Diagnostic Message Formatting Options
 @xref{Diagnostic Message Formatting Options,,Options to Control Diagnostic Messages Formatting}.
@@ -1406,7 +1407,7 @@ See RS/6000 and PowerPC Options.
 -mgnu-attribute
 -mstack-protector-guard=@var{guard}  -mstack-protector-guard-reg=@var{reg}
 -mstack-protector-guard-offset=@var{offset}  -mprefixed
--mpcrel  -mmma  -mrop-protect  -mprivileged
+-mpcrel  -mmma  -mdense-math  -mrop-protect  -mprivileged
 -mno-splat-word-constant  -mno-splat-float-constant
 -mno-ieee128-constant  -mno-warn-altivec-long}
 
@@ -1427,7 +1428,7 @@ See RS/6000 and PowerPC Options.
 -mlong-double-64  -mlong-double-128
 -mbackchain  -mpacked-stack
 -msmall-exec  -mmvcle
--m64  -m31  -mdebug  -mesa  -mzarch
+-m64  -mdebug  -mzarch
 -mhtm  -mvx  -mzvector
 -mtpf-trace  -mtpf-trace-skip  -mmain
 -mfused-madd  -mno-fused-madd
@@ -2745,6 +2746,41 @@ Allow conditional expressions with mismatched types in the second and
 third arguments.  The value of such an expression is void.  This option
 is not supported for C++.
 
+@opindex fdeps-
+@opindex fdeps-file
+@opindex fdeps-format
+@opindex fdeps-target
+@item -fdeps-file=@var{file}
+@itemx -fdeps-format=@var{format}
+@itemx -fdeps-target=@var{file}
+
+The @samp{-fdeps-*} options are used to extract structured dependency
+information for a source file.  This involves determining what
+resources provided by other source files are required to compile
+the source as well as what resources are provided by the source.  This
+information can be used to add required dependencies between
+compilation rules of dependent sources based on their contents rather
+than requiring such information be reflected within the build tools as
+well.
+
+@option{-fdeps-file=@var{file}} specifies where to write structured
+dependency information.
+
+@option{-fdeps-format=@var{format}} specifies the format to use for
+structured dependency information.
+@uref{https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p1689r5.html,
+@samp{p1689r5}} is the only supported format right now.
+Note that when this argument is specified, the
+output of @samp{-MF} is stripped of some information (namely C++ modules) so
+that it does not use extended makefile syntax not understood by most tools.
+
+@option{-fdeps-target=@var{file}} is analogous to @option{-MT},
+but for structured dependency information.  This
+indicates the target of the build rule for the source file
+that is currently being processed for dynamic dependencies, and is used to
+associate the dependency information with that target in the output.
+Normally this is the name of the @samp{.o} file generated during compilation.
+
 @opindex ffreestanding
 @opindex fno-freestanding
 @cindex hosted environment
@@ -2869,33 +2905,6 @@ is @option{-fpermitted-flt-eval-methods=c11}.  The default when in a GNU
 dialect (@option{-std=gnu11} or similar) is
 @option{-fpermitted-flt-eval-methods=ts-18661-3}.
 
-@opindex fdeps-
-The @samp{-fdeps-*} options are used to extract structured dependency
-information for a source.  This involves determining what resources provided by
-other source files will be required to compile the source as well as what
-resources are provided by the source.  This information can be used to add
-required dependencies between compilation rules of dependent sources based on
-their contents rather than requiring such information be reflected within the
-build tools as well.
-
-@opindex fdeps-file
-@item -fdeps-file=@var{file}
-Where to write structured dependency information.
-
-@opindex fdeps-format
-@item -fdeps-format=@var{format}
-The format to use for structured dependency information. @samp{p1689r5} is the
-only supported format right now.  Note that when this argument is specified, the
-output of @samp{-MF} is stripped of some information (namely C++ modules) so
-that it does not use extended makefile syntax not understood by most tools.
-
-@opindex fdeps-target
-@item -fdeps-target=@var{file}
-Analogous to @option{-MT} but for structured dependency information.  This
-indicates the target which will ultimately need any required resources and
-provide any resources extracted from the source that may be required by other
-sources.
-
 @opindex fplan9-extensions
 @opindex fno-plan9-extensions
 @item -fplan9-extensions
@@ -2955,6 +2964,16 @@ The type @code{char} is always a distinct type from each of
 @code{signed char} or @code{unsigned char}, even though its behavior
 is always just like one of those two.
 
+@opindex fsso-struct
+@item -fsso-struct=@var{endianness}
+Set the default scalar storage order of structures and unions to the
+specified endianness.  The accepted values are @samp{big-endian},
+@samp{little-endian} and @samp{native} for the native endianness of
+the target (the default).  This option is not supported for C++.
+
+@strong{Warning:} the @option{-fsso-struct} switch causes GCC to generate
+code that is not binary compatible with code generated without it if the
+specified endianness is not the native endianness of the target.
 @opindex fstrict-flex-arrays
 @opindex fno-strict-flex-arrays
 @opindex fstrict-flex-arrays=@var{level}
@@ -2990,16 +3009,6 @@ The @option{-fstrict_flex_arrays} option interacts with the
 @option{-Wstrict-flex-arrays} option.  @xref{Warning Options}, for more
 information.
 
-@opindex fsso-struct
-@item -fsso-struct=@var{endianness}
-Set the default scalar storage order of structures and unions to the
-specified endianness.  The accepted values are @samp{big-endian},
-@samp{little-endian} and @samp{native} for the native endianness of
-the target (the default).  This option is not supported for C++.
-
-@strong{Warning:} the @option{-fsso-struct} switch causes GCC to generate
-code that is not binary compatible with code generated without it if the
-specified endianness is not the native endianness of the target.
 @end table
 
 @node C++ Dialect Options
@@ -4294,6 +4303,15 @@ Verify all imported macro definitions are valid at the end of
 compilation.  This is not enabled by default, as it requires
 additional processing to determine.  It may be useful when preparing
 sets of header-units to ensure consistent macros.
+
+@opindex Winvalid-specialization
+@opindex Wno-invalid-specialization
+@item -Wno-invalid-specialization @r{(C++ and Objective-C++ only)}
+Do not error on explicit specializations of templates marked with the
+@code{no_specializations} attribute.  This diagnostics is enabled
+by default, and @option{-Wno-invalid-specialization} or
+@code{#pragma GCC ignored "-Winvalid-specializations"} can disable
+that diagnostics.
 
 @opindex Wliteral-suffix
 @opindex Wno-literal-suffix
@@ -5600,6 +5618,24 @@ Fortran.  In fixed source form Fortran, the sentinels can also start with
 @samp{c} or @samp{*}.  Other OpenMP directives are ignored.  Unless
 @option{-fopenmp} is additionally specified, the @code{loop} region binds
 to the current task region, independent of the specified @code{bind} clause.
+
+@opindex fopenmp-ompt
+@opindex fno-openmp-ompt
+@cindex OpenMP OMPT
+@item -fopenmp-ompt
+Emit additional calls into libgomp, enabling OMPT callbacks around some OpenMP
+worksharing constructs (namely statically scheduled @code{for} and
+@code{distribute}, @code{single}, @code{masked} and @code{master}), so that an
+OMPT tool can observe their start and end.  Requires @option{-fopenmp}.
+
+@opindex fopenmp-ompt-detailed
+@opindex fno-openmp-ompt-detailed
+@cindex OpenMP OMPT
+@item -fopenmp-ompt-detailed
+Like @option{-fopenmp-ompt}, and additionally emit calls into libgomp, enabling
+OMPT dispatch callbacks that get called at the beginning of each workshare chunk
+for statically scheduled @code{for} and @code{distribute}.  Requires
+@option{-fopenmp}.
 
 @opindex fopenmp-target-simd-clone
 @opindex fno-openmp-target-simd-clone
@@ -8456,6 +8492,7 @@ Warn about uses of pointers to dynamically allocated objects that have
 been rendered indeterminate by a call to a deallocation function.
 The warning is enabled at all optimization levels but may yield different
 results with optimization than without.
+@option{-Wuse-after-free} is equivalent to @option{-Wuse-after-free=1}.
 
 @table @gcctabopt
 @item -Wuse-after-free=1
@@ -31773,7 +31810,7 @@ following options:
 -mcrypto  -mhtm  -mpower8-fusion
 -mquad-memory  -mquad-memory-atomic  -mfloat128
 -mfloat128-hardware  -mprefixed  -mpcrel  -mmma
--mrop-protect}
+-mdense-math -mrop-protect}
 
 The particular options set for any particular CPU varies between
 compiler versions, depending on what setting seems to produce optimal
@@ -32870,6 +32907,14 @@ Generate (do not generate) the MMA instructions.  The @option{-mma}
 option requires that the option @option{-mcpu=power10} (or later)
 is enabled.
 
+@opindex mdense-math
+@opindex mno-dense-math
+@item -mdense-math
+@itemx -mno-dense-math
+Generate (do not generate) Dense Math Facility (DMF) instructions.
+The @option{-mdense-math} option requires that the option
+@option{-mcpu=future} (or later) is enabled.
+
 @opindex mrop-protect
 @opindex mno-rop-protect
 @item -mrop-protect
@@ -33232,29 +33277,19 @@ exceed 64k.  The default is to use the @code{basr} instruction instead,
 which does not have this limitation.
 
 @opindex m64
-@opindex m31
 @item -m64
-@itemx -m31
-When @option{-m31} is specified, generate code compliant to the
-GNU/Linux for S/390 ABI@.  When @option{-m64} is specified, generate
-code compliant to the GNU/Linux for zSeries ABI@.  This allows GCC in
-particular to generate 64-bit instructions.  For the @samp{s390}
-targets, the default is @option{-m31}, while the @samp{s390x}
-targets default to @option{-m64}.  Note, @option{-m31} is deprecated and
-support will be removed.
+After the removal of @option{-m31}, option @option{-m64} has no counterpart
+anymore.  For the sake of backwards compatibility, the option is still accepted
+but doesn't have any effect anymore.  Therefore, generated code comprises
+64-bit instructions and follows the GNU/Linux for zSeries ABI by default.
+
 
 @opindex mzarch
-@opindex mesa
 @item -mzarch
-@itemx -mesa
-When @option{-mzarch} is specified, generate code using the
-instructions available on z/Architecture.
-When @option{-mesa} is specified, generate code using the
-instructions available on ESA/390.  Note that @option{-mesa} is
-not possible with @option{-m64}.
-When generating code compliant to the GNU/Linux for S/390 ABI,
-the default is @option{-mesa}.  When generating code compliant
-to the GNU/Linux for zSeries ABI, the default is @option{-mzarch}.
+After the removal of @option{-mesa}, option @option{-mzarch} has no counterpart
+anymore.  For the sake of backwards compatibility, the option is still accepted
+but doesn't have any effect anymore.  Therefore, generated code comprises
+instructions available on z/Architecture by default.
 
 @opindex mhtm
 @opindex mno-htm
@@ -34823,7 +34858,7 @@ and subtraction.
 Use this option when linking programs that perform file I/O and are
 destined to run on an MCM target.  It causes the libraries
 @file{libc.a} and @file{libdebug.a} to be linked.  You should run program
-on the the target under the control of the GDB remote debugging stub.
+on the target under the control of the GDB remote debugging stub.
 
 @opindex msim
 @item -msim

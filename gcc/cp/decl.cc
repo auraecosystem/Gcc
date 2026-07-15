@@ -12166,6 +12166,14 @@ grokfndecl (tree ctype,
       return NULL_TREE;
     }
 
+  /* [except.spec]/9 - A deallocation function with no explicit noexcept-specifier
+     has a non-throwing exception specification.  */
+  if (raises == NULL_TREE
+      && cxx_dialect >= cxx11
+      && IDENTIFIER_NEWDEL_OP_P (declarator)
+      && !IDENTIFIER_NEW_OP_P (declarator))
+    raises = noexcept_true_spec;
+
   type = build_cp_fntype_variant (type, rqual, raises, late_return_type_p);
 
   decl = build_lang_decl_loc (location, FUNCTION_DECL, declarator, type);
@@ -20276,7 +20284,7 @@ store_parm_decls (tree current_function_parms)
 
   /* Register cleanups for parameters with trivial_abi attribute, the cleanup
      of which is the callee's responsibility.  */
-  if (!processing_template_decl)
+  if (!processing_template_decl && !DECL_CLONED_FUNCTION_P (fndecl))
     for (tree parm = DECL_ARGUMENTS (fndecl); parm; parm = DECL_CHAIN (parm))
       {
 	if (TREE_CODE (parm) == PARM_DECL)
@@ -20307,7 +20315,7 @@ maybe_prepare_return_this (tree cdtor)
   if (targetm.cxx.cdtor_returns_this ())
     if (tree val = DECL_ARGUMENTS (cdtor))
       {
-	suppress_warning (val, OPT_Wuse_after_free);
+	suppress_warning (val, OPT_Wuse_after_free_);
 	return val;
       }
 
@@ -21225,6 +21233,7 @@ cp_tree_node_structure (union lang_tree_node * t)
     case TRAIT_EXPR:		return TS_CP_TRAIT_EXPR;
     case TU_LOCAL_ENTITY:	return TS_CP_TU_LOCAL_ENTITY;
     case USERDEF_LITERAL:	return TS_CP_USERDEF_LITERAL;
+    case REQUIRES_EXPR:		return TS_CP_REQUIRES_EXPR;
     default:			return TS_CP_GENERIC;
     }
 }

@@ -1824,6 +1824,12 @@ and suffixed by two underscores; for example, the alternate name of
 @code{weak} is @code{__weak__}.  These alternate names are useful in
 library header files in case they are included into files that have
 redefined the base name of the attribute as a preprocessor macro.
+Similarly for every supported standard or scoped attribute, for example, the
+variant spellings of @code{[[gnu::weak]]} are @code{[[__gnu__::__weak__]]},
+@code{[[gnu::__weak__]]} or @code{[[__gnu__::weak]]}.  The only exception
+is that alternate spelling of the @code{clang} scoped attribute namespace
+is @code{_Clang} rather than @code{__clang__} for compatibility with that
+compiler.
 
 GCC also accepts the keyword @code{__attribute} as a synonym for
 @code{__attribute__}.
@@ -4347,7 +4353,7 @@ attribute, used to specify function pointers to effectless and idempotent
 functions according to the C23 definition.
 
 Unlike the standard C23 attribute it can be also specified in attributes
-which appertain to function declarations and applies to the their function
+which appertain to function declarations and applies to their function
 type even in that case.
 
 Reproducible functions without pointer or reference arguments or which do
@@ -5203,7 +5209,7 @@ attribute, used to specify function pointers to effectless, idempotent,
 stateless and independent functions according to the C23 definition.
 
 Unlike the standard C23 attribute it can be also specified in attributes
-which appertain to function declarations and applies to the their function
+which appertain to function declarations and applies to their function
 type even in that case.
 
 Unsequenced functions without pointer or reference arguments are similar
@@ -26985,6 +26991,8 @@ vector unsigned char);
 The following additional built-in functions are available for the
 PowerPC family of processors, starting with Future ISA.
 
+@subsubheading PowerPC Advanced Encryption Standard (AES) Acceleration Built-in Functions
+
 Future ISA of the PowerPC may add new instructions for accelerating AES
 algorithm. GCC provides support for these new instructions through the
 following built-in functions. The third argument to
@@ -31659,6 +31667,41 @@ classes that are non-trivial for the purposes of calls
 arrays of any of the above
 @end itemize
 @end itemize
+
+@cindex @code{no_specializations} template attribute
+@item no_specializations
+
+The @code{no_specializations} attribute can be applied to a C++
+class template, variable template or function template, though not
+their specializations.  It instructs the compiler to error if
+such a template is explicitly specialized.  The primary use case
+for this attribute is the standard library where the standard
+specifies it is undefined behavior to specialize some template.
+The error can be disabled with @option{-Wno-invalid-specialization}
+or @code{#pragma GCC ignored "-Winvalid-specialization"}.
+
+The attribute can be specified either as @code{__attribute__
+((no_specializations))} or @code{[[clang::no_specializations]]} for compatibility
+with the original implementation in Clang.  To avoid portability
+complications, @code{[[gnu::no_specializations]]} is ignored with a warning.
+
+The attribute has a single optional argument, a string literal, which is
+included in the diagnostics and can provide reason why some template should
+not be specialized.
+
+@smallexample
+template <typename T>
+struct __attribute__ ((__no_specializations__)) A @{@};
+template <typename T, typename U>
+[[clang::no_specializations]] int b = 1;
+template <typename T>
+[[_Clang::__no_specializations__ ("foo cannot be specialized")]] int
+foo () @{ return 42; @}
+template <> struct A <int> @{@}; // Error
+template <typename T> int b <T, T> = 2; // Error
+template <> int foo <int> () @{ return 43; @} // Error
+@};
+@end smallexample
 
 @end table
 

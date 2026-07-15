@@ -1,3 +1,34 @@
+2026-07-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.host <i[34567]86-*-netbsdelf*> (tmake_file): Add
+	i386/t-msabi.
+	<x86_64-*-netbsd*>: Likewise.
+
+2026-07-09  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	* config.host: Remove target s390-*.  Remove -m31 part.
+	* config/s390/libgcc-glibc.ver: Remove -m31 part.
+	* config/s390/morestack.S: Ditto.
+	* config/s390/sfp-machine.h: Ditto.
+	* configure: Regenerate.
+	* configure.ac: Remove target s390-*.
+	* generic-morestack.c: Remove -m31 part.
+	* config/s390/32/_fixdfdi.c: Removed.
+	* config/s390/32/_fixsfdi.c: Removed.
+	* config/s390/32/_fixtfdi.c: Removed.
+	* config/s390/32/_fixunsdfdi.c: Removed.
+	* config/s390/32/_fixunssfdi.c: Removed.
+	* config/s390/32/_fixunstfdi.c: Removed.
+	* config/s390/32/t-floattodi: Removed.
+
+2026-07-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/t-avr (LIB1ASMFUNCS): Add _negsi2_r18.
+	* config/avr/asm-defs.h (.call_if_neg): New .macro.
+	* config/avr/lib1funcs.S (__divmodsi4): Use .call_if_neg.
+	(__negsi2_r18): New function.
+	* config/avr/lib1funcs-fixed.S (__divsa3): Use .call_if_neg.
+
 2026-07-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* configure.ac (solaris_ld_v2_maps): Remove.
