@@ -1203,6 +1203,8 @@ gfc_trans_event_post_wait (gfc_code *code, gfc_exec_op op)
       gfc_start_block (&se.pre);
       gfc_init_se (&argse, NULL);
       gfc_conv_expr_val (&argse, code->expr1);
+      if (TREE_CODE (argse.expr) == NOP_EXPR)
+	argse.expr = TREE_OPERAND (argse.expr, 0);
 
       if (op == EXEC_EVENT_POST)
 	gfc_add_modify (&se.pre, argse.expr,
