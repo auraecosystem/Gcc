@@ -10165,10 +10165,13 @@ conv_isocbinding_subroutine (gfc_code *code)
       if (fptr->symtree->n.sym->attr.proc_pointer
 	  && fptr->symtree->n.sym->attr.dummy)
 	fptrse.expr = build_fold_indirect_ref_loc (input_location, fptrse.expr);
+      tree dest_ptr = fptrse.expr;
+      if (TREE_CODE (dest_ptr) == NOP_EXPR)
+	dest_ptr = TREE_OPERAND (dest_ptr, 0);
       se.expr
-	= fold_build2_loc (input_location, MODIFY_EXPR, TREE_TYPE (fptrse.expr),
-			   fptrse.expr,
-			   fold_convert (TREE_TYPE (fptrse.expr), cptrse.expr));
+	= fold_build2_loc (input_location, MODIFY_EXPR, TREE_TYPE (dest_ptr),
+			   dest_ptr,
+			   fold_convert (TREE_TYPE (dest_ptr), cptrse.expr));
       gfc_add_expr_to_block (&se.pre, se.expr);
       gfc_add_block_to_block (&se.pre, &se.post);
       return gfc_finish_block (&se.pre);
