@@ -1,3 +1,683 @@
+==================== Branch work251-dmf, patch #124 ====================
+
+Add paddis support.
+
+This patch adds support for the paddis instruction that might be added to a
+future PowerPC processor.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+2026-07-18  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/constraints.md (eU): New constraint.
+	(eV): Likewise.
+	* config/rs6000/predicates.md (paddis_operand): New predicate.
+	(paddis_paddi_operand): Likewise.
+	(add_cint_operand): Add paddis support.
+	(reg_or_add_cint_operand): Add support for adds that can be done with
+	paddis and paddi/addi.
+	(add_operand): Add support for adds that can be done with paddis, but
+	not paddis + paddi/addi..
+	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Add support for adds
+	that can be done with paddis and also paddis combined with paddi/addi.
+	(print_operand): Add %B<n> for paddis support.
+	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
+	(SIGNED_INTEGER_64BIT_P): Likewise.
+	* config/rs6000/rs6000.md (add<mode>3 define_expand): Add paddis
+	support.
+	(*add<mode>3 define_insn): Likewise.
+	(movdi_internal64): Likewise.
+	(movdi splitter): New splitter for paddis + paddi/addi.
+	* doc/md.texi (PowerPC constraints): Add eU and eV documentation.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/prefixed-addis.c: New test.
+
+==================== Branch work251-dmf, patch #123 ====================
+
+Support load/store vector with right length.
+
+This patch adds support for new instructions that may be added to the PowerPC
+architecture in the future to enhance the load and store vector with length
+instructions.
+
+The current instructions (lxvl, lxvll, stxvl, and stxvll) are inconvient to use
+since the count for the number of bytes must be in the top 8 bits of the GPR
+register, instead of the bottom 8 bits.  This meant that code generating these
+instructions typically had to do a shift left by 56 bits to get the count into
+the right position.  In a future version of the PowerPC architecture, new
+variants of these instructions might be added that expect the count to be in
+the bottom 8 bits of the GPR register.  These patches add this support to GCC
+if the user uses the -mcpu=future option.
+
+I discovered that the code in rs6000-string.cc to generate ISA 3.1 lxvl/stxvl
+future lxvll/stxvll instructions would generate these instructions on 32-bit.
+However the patterns for these instructions is only done on 64-bit systems.  So
+I added a check for 64-bit support before generating the instructions.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+The patches have been tested on both little and big endian systems.  Can I check
+it into the master branch?
+
+2026-07-18   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-string.cc (expand_block_move): Do not generate
+	lxvl and stxvl on 32-bit.
+	* config/rs6000/vsx.md (lxvl): If -mcpu=future, generate the lxvl with
+	the shift count automaticaly used in the insn.
+	(lxvrl): New insn for -mcpu=future.
+	(lxvrll): Likewise.
+	(stxvl): If -mcpu=future, generate the stxvl with the shift count
+	automaticaly used in the insn.
+	(stxvrl): New insn for -mcpu=future.
+	(stxvrll): Likewise.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/lxvrl.c: New test.
+
+==================== Branch work251-dmf, patch #122 ====================
+
+Add xvrlw support.
+
+This patch adds support for a possible new variant of the vector rotate left
+instruction that might be added to a future PowerPC.  This variant (xvrlw) can
+use any VSX register instead of requiring only Altivec registers.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+2026-07-18  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/altivec.md (xvrlw): New insn.
+	* config/rs6000/rs6000.h (TARGET_XVRLW): New macro.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/vector-rotate-left.c: New test.
+
+==================== Branch work251-dmf, patch #121 ====================
+
+Add saturate subtract support
+
+This patch adds support for saturating subtract instructions that might be added
+to a future PowerPC.r  I think I had originally submitted patches that added a
+new built-in function to generate the subfus and subdus instructions.  Segher
+suggested that instead of generating a built-in function, that I should just
+having GCC automatically recognize cases where a saturating subtract could be
+generated.  This patch generates the saturating subtract instructions in the
+appropriate context.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+2026-07-18   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.md (gtu_geu): New code iterator.
+	(subfus<mode>3_<code>): New insns.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/saturate-subtract-1.c: New test.
+	* gcc.target/powerpc/saturate-subtract-2.c: Likewise.
+	* lib/target-supports.exp (check_effective_target_powerpc_future_ok):
+	New target test.
+
+==================== Branch work251-dmf, patch #120 ====================
+
+Use vector pair load/store for memcpy with -mcpu=future
+
+In the development for the power10 processor, GCC did not enable using the load
+vector pair and store vector pair instructions when optimizing things like
+memory copy.  This patch enables using those instructions if -mcpu=future is
+used.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+I have tested these patches on both big endian and little endian PowerPC
+servers, with no regressions.  Can I check these patchs into the trunk?
+
+2026-07-18  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-cpus.def (FUTURE_MASKS_SERVER): Enable using load
+	vector pair and store vector pair instructions for memory copy
+	operations.
+	(POWERPC_MASKS): Make the option for enabling using load vector pair and
+	store vector pair operations set and reset when the PowerPC processor is
+	changed.
+	* config/rs6000/rs6000.cc (rs6000_machine_from_flags): Disable
+	-mblock-ops-vector-pair from influencing .machine selection.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/future-3.c: New test.
+
+==================== Branch work251-dmf, patch #112 ====================
+
+DMF patch 12
+
+(note, the patch adding UNSPEC_DMF_EXTRACT1024 has been removed).
+
+Add two new builtins for extracting data from 1024-bit Dense Math
+Registers (DMRs):
+
+  - __builtin_dmr_extract512 (void *, dmr1024 *, const int<2>):
+    extracts one 512-bit half of a DMR into four 128-bit vectors.
+  - __builtin_disassemble_dmr (void *, dmr1024 *):
+    extracts both 512-bit halves of a DMR into eight 128-bit vectors.
+
+2026-07-16  Surya Kumari Jangala  <jskumari@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-builtins.def (__builtin_dmr_extract512): New
+	built-in.
+	(__builtin_disassemble_dmr): Likewise.
+	(__builtin_dmr_extract512_internal): New internal built-in.
+	* config/rs6000/rs6000-builtin.cc (rs6000_gimple_fold_mma_builtin):
+	Exempt RS6000_BIF_DISASSEMBLE_DMR from the early-return guard.
+	Generate appropriate gimple code for the extract builtins.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dmf-extract512.c: New test.
+	* gcc.target/powerpc/dmf-disassemble-dmr.c: New test.
+
+==================== Branch work251-dmf, patch #111 ====================
+
+DMF patch 11
+
+This patch replaces the 'd' constraint that was used for accumulators
+previously since they overlapped with the FPRs, to use 'wD' constraint
+and the new accumulator_operand in the existing mma define_insns. The
+behaviour without dense-math option will be same as before, only if
+dense-math option is used will the DMR registers be used.
+
+It also updates the %A operand printer to print the DMR register numbers
+instead of FPR if dense-math option is enabled
+
+2026-07-16  Avinash Jayakar  <avinashd@linux.ibm.com>
+	    Vijay Shankar  <vijay@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (mma_xxsetaccz): Use wD constraint and
+	accumulator operand.
+	(mma_<vv>): Likewise.
+	(mma_<avv>): Likewise.
+	(mma_<pv>): Likewise.
+	(mma_<apv>): Likewise.
+	(mma_<vvi4i4i8>): Likewise.
+	(mma_<avvi4i4i8>): Likewise.
+	(mma_<vvi4i4i2>): Likewise.
+	(mma_<avvi4i4i2>): Likewise.
+	(mma_<vvi4i4>): Likewise.
+	(mma_<avvi4i4>): Likewise.
+	(mma_<pvi4i2>): Likewise.
+	(mma_<apvi4i2>): Likewise.
+	(mma_<vvi4i4i4>): Likewise.
+	(mma_<avvi4i4i4>): Likewise.
+	* config/rs6000/rs6000.cc (print_operand): Print DMR register
+	numbers if dense math option enabled.
+
+==================== Branch work251-dmf, patch #110 ====================
+
+DMF patch 10
+
+Add support for the DMF (Dense Math Facility) and MMA+
+(Matrix-Multiply Assist Plus) builtins and instructions which may be
+available on a future Power processor.
+
+This patch extends the existing MMA infrastructure to support Dense
+Math Registers (DMRs).
+
+Key changes:
+
+1. Extended MMA operand support from 7 to 9 operands (MAX_MMA_OPERANDS)
+
+2. Added new DMF-specific unspecs:
+
+   * UNSPEC_DMF_DMXOR for DMR XOR operations
+   * UNSPEC_DMF_DMXVI8GERX4* for DMR GER (outer product) operations
+   * UNSPEC_DMF_PMDMXVI8GERX4* for prefixed DMR GER operations
+   * UNSPEC_DMF_DMSETDMRZ for zeroing a DMR register
+
+3. Implemented new instruction patterns in mma.md:
+
+   * dmf_build_dmr: Build a DMR from eight vector operands
+   * dmf_dmsetdmrz: Zero a DMR register
+   * dmf_dmxor: XOR operation on DMR registers
+   * dmf_dmxvi8gerx4/dmxvi8gerx4pp: DMR outer product operations
+   * dmf_pmdmxvi8gerx4/pmdmxvi8gerx4pp: Prefixed DMR outer product
+     operations
+
+4. Added new DMF builtins and updated GIMPLE folding:
+
+   * Added DMF and MMA+ builtins
+   * Updated GIMPLE folding to handle DMR pass-by-reference semantics
+   * Extended builtin expansion to support up to 9 operand instructions
+
+5. Added documentation for the new DMF and MMA+ builtins.
+
+The implementation follows the existing MMA pattern where user-facing
+builtins use pass-by-reference for DMR arguments, while internal
+builtins use pass-by-value for optimization.
+
+2026-07-15  Peter Bergner  <bergner@linux.ibm.com>
+	    Surya Kumari Jangala  <jskumari@linux.ibm.com>
+	    Kishan Parmar  <kishan@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (MAX_MMA_OPERANDS): Increase from 7 to 9.
+	(UNSPEC_DMF_DMXOR): New unspec.
+	(UNSPEC_DMF_DMXVI8GERX4): Likewise.
+	(UNSPEC_DMF_DMXVI8GERX4PP): Likewise.
+	(UNSPEC_DMF_PMDMXVI8GERX4): Likewise.
+	(UNSPEC_DMF_PMDMXVI8GERX4PP): Likewise.
+	(UNSPEC_DMF_DMSETDMRZ): Likewise.
+	(DMF_PV): New iterator.
+	(DMF_DPV): Likewise.
+	(DMF_PVI8I4I4): Likewise.
+	(DMF_DPVI8I4I4): Likewise.
+	(pv): Add DMF mappings.
+	(apv): Likewise.
+	(pvi8i4i4): New attribute.
+	(dpvi8i4i4): Likewise.
+	(dmf_build_dmr): New define_expand.
+	(dmf_dmsetdmrz): New insn.
+	(dmf_dmxor): Likewise.
+	(dmf_<pv>): New insn pattern.
+	(dmf_<apv>): Likewise.
+	(dmf_<pvi8i4i4>): Likewise.
+	(dmf_<dpvi8i4i4>): Likewise.
+	* config/rs6000/rs6000-builtin.cc (rs6000_gimple_fold_mma_builtin): Add
+	DMF builtin support. Handle DMR pass-by-reference semantics.
+	Support up to nine builtin operands.
+	(mma_expand_builtin): Likewise.
+	(rs6000_expand_builtin): Handle DMF builtins.
+	* config/rs6000/rs6000-builtins.def: Add DMF and MMA+ builtin
+	definitions.
+	* doc/extend.texi
+	(PowerPC Matrix-Multiply Assist Built-in Functions): Document
+	MMA+ builtins.
+	(PowerPC Dense Math Facility Built-in Functions): Document DMF builtins.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dmf-build-dmr.c: New test.
+	* gcc.target/powerpc/dmf-builtin.c: New test.
+
+==================== Branch work251-dmf, patch #109 ====================
+
+DMF patch 9
+
+(note movxo_dmf has been modified to use %W<n> instead of %Y<n>).
+
+Split the movxo pattern into DMF and non-DMF variants.
+
+Use DMF move instructions (dmxxinstdmr512, dmmr, and dmxxextfdmr512)
+for accumulator/DMR moves while retaining the existing split for
+non-DMR operands.
+
+2026-07-15  Vijay Shankar  <vijay@linux.ibm.com>
+
+gcc/ChangeLog:
+	* config/rs6000/mma.md (*movxo): renamed to movxo_nodmf
+	(*movxo_nodmf): updated contraint to use wD and add !TARGET_DMF
+	(*movxo_dmf): New pattern to handle dmf insert/extract from vsx
+
+==================== Branch work251-dmf, patch #108 ====================
+
+DMF patch 8
+
+Add define_insn_and_split patterns for reloading TDOmode values between
+Dense Math Registers (DMRs) and memory when TARGET_DMF is enabled.
+
+2026-07-15  Surya Kumari Jangala  <jskumari@linux.ibm.com>
+	    Peter Bergner  <bergner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (UNSPEC_DMF_RELOAD_FROM_MEMORY): New unspec.
+	(UNSPEC_DMF_RELOAD_TO_MEMORY): Likewise.
+	(reload_tdo_load): New define_insn_and_split.
+	(reload_tdo_store): Likewise.
+	* config/rs6000/rs6000.cc (rs6000_init_hard_regno_mode_ok): Set
+	reload_load and reload_store for TDOmode when TARGET_DMF.
+
+==================== Branch work251-dmf, patch #107 ====================
+
+DMF patch 7
+
+(note the 'W' case in print_operand has been moved from the original patch).
+
+Hi All,
+
+The following patch has been bootstrapped and regtested on powerpc64le-linux.
+
+Add move support for the new TDOmode opaque type used to represent
+1024-bit Dense Math Registers that may be supported by future Power
+processors.
+
+Implement the movtdo pattern to support moves between memory, VSX
+registers, and Dense Math Registers. Memory moves and VSX
+register-to-register moves are handled by the generic multi-register
+splitter. Dense Math Register-to-Register moves use dmmr, while moves
+between VSX and Dense Math Registers are expanded using dm_insert1024
+and dm_extract512.
+
+2026-07-14  Jeevitha Palanisamy  <jeevitha@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (UNSPEC_DMF_EXTRACT512): New unspec.
+	(dm_extract512): New insn.
+	(movtdo): New expander.
+	(*movtdo): New insn_and_split to support TDOmode moves between
+	memory, VSX registers, and Dense Math Registers.
+	* config/rs6000/rs6000.cc (rs6000_emit_move): Diagnose constant
+	assignments to TDOmode objects.
+	(rs6000_split_multireg_move): Handle TDOmode when splitting
+	multi-register moves.
+
+==================== Branch work251-dmf, patch #106 ====================
+
+DMF patch 6
+
+Hi All,
+
+The following patch has been bootstrapped and regtested on powerpc64le-linux.
+
+Changes from v1:
+	- Removed duplicated code from the previous patch so this patch
+	applies cleanly.
+
+Thank You,
+Kishan
+
+A future PowerPC processor may provide the Dense Math Facility (DMF),
+where accumulators are backed by dedicated Dense Math Registers (DMRs).
+Update accumulator assembly to build accumulators in DMRs using the new
+DMR insert operations rather than xxmtacc/xxmfacc.
+
+Add DMR register predicate support, enable the required OOmode VSX pair
+patterns under TARGET_DMF, use accumulator operands for MMA accumulator
+assembly and disassembly, and avoid emitting xxmtacc/xxmfacc during
+internal accumulator moves and GIMPLE folding when DMF is enabled.
+Add DMF instruction type and ISA attributes for instruction scheduling
+and enablement.
+
+2026-07-15  Kishan Parmar  <kishan@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/mma.md (UNSPEC_DMF_INSERT512): New unspec.
+	(UNSPEC_DMF_INSERT1024): Likewise.
+	(movoo): Enable for TARGET_DMF.
+	(*movoo): Likewise.
+	(vsx_assemble_pair): Likewise.
+	(*vsx_assemble_pair): Likewise.
+	(vsx_disassemble_pair): Likewise.
+	(*vsx_disassemble_pair): Likewise.
+	(dm_insert512): New insn.
+	(dm_insert1024): Likewise.
+	(mma_assemble_acc): Use accumulator_operand.
+	Build accumulators via DMR insert operations when TARGET_DMF.
+	(*mma_assemble_acc): Use accumulator_operand.
+	(mma_<acc>): New define_expand treating xxmtacc/xxmfacc as no-ops
+	for TARGET_DMF.
+	(*mma_<acc>): Restrict to !TARGET_DMF and use accumulator_operand.
+	(mma_disassemble_acc): Use accumulator_operand.
+	* config/rs6000/predicates.md (dmr_register_operand): New predicate.
+	(gpc_reg_operand): Accept DMR registers.
+	* config/rs6000/rs6000-builtin.cc (rs6000_gimple_fold_mma_builtin): Do
+	not emit xxmfacc for DISASSEMBLE_ACC when TARGET_DMF.
+	* config/rs6000/rs6000.cc (rs6000_hard_regno_mode_ok_uncached): Allow
+	OOmode in VSX register pairs for TARGET_DMF.
+	(rs6000_split_multireg_move): Avoid emitting xxmtacc/xxmfacc when
+	TARGET_DMF.
+	* config/rs6000/rs6000.md (type): Add dmf type.
+	(isa): Add mma and dmf ISA attributes.
+	(enabled): Add mma and dmf enable conditions.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/future-dmf-xxacc.c: New test.
+	* gcc.target/powerpc/future-nodmf-xxacc.c: New test.
+
+==================== Branch work251-dmf, patch #105 ====================
+
+DMF patch 5
+
+Following patch has been bootstrapped and regtested on
+powerpc64le-linux-gnu. Ok for trunk and gcc-16?
+
+The future processor may introduce new set of registers for
+accumulators. This patch adds a constraint and predicate for the
+accumulator registers which can be used by the dense math and mma
+patterns.
+
+2026-07-16  Avinash Jayakar  <avinashd@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/constraints.md
+	(rs6000_constraints[RS6000_CONSTRAINT_wD]): New wD constraint.
+	* config/rs6000/predicates.md (accumulator_operand): New predicate.
+	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Support wD
+	register class.
+	(rs6000_init_hard_regno_mode_ok): Map wD to FLOAT_REGS.
+	* config/rs6000/rs6000.h (enum r6000_reg_class_enum): Add wD constraint.
+	* doc/md.texi: Document the new constraint.
+
+==================== Branch work251-dmf, patch #104 ====================
+
+DMF patch 4
+
+The Dense Math Facility, which may be present in a future processor,
+extends the Power architecture's computational capabilities by providing
+eight dedicated registers (dmr0-dmr7) that can efficiently handle large
+matrix operations. These registers will also be used in cryptographic
+operations.
+There are no operations to load/store Dense Math registers from/to
+memory. For loading from memory, the 1024 bit value is first loaded into
+8 VSX registers which are then copied into a DMR register. Similarly,
+to store the contents of a DMR register into memory, the the contents
+of the DMR are copied to 8 VSX registers which are then loaded into
+memory.
+The DMR registers are treated as caller-saved.
+
+Key Features:
+
+ 1. Register Infrastructure:
+    - Adds 8 new DMR registers (dmr0-dmr7), numbered 111-118
+    - Each register is 1024 bits (128 bytes) in size
+    - Registers are call-used (caller-saved) following ABI conventions
+    - Increases total pseudo registers from 111 to 119
+
+ 2. Data Type Support:
+    - TDOmode: New 1024-bit mode specifically for DMR operations
+    - XOmode: Extended to support both MMA accumulators (in FPRs) and
+      DMR registers, providing flexibility in register allocation
+    - Both modes support DMR registers when TARGET_DMF is enabled
+    - TDOmode and XOmode excluded from register tying to prevent
+      incorrect cross-class allocation
+
+ 3. Register Allocation:
+    - Integrated DMR_REGS into the register class hierarchy
+    - Added to register pressure classes for optimal allocation
+    - Implements proper register allocation ordering
+    - DMR registers can be allocated for XOmode and TDOmode values
+
+ 4. Addressing and Memory Operations:
+    - Supports offset addressing mode for TDOmode values
+    - Implements secondary reload mechanisms for DMR ↔ VSX transfers
+    - New rs6000_dmr_register_move_cost helper computes move costs
+      between a DMR register and any register class via VSX:
+      XOmode costs 2, TDOmode costs 4, other modes scale by nregs
+    - Ensures proper alignment requirements (vector alignment)
+    - rs6000_register_move_cost and rs6000_memory_move_cost extended
+      to handle DMR_REGS as source or destination
+
+ 5. Register Moves and Transfers:
+    - Enables simple moves between DMR and VSX registers
+
+ 6. Debugging and Toolchain Support:
+    - Assigns debugger register numbers 112-119 for DMR registers
+
+2027-07-13  Surya Kumari jangala  <jskumari@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.cc (enum rs6000_reg_type): Add DMR_REG_TYPE.
+	(enum rs6000_reload_reg_type): Add RELOAD_REG_DMR.
+	(LAST_RELOAD_REG_CLASS): Update to RELOAD_REG_DMR.
+	(reload_reg_map): Add DMR entry.
+	(rs6000_reg_names): Add DMR register names.
+	(alt_reg_names): Add alternate DMR register names.
+	(rs6000_hard_regno_nregs_internal): Handle DMR registers.
+	(rs6000_hard_regno_mode_ok_uncached): Add TDOmode and XOmode support for
+	DMR registers.
+	(rs6000_debug_reg_global): Add TDOmode to debug modes and print DMR
+	register range.
+	(rs6000_setup_reg_addr_masks): Handle RELOAD_REG_DMR.
+	Allow offset loads for TDOmode values.
+	(rs6000_init_hard_regno_mode_ok): Add DMR_REGS to reg_class_to_reg_type
+	mapping.
+	Update precalculation of CLASS_MAX_NREGS.
+	(rs6000_secondary_reload_memory): Handle DMR_REGS class.
+	(rs6000_secondary_reload_simple_move): Add DMR to VSX moves.
+	(rs6000_preferred_reload_class): Handle DMR_REGS.
+	(rs6000_modes_tieable_p): Exclude TDOmode from register tying.
+	(reg_offset_addressing_ok_p): Allow XOmode with TARGET_DMF.
+	Add TDOmode support with TARGET_DMF.
+	(rs6000_secondary_reload_class): Handle DMR_REGS reload routing.
+	(rs6000_dmr_register_move_cost): New helper.
+	(rs6000_register_move_cost): Handle DMR_REGS as source or destination.
+	(rs6000_memory_move_cost): Add DMR_REGS case routing cost through VSX.
+	(rs6000_compute_pressure_classes): Add DMR_REGS when TARGET_DMF.
+	(rs6000_debugger_regno): Add DMR register numbering.
+	* config/rs6000/rs6000.h (UNITS_PER_DMR_WORD): Define as 128.
+	(FIRST_PSEUDO_REGISTER): Increase from 111 to 119.
+	(FIXED_REGISTERS): Add 8 DMR registers as non-fixed.
+	(CALL_USED_REGISTERS): Mark all DMR registers as call-used.
+	(REG_ALLOC_ORDER): Add DMR registers to allocation order.
+	(DMR_REGNO_P): New macro.
+	(VECTOR_ALIGNMENT_P): Add TDOmode.
+	(enum reg_class): Add DMR_REGS entry.
+	(REG_CLASS_CONTENTS): Add DMR_REGS bitmask.
+	(REGISTER_NAMES): Add dmr0-dmr7 register names.
+	(ADDITIONAL_REGISTER_NAMES): Add dmr0-dmr7 mappings.
+	* config/rs6000/rs6000.md (FIRST_DMR_REGNO): Define as 111.
+	(LAST_DMR_REGNO): Define as 118.
+
+==================== Branch work251-dmf, patch #103 ====================
+
+DMF patch 3
+
+The changes have been bootstrapped and regression tested on
+powerpc64le-linux.
+
+Register __dmr1024 as a new 1024-bit opaque built-in type, following
+the same pattern as the existing __vector_pair (OOmode) and
+__vector_quad (XOmode) opaque types.  __dmr1024 uses TDOmode, which
+was already added in a previous commit ("rs6000: Add TDOmode
+support"), and is intended to hold the contents of a Dense Math
+Register (DMR) when the Dense Math Facility (-mdense-math) is
+enabled.
+
+Note there is no __dmr1024 move pattern (movtdo) yet, so none of
+these tests perform an actual load/store/copy of a __dmr1024 value;
+that is left for a follow-on patch that adds the Dense Math move
+support.
+
+2026-07-13  Manjunath Matti  <mmatti@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.h (RS6000_BTI_dmr1024): New enumerator.
+	(RS6000_BTI_ptr_dmr1024): New enumerator.
+	(dmr1024_type_node): New macro.
+	(ptr_dmr1024_type_node): New macro.
+	* config/rs6000/rs6000-builtin.cc (rs6000_type_string): Handle
+	dmr1024_type_node.
+	(rs6000_init_builtins): Register the __dmr1024 opaque type and
+	its pointer-to-const variant, with 512-bit alignment.
+	* config/rs6000/rs6000.cc (rs6000_mangle_type): Handle
+	dmr1024_type_node.
+	(rs6000_invalid_conversion): Reject conversions to/from TDOmode.
+	(rs6000_opaque_type_invalid_use_p): Gate __vector_quad and
+	__vector_pair on TARGET_MMA and __dmr1024 on TARGET_DMF
+	independently, and require -mdense-math for __dmr1024.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/dmr1024-alignment.c: New test case.
+	* gcc.target/powerpc/dmr1024-compile.c: Likewise.
+	* gcc/testsuite/gcc.target/powerpc/dmr1024-invalid-use-1.c: Likewise.
+	* gcc/testsuite/gcc.target/powerpc/dmr1024-invalid-use-2.c: Likewise.
+	* gcc/testsuite/gcc.target/powerpc/dmf-no-mma.c: Likewise.
+
+==================== Branch work251-dmf, patch #102 ====================
+
+DMF patch 2
+
+Hi All,
+
+The following patch has been bootstrapped and regtested on powerpc64le-linux.
+
+Add a new %W print modifier to print_operand that prints the VSX
+register number plus two.
+
+Some future Power instruction patterns require printing two VSX
+registers corresponding to a __vector_pair operand. The existing
+%x print modifier emits the first VSX register using VSX register
+numbering. Add a new %W print modifier to emit the second VSX
+register of the pair.
+
+2025-07-14  Jeevitha Palanisamy  <jeevitha@linux.ibm.com>
+	    Kishan Parmar  <kishan@linux.ibm.com>
+
+gcc/
+	* config/rs6000/rs6000.cc (print_operand): Add the `%W`
+	print modifier to print the VSX register number plus two.
+
 ==================== Branch work251-dmf, baseline ====================
 
 2026-07-16   Michael Meissner  <meissner@linux.ibm.com>
