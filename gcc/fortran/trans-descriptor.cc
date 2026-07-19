@@ -108,8 +108,10 @@ gfc_conv_descriptor_data_get (tree desc)
 
   tree data = conv_descriptor_data (desc);
   tree target_type = GFC_TYPE_ARRAY_DATAPTR_TYPE (type);
-  tree t = fold_convert (target_type, data);
-  return non_lvalue_loc (input_location, t);
+  /* Return a conversion of a non_lvalue.  Doing it the other way around,
+     (non_lvalue of a correction), the non_lvalue is immediately removed.  */
+  tree t = non_lvalue_loc (input_location, data);
+  return fold_convert (target_type, t);
 }
 
 /* This provides WRITE access to the data field.  */
