@@ -956,7 +956,7 @@
   "TARGET_MMA"
   {
     if (TARGET_DMF)
-      return "dmxxsetaccz %A0";
+      return "dmsetaccz %A0";
     return "xxsetaccz %A0";
   }
   [(set_attr "type" "mma")])
