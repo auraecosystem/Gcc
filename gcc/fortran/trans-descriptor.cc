@@ -1028,6 +1028,39 @@ gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
 
 
 void
+gfc_copy_coarray_desc_part (stmtblock_t *block, tree dest, tree src)
+{
+  tree src_type = TREE_TYPE (src);
+  if (TYPE_LANG_SPECIFIC (src_type) && TYPE_LANG_SPECIFIC (src_type)->corank)
+    {
+      struct lang_type *lang_specific = TYPE_LANG_SPECIFIC (src_type);
+      for (int c = 0; c < lang_specific->corank; ++c)
+	{
+	  int dim = lang_specific->rank + c;
+	  tree codim = gfc_rank_cst[dim];
+
+	  if (lang_specific->lbound[dim])
+	    gfc_conv_descriptor_lbound_set (block, dest, codim,
+					    lang_specific->lbound[dim]);
+	  else
+	    gfc_conv_descriptor_lbound_set (
+	      block, dest, codim, gfc_conv_descriptor_lbound_get (src, codim));
+	  if (dim + 1 < lang_specific->corank)
+	    {
+	      if (lang_specific->ubound[dim])
+		gfc_conv_descriptor_ubound_set (block, dest, codim,
+						lang_specific->ubound[dim]);
+	      else
+		gfc_conv_descriptor_ubound_set (
+		  block, dest, codim,
+		  gfc_conv_descriptor_ubound_get (src, codim));
+	    }
+	}
+    }
+}
+
+
+void
 gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr,
 				tree scalar, gfc_expr *scalar_expr,
 				tree cond_presence)
@@ -1037,7 +1070,7 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr,
 					    gfc_expr_attr (scalar_expr));
   gfc_conv_descriptor_dtype_set (block, descr,
 				 gfc_get_dtype (type));
-  copy_coarray_desc_part (block, descr, scalar);
+  gfc_copy_coarray_desc_part (block, descr, scalar);
   if (cond_presence)
     scalar = build3_loc (input_location, COND_EXPR,
 			 TREE_TYPE (scalar),
