@@ -1037,6 +1037,7 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr,
 					    gfc_expr_attr (scalar_expr));
   gfc_conv_descriptor_dtype_set (block, descr,
 				 gfc_get_dtype (type));
+  copy_coarray_desc_part (block, descr, scalar);
   if (cond_presence)
     scalar = build3_loc (input_location, COND_EXPR,
 			 TREE_TYPE (scalar),
