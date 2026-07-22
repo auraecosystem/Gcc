@@ -760,34 +760,14 @@ gfc_get_vptr_from_expr (tree expr)
   return NULL_TREE;
 }
 
+
 void
 gfc_class_array_data_assign (stmtblock_t *block, tree lhs_desc, tree rhs_desc,
 			     bool lhs_type)
 {
-  tree lhs_dim, rhs_dim, type;
-
-  gfc_conv_descriptor_data_set (block, lhs_desc,
-				gfc_conv_descriptor_data_get (rhs_desc));
-  gfc_conv_descriptor_offset_set (block, lhs_desc,
-				  gfc_conv_descriptor_offset_get (rhs_desc));
-
-  gfc_conv_descriptor_dtype_set (block, lhs_desc,
-				 gfc_conv_descriptor_dtype_get (rhs_desc));
-
-  /* Assign the dimension as range-ref.  */
-  lhs_dim = gfc_get_descriptor_dimension (lhs_desc);
-  rhs_dim = gfc_get_descriptor_dimension (rhs_desc);
-
-  type = lhs_type ? TREE_TYPE (lhs_dim) : TREE_TYPE (rhs_dim);
-  lhs_dim = build4_loc (input_location, ARRAY_RANGE_REF, type, lhs_dim,
-			gfc_index_zero_node, NULL_TREE, NULL_TREE);
-  rhs_dim = build4_loc (input_location, ARRAY_RANGE_REF, type, rhs_dim,
-			gfc_index_zero_node, NULL_TREE, NULL_TREE);
-  gfc_add_modify (block, lhs_dim, rhs_dim);
-
-  /* The corank dimensions are not copied by the ARRAY_RANGE_REF.  */
-  gfc_copy_coarray_desc_part (block, lhs_desc, rhs_desc);
+  gfc_copy_descriptor (block, lhs_desc, rhs_desc, lhs_type);
 }
+
 
 /* Takes a derived type expression and returns the address of a temporary
    class object of the 'declared' type.  If opt_vptr_src is not NULL, this is

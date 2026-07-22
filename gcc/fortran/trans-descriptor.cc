@@ -1377,6 +1377,66 @@ gfc_copy_descriptor (stmtblock_t *block, tree dest, tree src,
 }
 
 
+static void
+copy_coarray_desc_part (stmtblock_t *block, tree dest, tree src)
+{
+  tree src_type = TREE_TYPE (src);
+  if (TYPE_LANG_SPECIFIC (src_type) && TYPE_LANG_SPECIFIC (src_type)->corank)
+    {
+      struct lang_type *lang_specific = TYPE_LANG_SPECIFIC (src_type);
+      for (int c = 0; c < lang_specific->corank; ++c)
+	{
+	  int dim = lang_specific->rank + c;
+	  tree codim = gfc_rank_cst[dim];
+
+	  if (lang_specific->lbound[dim])
+	    gfc_conv_descriptor_lbound_set (block, dest, codim,
+					    lang_specific->lbound[dim]);
+	  else
+	    gfc_conv_descriptor_lbound_set (
+	      block, dest, codim, gfc_conv_descriptor_lbound_get (src, codim));
+	  if (dim + 1 < lang_specific->corank)
+	    {
+	      if (lang_specific->ubound[dim])
+		gfc_conv_descriptor_ubound_set (block, dest, codim,
+						lang_specific->ubound[dim]);
+	      else
+		gfc_conv_descriptor_ubound_set (
+		  block, dest, codim,
+		  gfc_conv_descriptor_ubound_get (src, codim));
+	    }
+	}
+    }
+}
+
+
+void
+gfc_copy_descriptor (stmtblock_t *block, tree dest, tree src, bool lhs_type)
+{
+  gfc_conv_descriptor_data_set (block, dest,
+				gfc_conv_descriptor_data_get (src));
+  gfc_conv_descriptor_offset_set (block, dest,
+				  gfc_conv_descriptor_offset_get (src));
+
+  gfc_conv_descriptor_dtype_set (block, dest,
+				 gfc_conv_descriptor_dtype_get (src));
+
+  /* Assign the dimension as range-ref.  */
+  tree lhs_dim = gfc_get_descriptor_dimension (dest);
+  tree rhs_dim = gfc_get_descriptor_dimension (src);
+
+  tree type = lhs_type ? TREE_TYPE (lhs_dim) : TREE_TYPE (rhs_dim);
+  lhs_dim = build4_loc (input_location, ARRAY_RANGE_REF, type, lhs_dim,
+		    gfc_index_zero_node, NULL_TREE, NULL_TREE);
+  rhs_dim = build4_loc (input_location, ARRAY_RANGE_REF, type, rhs_dim,
+		     gfc_index_zero_node, NULL_TREE, NULL_TREE);
+  gfc_add_modify (block, lhs_dim, rhs_dim);
+
+  /* The corank dimensions are not copied by the ARRAY_RANGE_REF.  */
+  copy_coarray_desc_part (block, dest, src);
+}
+
+
 void
 gfc_copy_descriptor (stmtblock_t *block, tree dest, tree src, tree ptr,
 		     int rank)
