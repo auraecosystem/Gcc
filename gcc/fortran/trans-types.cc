@@ -1707,7 +1707,6 @@ tree
 gfc_get_dtype_rank_type_slen (int rank, tree etype, tree length)
 {
   tree ptype;
-  tree size;
   int n;
 
   ptype = etype;
@@ -1765,6 +1764,7 @@ gfc_get_dtype_rank_type_slen (int rank, tree etype, tree length)
       gcc_unreachable ();
     }
 
+  tree size = NULL_TREE;
   switch (n)
     {
     case BT_CHARACTER:
@@ -1772,8 +1772,8 @@ gfc_get_dtype_rank_type_slen (int rank, tree etype, tree length)
       size = gfc_get_character_len_in_bytes (ptype, length);
       break;
     case BT_VOID:
-      gcc_assert (TREE_CODE (ptype) == POINTER_TYPE);
-      size = size_in_bytes (ptype);
+      if (TREE_CODE (ptype) == POINTER_TYPE)
+	size = size_in_bytes (ptype);
       break;
     default:
       size = size_in_bytes (etype);

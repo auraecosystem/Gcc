@@ -87,8 +87,12 @@ void gfc_init_descriptor_variable (stmtblock_t *block, gfc_symbol *sym, tree des
 
 void gfc_copy_coarray_desc_part (stmtblock_t *, tree, tree);
 
+void gfc_conv_shift_descriptor_lbound (stmtblock_t *, tree, int, tree);
+void gfc_conv_shift_descriptor (stmtblock_t *, tree, int);
+
 void gfc_set_descriptor_from_scalar_class (stmtblock_t *, tree, tree, gfc_expr *);
-void gfc_set_descriptor_from_scalar (stmtblock_t *, tree, tree);
+void gfc_set_descriptor_from_scalar (stmtblock_t *, tree, tree, symbol_attribute,
+				     tree = NULL_TREE, tree = NULL_TREE);
 void gfc_set_descriptor_from_scalar (stmtblock_t *, tree, tree, gfc_expr *,
 				     tree, tree);
 

@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "trans-const.h"
 #include "trans-types.h"
 #include "trans-array.h"
+#include "trans-descriptor.h"
 
 
 /* Array descriptor low level access routines.
@@ -645,15 +646,16 @@ gfc_build_dtype_constructor (tree size, int type, int rank)
   tree field;
   vec<constructor_elt, va_gc> *v = NULL;
 
-  gcc_assert (size);
-
-  STRIP_NOPS (size);
-  size = fold_convert (size_type_node, size);
   tree dtype_type_node = get_dtype_type_node ();
-  field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
-			     GFC_DTYPE_ELEM_LEN);
-  CONSTRUCTOR_APPEND_ELT (v, field,
-			  fold_convert (TREE_TYPE (field), size));
+  if (size)
+    {
+      STRIP_NOPS (size);
+      size = fold_convert (size_type_node, size);
+      field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
+				 GFC_DTYPE_ELEM_LEN);
+      CONSTRUCTOR_APPEND_ELT (v, field,
+			      fold_convert (TREE_TYPE (field), size));
+    }
   field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
 			     GFC_DTYPE_VERSION);
   CONSTRUCTOR_APPEND_ELT (v, field,
@@ -1011,19 +1013,37 @@ gfc_create_null_actual_descriptor (stmtblock_t *block, gfc_typespec *ts,
 
 
 void
+gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree scalar,
+				symbol_attribute attr, tree cond_presence,
+				tree caf_token)
+{
+  if (flag_coarray == GFC_FCOARRAY_LIB && caf_token)
+    gfc_conv_descriptor_token_set (block, descr, caf_token);
+
+  tree type = gfc_get_scalar_to_descriptor_type (TREE_TYPE (scalar), attr);
+  if (!POINTER_TYPE_P (TREE_TYPE (scalar)))
+    scalar = gfc_build_addr_expr (NULL_TREE, scalar);
+  if (cond_presence)
+    scalar = build3_loc (input_location, COND_EXPR,
+			 TREE_TYPE (scalar),
+			 cond_presence, scalar,
+			 fold_convert (TREE_TYPE (scalar),
+				       null_pointer_node));
+
+  gfc_conv_descriptor_dtype_set (block, descr, gfc_get_dtype (type));
+  gfc_copy_coarray_desc_part (block, descr, scalar);
+  gfc_conv_descriptor_data_set (block, descr, scalar);
+  gfc_conv_descriptor_span_set (block, descr,
+				gfc_conv_descriptor_elem_len_get (descr));
+}
+
+
+void
 gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
 				      tree scalar, gfc_expr *scalar_expr)
 {
-  tree type = gfc_get_scalar_to_descriptor_type (TREE_TYPE (scalar),
-						 gfc_expr_attr (scalar_expr));
-  gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype (type));
-
-  tree tmp = gfc_class_data_get (scalar);
-  if (!POINTER_TYPE_P (TREE_TYPE (tmp)))
-    tmp = gfc_build_addr_expr (NULL_TREE, tmp);
-
-  gfc_conv_descriptor_data_set (block, descr, tmp);
+  gfc_set_descriptor_from_scalar (block, descr, gfc_class_data_get (scalar),
+				  gfc_expr_attr (scalar_expr));
 }
 
 
@@ -1065,36 +1085,17 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr,
 				tree scalar, gfc_expr *scalar_expr,
 				tree cond_presence, tree caf_token)
 {
-  if (flag_coarray == GFC_FCOARRAY_LIB && caf_token)
-    gfc_conv_descriptor_token_set (block, descr, caf_token);
-
-  tree type = gfc_get_scalar_to_descriptor_type (TREE_TYPE (scalar),
-						 gfc_expr_attr (scalar_expr));
-  gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype (type));
-  gfc_copy_coarray_desc_part (block, descr, scalar);
-  if (cond_presence)
-    scalar = build3_loc (input_location, COND_EXPR,
-			 TREE_TYPE (scalar),
-			 cond_presence, scalar,
-			 fold_convert (TREE_TYPE (scalar),
-				       null_pointer_node));
-  gfc_conv_descriptor_data_set (block, descr, scalar);
+  gfc_set_descriptor_from_scalar (block, descr, scalar,
+				  gfc_expr_attr (scalar_expr), cond_presence,
+				  caf_token);
 }
 
 
 void
-gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree scalar)
+gfc_conv_shift_descriptor (stmtblock_t* block, tree desc, int rank)
 {
-  tree etype = TREE_TYPE (scalar);
-  if (!POINTER_TYPE_P (TREE_TYPE (scalar)))
-    scalar = gfc_build_addr_expr (NULL_TREE, scalar);
-  else if (TREE_TYPE (etype) && TREE_CODE (TREE_TYPE (etype)) == ARRAY_TYPE)
-    etype = TREE_TYPE (etype);
-
-  gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype_rank_type (0, etype));
-  gfc_conv_descriptor_data_set (block, descr, scalar);
-  gfc_conv_descriptor_span_set (block, descr,
-				gfc_conv_descriptor_elem_len_get (descr));
+  /* Apply a shift of the lbound when supplied.  */
+  for (int dim = 0; dim < rank; ++dim)
+    gfc_conv_shift_descriptor_lbound (block, desc, dim,
+				      gfc_index_one_node);
 }
