@@ -896,8 +896,8 @@ innermost_ss (gfc_ss *ss)
    It is different from the loop dimension in the case of a transposed array.
    */
 
-static int
-get_array_ref_dim_for_loop_dim (gfc_ss *ss, int loop_dim)
+int
+gfc_get_array_ref_dim_for_loop_dim (gfc_ss *ss, int loop_dim)
 {
   return get_scalarizer_dim_for_array_dim (innermost_ss (ss),
 					   ss->dim[loop_dim]);
@@ -2497,7 +2497,7 @@ get_loop_upper_bound_for_array (gfc_ss *array, int array_dim)
 
   for (ss = array; ss; ss = ss->parent)
     for (n = 0; n < ss->loop->dimen; n++)
-      if (array_dim == get_array_ref_dim_for_loop_dim (ss, n))
+      if (array_dim == gfc_get_array_ref_dim_for_loop_dim (ss, n))
 	return &(ss->loop->to[n]);
 
   gcc_unreachable ();
@@ -5702,7 +5702,8 @@ set_loop_bounds (gfc_loopinfo *loop)
 	  && INTEGER_CST_P (info->stride[dim]))
 	{
 	  loop->from[n] = info->start[dim];
-	  mpz_set (i, cshape[get_array_ref_dim_for_loop_dim (loopspec[n], n)]);
+	  int idx = gfc_get_array_ref_dim_for_loop_dim (loopspec[n], n);
+	  mpz_set (i, cshape[idx]);
 	  mpz_sub_ui (i, i, 1);
 	  /* To = from + (size - 1) * stride.  */
 	  tmp = gfc_conv_mpz_to_tree (i, gfc_index_integer_kind);
@@ -9252,129 +9253,11 @@ gfc_conv_array_parameter (gfc_se *se, gfc_expr *expr, bool g77,
 	    {
 	      /* The original descriptor may have transposed dims so we
 		 can't reuse it directly; we have to create a new one.  */
-	      tree old_field;
 	      tree old_desc = tmp;
 	      tree new_desc = gfc_create_var (TREE_TYPE (old_desc), "arg_desc");
 
-	      old_field = gfc_conv_descriptor_dtype_get (old_desc);
-	      gfc_conv_descriptor_dtype_set (&se->pre, new_desc, old_field);
-
-	      if (expr->rank == -1)
-		{
-		  tree idx = gfc_create_var (gfc_array_dim_rank_type, "idx");
-		  tree stride = gfc_create_var (gfc_array_index_type, "stride");
-		  stmtblock_t loop_body;
-
-		  gfc_conv_descriptor_offset_set (&se->pre, new_desc,
-						  gfc_index_zero_node);
-		  gfc_conv_descriptor_span_set (&se->pre, new_desc,
-						gfc_conv_descriptor_span_get
-						(old_desc));
-		  gfc_add_modify (&se->pre, stride, gfc_index_one_node);
-
-		  gfc_init_block (&loop_body);
-
-		  old_field = gfc_conv_descriptor_lbound_get (old_desc, idx);
-		  gfc_conv_descriptor_lbound_set (&loop_body, new_desc, idx,
-						  old_field);
-
-		  old_field = gfc_conv_descriptor_ubound_get (old_desc, idx);
-		  gfc_conv_descriptor_ubound_set (&loop_body, new_desc, idx,
-						  old_field);
-
-		  gfc_conv_descriptor_stride_set (&loop_body, new_desc, idx,
-						  stride);
-
-		  tree offset = fold_build2_loc (input_location, MULT_EXPR,
-						 gfc_array_index_type, stride,
-						 gfc_conv_descriptor_lbound_get
-						 (new_desc, idx));
-		  offset = fold_build2_loc (input_location, MINUS_EXPR,
-					    gfc_array_index_type,
-					    gfc_conv_descriptor_offset_get
-					    (new_desc), offset);
-		  gfc_conv_descriptor_offset_set (&loop_body, new_desc, offset);
-
-		  tree extent = gfc_conv_array_extent_dim
-				(gfc_conv_descriptor_lbound_get (new_desc, idx),
-				 gfc_conv_descriptor_ubound_get (new_desc, idx),
-				 NULL);
-		  extent = fold_build2_loc (input_location, MULT_EXPR,
-					    gfc_array_index_type, stride,
-					    extent);
-		  gfc_add_modify (&loop_body, stride, extent);
-
-		  gfc_simple_for_loop (&se->pre, idx,
-				       build_int_cst (TREE_TYPE (idx), 0),
-				       gfc_conv_descriptor_rank_get (old_desc),
-				       LT_EXPR,
-				       build_int_cst (TREE_TYPE (idx), 1),
-				       gfc_finish_block (&loop_body));
-		}
-	      else
-		{
-		  tree offset = gfc_index_zero_node;
-
-		  tree stride = gfc_index_one_node;
-
-		  for (int i = 0; i < expr->rank; i++)
-		    {
-		      tree dim = gfc_rank_cst[i];
-
-		      tree lbound = gfc_conv_descriptor_lbound_get (old_desc,
-								    dim);
-		      lbound = gfc_evaluate_now (lbound, &se->pre);
-		      gfc_conv_descriptor_lbound_set (&se->pre, new_desc, dim,
-						      lbound);
-
-		      tree ubound = gfc_conv_descriptor_ubound_get (old_desc,
-								    dim);
-		      ubound = gfc_evaluate_now (ubound, &se->pre);
-		      gfc_conv_descriptor_ubound_set (&se->pre, new_desc, dim,
-						      ubound);
-
-		      gfc_conv_descriptor_stride_set (&se->pre, new_desc, dim,
-						      stride);
-
-		      tree tmp = fold_build2_loc (input_location, MULT_EXPR,
-						  gfc_array_index_type,
-						  stride, lbound);
-		      offset = fold_build2_loc (input_location, MINUS_EXPR,
-						gfc_array_index_type,
-						offset, tmp);
-		      offset = gfc_evaluate_now (offset, &se->pre);
-
-		      /* Now calculate the stride for next dimension, unless the
-			 current dimension is the last one.  */
-		      if (i == expr->rank - 1)
-			break;
-
-		      tmp = fold_build2_loc (input_location, MINUS_EXPR,
-					     gfc_array_index_type,
-					     lbound, gfc_index_one_node);
-		      tree extent = fold_build2_loc (input_location, MINUS_EXPR,
-						     gfc_array_index_type,
-						     ubound, tmp);
-		      stride = fold_build2_loc (input_location, MULT_EXPR,
-						gfc_array_index_type,
-						stride, extent);
-		      stride = gfc_evaluate_now (stride, &se->pre);
-		    }
-
-		  gfc_conv_descriptor_offset_set (&se->pre, new_desc, offset);
-		}
-
-	      if (flag_coarray == GFC_FCOARRAY_LIB
-		  && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (old_desc))
-		  && GFC_TYPE_ARRAY_AKIND (TREE_TYPE (old_desc))
-		     == GFC_ARRAY_ALLOCATABLE)
-		{
-		  old_field = gfc_conv_descriptor_token (old_desc);
-		  gfc_conv_descriptor_token_set (&se->pre, new_desc,
-						 old_field);
-		}
-
-	      gfc_conv_descriptor_data_set (&se->pre, new_desc, ptr);
+	      gfc_copy_descriptor (&se->pre, new_desc, old_desc, ptr,
+				   expr->rank);
 	      se->expr = gfc_build_addr_expr (NULL_TREE, new_desc);
 	    }
 	}

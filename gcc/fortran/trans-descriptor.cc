@@ -895,7 +895,7 @@ gfc_grow_array (stmtblock_t * pblock, tree desc, tree extra)
 void
 gfc_nullify_descriptor (stmtblock_t *block, tree descr)
 {
-  gfc_conv_descriptor_data_set (block, descr, null_pointer_node); 
+  gfc_conv_descriptor_data_set (block, descr, null_pointer_node);
 }
 
 
@@ -1374,4 +1374,113 @@ gfc_copy_descriptor (stmtblock_t *block, tree dest, tree src,
   else
     tmp2 = gfc_get_array_span (src, src_expr);
   gfc_conv_descriptor_span_set (block, dest, tmp2);
+}
+
+
+void
+gfc_copy_descriptor (stmtblock_t *block, tree dest, tree src, tree ptr,
+		     int rank)
+{
+  gfc_conv_descriptor_dtype_set (block, dest,
+				 gfc_conv_descriptor_dtype_get (src));
+
+  if (rank == -1)
+    {
+      tree idx = gfc_create_var (gfc_array_dim_rank_type, "idx");
+      tree stride = gfc_create_var (gfc_array_index_type, "stride");
+      stmtblock_t loop_body;
+
+      gfc_conv_descriptor_offset_set (block, dest, gfc_index_zero_node);
+      gfc_conv_descriptor_span_set (block, dest,
+				    gfc_conv_descriptor_span_get (src));
+      gfc_add_modify (block, stride, gfc_index_one_node);
+
+      gfc_init_block (&loop_body);
+
+      tree old_field = gfc_conv_descriptor_lbound_get (src, idx);
+      gfc_conv_descriptor_lbound_set (&loop_body, dest, idx,
+				      old_field);
+
+      old_field = gfc_conv_descriptor_ubound_get (src, idx);
+      gfc_conv_descriptor_ubound_set (&loop_body, dest, idx,
+				      old_field);
+
+      gfc_conv_descriptor_stride_set (&loop_body, dest, idx,
+				      stride);
+
+      tree offset = fold_build2_loc (input_location, MULT_EXPR,
+				     gfc_array_index_type, stride,
+				     gfc_conv_descriptor_lbound_get (dest,
+								     idx));
+      offset = fold_build2_loc (input_location, MINUS_EXPR,
+				gfc_array_index_type,
+				gfc_conv_descriptor_offset_get (dest),
+				offset);
+      gfc_conv_descriptor_offset_set (&loop_body, dest, offset);
+
+      tree extent = gfc_conv_array_extent_dim
+		    (gfc_conv_descriptor_lbound_get (dest, idx),
+		     gfc_conv_descriptor_ubound_get (dest, idx),
+		     NULL);
+      extent = fold_build2_loc (input_location, MULT_EXPR,
+				gfc_array_index_type, stride,
+				extent);
+      gfc_add_modify (&loop_body, stride, extent);
+
+      gfc_simple_for_loop (block, idx, build_int_cst (TREE_TYPE (idx), 0),
+			   gfc_conv_descriptor_rank_get (src), LT_EXPR,
+			   build_int_cst (TREE_TYPE (idx), 1),
+			   gfc_finish_block (&loop_body));
+    }
+  else
+    {
+      tree offset = gfc_index_zero_node;
+
+      tree stride = gfc_index_one_node;
+
+      for (int i = 0; i < rank; i++)
+	{
+	  tree dim = gfc_rank_cst[i];
+
+	  tree lbound = gfc_conv_descriptor_lbound_get (src, dim);
+	  lbound = gfc_evaluate_now (lbound, block);
+	  gfc_conv_descriptor_lbound_set (block, dest, dim, lbound);
+
+	  tree ubound = gfc_conv_descriptor_ubound_get (src, dim);
+	  ubound = gfc_evaluate_now (ubound, block);
+	  gfc_conv_descriptor_ubound_set (block, dest, dim, ubound);
+
+	  gfc_conv_descriptor_stride_set (block, dest, dim, stride);
+
+	  tree tmp = fold_build2_loc (input_location, MULT_EXPR,
+				      gfc_array_index_type, stride, lbound);
+	  offset = fold_build2_loc (input_location, MINUS_EXPR,
+				    gfc_array_index_type, offset, tmp);
+	  offset = gfc_evaluate_now (offset, block);
+
+	  /* Now calculate the stride for next dimension, unless the
+	     current dimension is the last one.  */
+	  if (i == rank - 1)
+	    break;
+
+	  tmp = fold_build2_loc (input_location, MINUS_EXPR,
+				 gfc_array_index_type, lbound,
+				 gfc_index_one_node);
+	  tree extent = fold_build2_loc (input_location, MINUS_EXPR,
+					 gfc_array_index_type, ubound, tmp);
+	  stride = fold_build2_loc (input_location, MULT_EXPR,
+				    gfc_array_index_type, stride, extent);
+	  stride = gfc_evaluate_now (stride, block);
+	}
+
+      gfc_conv_descriptor_offset_set (block, dest, offset);
+    }
+
+  if (flag_coarray == GFC_FCOARRAY_LIB
+      && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (src))
+      && GFC_TYPE_ARRAY_AKIND (TREE_TYPE (src)) == GFC_ARRAY_ALLOCATABLE)
+    gfc_conv_descriptor_token_set (block, dest,
+				   gfc_conv_descriptor_token (src));
+
+  gfc_conv_descriptor_data_set (block, dest, ptr);
 }
