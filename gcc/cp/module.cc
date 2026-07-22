@@ -3666,7 +3666,7 @@ enum module_directness {
   MD_NONE,  		/* Not direct.  */
   MD_PARTITION_DIRECT,	/* Direct import of a partition.  */
   MD_DIRECT,		/* Direct import.  */
-  MD_PURVIEW_DIRECT,	/* direct import in purview.  */
+  MD_PURVIEW_DIRECT,	/* Direct import in purview.  */
 };
 
 /* State of a particular module. */
@@ -11972,12 +11972,17 @@ trees_in::key_mergeable (int tag, merge_kind mk, tree decl, tree inner,
 
 	  case TYPE_DECL:
 	    gcc_checking_assert (!is_imported_temploid_friend);
+	    int use_tmpl = 0;
 	    if (is_attached && !(state->is_module () || state->is_partition ())
-		/* Implicit member functions can come from
-		   anywhere.  */
-		&& !(DECL_ARTIFICIAL (decl)
-		     && TREE_CODE (decl) == FUNCTION_DECL
-		     && !DECL_THUNK_P (decl)))
+		/* Implicit or in-class defaulted member functions
+		   can come from anywhere.  */
+		&& !(TREE_CODE (decl) == FUNCTION_DECL
+		     && !DECL_THUNK_P (decl)
+		     && DECL_DEFAULTED_FN (decl)
+		     && !DECL_DEFAULTED_OUTSIDE_CLASS_P (decl))
+		/* As can members of template specialisations.  */
+		&& !(node_template_info (container, use_tmpl)
+		     && use_tmpl != 0))
 	      kind = "unique";
 	    else
 	      {
@@ -12241,12 +12246,14 @@ trees_in::is_matching_decl (tree existing, tree decl, bool is_typedef)
       tree d_spec = TYPE_RAISES_EXCEPTIONS (d_type);
       if (DECL_MAYBE_DELETED (e_inner) || DEFERRED_NOEXCEPT_SPEC_P (e_spec))
 	{
-	  if (!DEFERRED_NOEXCEPT_SPEC_P (d_spec)
+	  if (!(DECL_MAYBE_DELETED (d_inner)
+		|| DEFERRED_NOEXCEPT_SPEC_P (d_spec))
 	      || (UNEVALUATED_NOEXCEPT_SPEC_P (e_spec)
 		  && !UNEVALUATED_NOEXCEPT_SPEC_P (d_spec)))
 	    {
 	      dump (dumper::MERGE)
 		&& dump ("Propagating instantiated noexcept to %N", existing);
+	      gcc_checking_assert (existing == e_inner);
 	      TREE_TYPE (existing) = d_type;
 
 	      /* Propagate to existing clones.  */
@@ -12272,7 +12279,9 @@ trees_in::is_matching_decl (tree existing, tree decl, bool is_typedef)
 
       /* Similarly if EXISTING has an undeduced return type, but DECL's
 	 is already deduced.  */
-      if (undeduced_auto_decl (existing) && !undeduced_auto_decl (decl))
+      bool e_undeduced = undeduced_auto_decl (existing);
+      bool d_undeduced = undeduced_auto_decl (decl);
+      if (e_undeduced && !d_undeduced)
 	{
 	  dump (dumper::MERGE)
 	    && dump ("Propagating deduced return type to %N", existing);
@@ -12280,6 +12289,8 @@ trees_in::is_matching_decl (tree existing, tree decl, bool is_typedef)
 	  DECL_SAVED_AUTO_RETURN_TYPE (existing) = TREE_TYPE (e_type);
 	  TREE_TYPE (existing) = change_return_type (TREE_TYPE (d_type), e_type);
 	}
+      else if (d_undeduced && !e_undeduced)
+	/* EXISTING was deduced, leave it alone.  */;
       else if (type_uses_auto (d_ret)
 	       && !same_type_p (TREE_TYPE (d_type), TREE_TYPE (e_type)))
 	{
@@ -12811,6 +12822,13 @@ trees_in::read_function_def (tree decl, tree maybe_template)
       DECL_RESULT (decl) = result;
       DECL_INITIAL (decl) = initial;
       DECL_SAVED_TREE (decl) = saved;
+
+      /* Some entities (like anticipated builtins) were declared without
+	 DECL_ARGUMENTS, so update them now.  But don't do it if there's
+	 already an argument list, because we've already built the
+	 definition referencing those merged PARM_DECLs.  */
+      if (!DECL_ARGUMENTS (decl))
+	DECL_ARGUMENTS (decl) = DECL_ARGUMENTS (maybe_dup);
 
       if (context)
 	SET_DECL_FRIEND_CONTEXT (decl, context);
@@ -14268,9 +14286,10 @@ depset::hash::add_dependency (depset *dep)
      details.  */
   if (writing_merge_key)
     {
-      dep->set_flag_bit<DB_MAYBE_RECURSIVE_BIT> ();
-      if (!current->is_maybe_recursive ())
+      if (!dep->is_maybe_recursive () && !current->is_maybe_recursive ())
 	current->set_flag_bit<DB_ENTRY_BIT> ();
+      dep->set_flag_bit<DB_MAYBE_RECURSIVE_BIT> ();
+      current->set_flag_bit<DB_MAYBE_RECURSIVE_BIT> ();
     }
 
   if (dep->is_unreached ())
@@ -16149,8 +16168,11 @@ module_state::read_imports (bytes_in &sec, cpp_reader *reader, line_maps *lmaps)
 
 	  if (is_partition ())
 	    {
-	      if (!imp->is_direct ())
-		imp->directness = MD_PARTITION_DIRECT;
+	      if (!imp->is_direct () && !imp->is_partition_direct ())
+		{
+		  imp->directness = MD_PARTITION_DIRECT;
+		  linemap_module_reparent (line_table, imp->loc, floc);
+		}
 	      if (exportedness > 0)
 		imp->exported_p = true;
 	    }
@@ -20870,12 +20892,18 @@ set_defining_module_for_partial_spec (tree decl)
     vec_safe_push (partial_specializations, decl);
 }
 
+/* Record that DECL is declared in this TU, and note attachment and
+   exporting for namespace-scope entities.  FRIEND_P is true if
+   this is a friend declaration.  */
+
 void
 set_originating_module (tree decl, bool friend_p ATTRIBUTE_UNUSED)
 {
   set_instantiating_module (decl);
 
-  if (!DECL_NAMESPACE_SCOPE_P (decl))
+  /* DECL_CONTEXT may not be set yet when we're called for
+     non-namespace-scope entities.  */
+  if (!DECL_CONTEXT (decl) || !DECL_NAMESPACE_SCOPE_P (decl))
     return;
 
   gcc_checking_assert (friend_p || decl == get_originating_module_decl (decl));
@@ -20928,7 +20956,7 @@ check_module_decl_linkage (tree decl)
 	 internal namespace as exporting a declaration with internal
 	 linkage, as this would also implicitly export the internal
 	 linkage namespace.  */
-      if (decl_internal_context_p (decl))
+      if (decl_anon_ns_mem_p (decl))
 	{
 	  error_at (DECL_SOURCE_LOCATION (decl),
 		    "exporting declaration %qD declared in unnamed namespace",

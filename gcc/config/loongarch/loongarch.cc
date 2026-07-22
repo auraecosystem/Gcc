@@ -1722,28 +1722,7 @@ loongarch_const_vector_bitimm_set_p (rtx op, machine_mode mode)
       && (GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT
 	  || GET_MODE_CLASS (mode) == MODE_VECTOR_INT))
     {
-      unsigned HOST_WIDE_INT val;
-
-      if (GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
-	{
-	  rtx val_s = CONST_VECTOR_ELT (op, 0);
-	  const REAL_VALUE_TYPE *x = CONST_DOUBLE_REAL_VALUE (val_s);
-	  if (GET_MODE (val_s) == DFmode)
-	    {
-	      long tmp[2];
-	      REAL_VALUE_TO_TARGET_DOUBLE (*x, tmp);
-	      val = (unsigned HOST_WIDE_INT) tmp[1] << 32 | tmp[0];
-	    }
-	  else
-	    {
-	      long tmp;
-	      REAL_VALUE_TO_TARGET_SINGLE (*x, tmp);
-	      val = (unsigned HOST_WIDE_INT) tmp;
-	    }
-	}
-      else
-	val = UINTVAL (CONST_VECTOR_ELT (op, 0));
-
+      unsigned HOST_WIDE_INT val = UINTVAL (CONST_VECTOR_ELT (op, 0));
       int vlog2 = exact_log2 (val & GET_MODE_MASK (GET_MODE_INNER (mode)));
 
       if (vlog2 != -1)
@@ -1835,27 +1814,7 @@ loongarch_const_vector_same_bytes_p (rtx op, machine_mode mode)
 
   first = CONST_VECTOR_ELT (op, 0);
   bytes = GET_MODE_UNIT_SIZE (mode);
-
-  if (GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
-    {
-      rtx val_s = CONST_VECTOR_ELT (op, 0);
-      const REAL_VALUE_TYPE *x = CONST_DOUBLE_REAL_VALUE (val_s);
-      if (GET_MODE (val_s) == DFmode)
-	{
-	  long tmp[2];
-	  REAL_VALUE_TO_TARGET_DOUBLE (*x, tmp);
-	  val = (unsigned HOST_WIDE_INT) tmp[1] << 32 | tmp[0];
-	}
-      else
-	{
-	  long tmp;
-	  REAL_VALUE_TO_TARGET_SINGLE (*x, tmp);
-	  val = (unsigned HOST_WIDE_INT) tmp;
-	}
-    }
-  else
-    val = UINTVAL (first);
-
+  val = INTVAL (first);
   first_byte = val & 0xff;
   for (i = 1; i < bytes; i++)
     {
@@ -6483,35 +6442,18 @@ loongarch_print_operand (FILE *file, rtx op, int letter)
 	{
 	  machine_mode mode = GET_MODE_INNER (GET_MODE (op));
 	  rtx val_s = CONST_VECTOR_ELT (op, 0);
-	  unsigned HOST_WIDE_INT val;
-
-	  if (GET_MODE_CLASS (mode) == MODE_FLOAT)
+	  if (CONST_INT_P (val_s))
 	    {
-	      const REAL_VALUE_TYPE *x = CONST_DOUBLE_REAL_VALUE (val_s);
-	      if (GET_MODE (val_s) == DFmode)
+	      unsigned HOST_WIDE_INT val = UINTVAL (val_s);
+	      int vlog2 = exact_log2 (val & GET_MODE_MASK (mode));
+	      if (vlog2 != -1)
 		{
-		  long tmp[2];
-		  REAL_VALUE_TO_TARGET_DOUBLE (*x, tmp);
-		  val = (unsigned HOST_WIDE_INT) (tmp[1] << 32 | tmp[0]);
-		}
-	      else
-		{
-		  long tmp;
-		  REAL_VALUE_TO_TARGET_SINGLE (*x, tmp);
-		  val = (unsigned HOST_WIDE_INT) tmp;
+		  fprintf (file, "%d", vlog2);
+		  break;
 		}
 	    }
-	  else
-	    val = UINTVAL (val_s);
-
-	  int vlog2 = exact_log2 (val & GET_MODE_MASK (mode));
-	  if (vlog2 != -1)
-	    fprintf (file, "%d", vlog2);
-	  else
-	    output_operand_lossage ("invalid use of '%%%c'", letter);
 	}
-      else
-	output_operand_lossage ("invalid use of '%%%c'", letter);
+      output_operand_lossage ("invalid use of '%%%c'", letter);
       break;
 
     case 'W':
@@ -6589,12 +6531,14 @@ loongarch_print_operand (FILE *file, rtx op, int letter)
 	case E_V4SFmode:
 	case E_V8SImode:
 	case E_V8SFmode:
+	case E_SImode:
 	  fprintf (file, "w");
 	  break;
 	case E_V2DImode:
 	case E_V2DFmode:
 	case E_V4DImode:
 	case E_V4DFmode:
+	case E_DImode:
 	  fprintf (file, "d");
 	  break;
 	default:
@@ -10956,7 +10900,7 @@ loongarch_build_signbit_mask (machine_mode mode, bool vect, bool invert)
     return force_reg (inner_mode, mask);
 
   v = loongarch_build_const_vector (vec_mode, vect, mask);
-  return force_reg (vec_mode, v);
+  return v;
 }
 
 /* Use rsqrte instruction and Newton-Rhapson to compute the approximation of
@@ -11005,10 +10949,11 @@ void loongarch_emit_swrsqrtsf (rtx res, rtx a, machine_mode mode, bool recip)
       if (VECTOR_MODE_P (mode))
 	{
 	  machine_mode imode = related_int_vector_mode (mode).require ();
-	  rtx mask = gen_reg_rtx (imode);
-	  emit_insn (gen_rtx_SET (mask, gen_rtx_NE (imode, a, zero)));
-	  emit_insn (gen_rtx_SET (x0, gen_rtx_AND (mode, x0,
-						   gen_lowpart (mode, mask))));
+	  rtx mask = force_reg (imode, gen_rtx_NE (imode, a, zero));
+	  emit_move_insn (gen_lowpart (imode, x0),
+			  gen_rtx_AND (imode,
+				       gen_lowpart (imode, x0),
+				       mask));
 	}
       else
 	{
@@ -11261,6 +11206,55 @@ loongarch_can_inline_p (tree caller, tree callee)
     return false;
 
   return true;
+}
+
+/* Output assembly to materialize the address of the stack canary value
+   into reg.  The third argument, tmp, should be and should only be
+   non-NULL if the extreme code model is effective for the canary.  If
+   the fourth arugment, load, is true, the canary value is loaded into
+   the register.
+
+   The assembly cannot be splitted due to security reason.  */
+void
+loongarch_output_asm_load_canary (rtx reg, rtx canary, rtx tmp)
+{
+  gcc_checking_assert (ssp_operand (canary, VOIDmode));
+  gcc_checking_assert ((!tmp) == ssp_normal_operand (canary, VOIDmode));
+  gcc_checking_assert (register_operand (reg, Pmode));
+
+  rtx op[] = {reg, canary, tmp};
+  bool got = (loongarch_classify_symbol (canary) == SYMBOL_GOT_DISP);
+  bool need_ld = false;
+
+  if (la_opt_explicit_relocs != EXPLICIT_RELOCS_ALWAYS)
+    {
+      if (got)
+	output_asm_insn (tmp ? "la.global\t%0,%2,%1" : "la.global\t%0,%1",
+			 op);
+      else
+	output_asm_insn (tmp ? "la.local\t%0,%2,%1" : "la.local\t%0,%1",
+			 op);
+
+      need_ld = true;
+    }
+  else
+    {
+      output_asm_insn ("pcalau12i\t%0,%r1", op);
+      if (!tmp)
+	output_asm_insn ("ld.%v0\t%0,%0,%L1", op);
+      else
+	{
+	  output_asm_insn ("addi.d\t%2,$r0,%L1", op);
+	  output_asm_insn ("lu32i.d\t%2,%R1", op);
+	  output_asm_insn ("lu52i.d\t%2,%2,%H1", op);
+	  output_asm_insn ("ldx.d\t%0,%0,%2", op);
+	}
+
+      need_ld = got;
+    }
+
+  if (need_ld)
+    output_asm_insn ("ld.%v0\t%0,%0,0", op);
 }
 
 /* Initialize the GCC target structure.  */

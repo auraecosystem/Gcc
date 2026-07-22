@@ -3994,6 +3994,17 @@ ix86_zero_call_used_regs (HARD_REG_SET need_zeroed_hardregs)
     {
       emit_insn (zero_all_vec_insn);
       all_sse_zeroed = true;
+      if (TARGET_64BIT && TARGET_AVX512F)
+	{
+	  rtx zero = CONST0_RTX (V4SFmode);
+	  for (unsigned int regno = XMM16_REG;
+	       regno <= XMM31_REG;
+	       regno++)
+	    {
+	      rtx reg = gen_rtx_REG (V4SFmode, regno);
+	      emit_move_insn (reg, zero);
+	    }
+	}
     }
 
   /* mm/st registers are shared registers set, we should follow the following
@@ -20246,7 +20257,7 @@ avx_vpermilp_parallel (rtx par, machine_mode mode)
 	}
       for (i = 2; i < 4; ++i)
 	{
-	  if (ipar[i] < 2)
+	  if (ipar[i] < 2 || ipar[i] >= 4)
 	    return 0;
 	  mask |= (ipar[i] - 2) << i;
 	}
@@ -24922,7 +24933,10 @@ ix86_reassociation_width (unsigned int op, machine_mode mode)
       /* Znver1-4 Integer vector instructions execute in FP unit
 	 and can execute 3 additions and one multiplication per cycle.  */
       if ((ix86_tune == PROCESSOR_ZNVER1 || ix86_tune == PROCESSOR_ZNVER2
-	   || ix86_tune == PROCESSOR_ZNVER3 || ix86_tune == PROCESSOR_ZNVER4)
+	   || ix86_tune == PROCESSOR_ZNVER3 || ix86_tune == PROCESSOR_ZNVER4
+	   || ix86_tune == PROCESSOR_C86_4G_M4
+	   || ix86_tune == PROCESSOR_C86_4G_M6
+	   || ix86_tune == PROCESSOR_C86_4G_M7)
    	  && INTEGRAL_MODE_P (mode) && op != PLUS && op != MINUS)
 	return 1;
       /* Znver5 can do 2 integer multiplications per cycle with latency

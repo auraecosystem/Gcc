@@ -3501,19 +3501,22 @@ checks:
 	  goto cleanup;
 	}
 
-      /* Use the machinery for an initialization expression to reduce the
-	 stop-code to a constant.  */
-      gfc_reduce_init_expr (e);
-
-      /* Test for F2008 style STOP stop-code.  */
-      if (e->expr_type != EXPR_CONSTANT && f08)
+      /* If this is F2008, it could be an init expression.  */
+      if (f08)
 	{
-	  gfc_error ("STOP code at %L must be a scalar default CHARACTER or "
-		     "INTEGER constant expression", &e->where);
-	  goto cleanup;
+	  gfc_reduce_init_expr (e);
+	  if (e->expr_type != EXPR_CONSTANT)
+	    {
+	      gfc_error ("STOP code at %L must be a scalar constant "
+			 "expression", &e->where);
+	      goto cleanup;
+	    }
 	}
 
-      if (!(e->ts.type == BT_CHARACTER || e->ts.type == BT_INTEGER))
+      /* For types known at parse time, check immediately.  For BT_UNKNOWN
+	 (e.g. a forward-referenced contained function) defer to resolve.  */
+      if (e->ts.type != BT_UNKNOWN
+	  && !(e->ts.type == BT_CHARACTER || e->ts.type == BT_INTEGER))
 	{
 	  gfc_error ("STOP code at %L must be either INTEGER or CHARACTER type",
 		     &e->where);
@@ -7044,12 +7047,17 @@ gfc_match_select_type (void)
   else
     {
       m = gfc_match (" %e ", &expr1);
-      if (m != MATCH_YES)
+      if (m == MATCH_NO)
 	{
 	  std::swap (ns, gfc_current_ns);
 	  gfc_free_namespace (ns);
 	  return m;
 	}
+      /* On MATCH_ERROR, the temporary block namespace may already contain
+	 broken state from the failed expression match.  Avoid freeing it
+	 through the normal rollback path.  */
+      else if (m == MATCH_ERROR)
+	return m;
     }
 
   m = gfc_match (" )%t");

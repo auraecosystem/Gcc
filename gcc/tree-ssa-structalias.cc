@@ -5092,7 +5092,9 @@ find_func_aliases_for_call (struct function *fn, gcall *t)
 	 such operator, then the effects for PTA (in particular
 	 the escaping of the pointer) can be ignored.  */
       else if (fndecl
+	       && flag_assume_sane_operators_new_delete
 	       && DECL_IS_OPERATOR_DELETE_P (fndecl)
+	       && DECL_IS_REPLACEABLE_OPERATOR (fndecl)
 	       && gimple_call_from_new_or_delete (t))
 	;
       else
@@ -6782,12 +6784,15 @@ static void
 set_uids_in_ptset (bitmap into, bitmap from, struct pt_solution *pt,
 		   tree fndecl)
 {
+  const varinfo_t escaped_vi = get_varinfo (find (escaped_id));
+  const varinfo_t escaped_return_vi = get_varinfo (find (escaped_return_id));
+  const bool everything_escaped
+    = escaped_vi->solution && bitmap_bit_p (escaped_vi->solution, anything_id);
+  const bool everything_escaped_return
+    = escaped_return_vi->solution
+      && bitmap_bit_p (escaped_return_vi->solution, anything_id);
   unsigned int i;
   bitmap_iterator bi;
-  varinfo_t escaped_vi = get_varinfo (find (escaped_id));
-  varinfo_t escaped_return_vi = get_varinfo (find (escaped_return_id));
-  bool everything_escaped
-    = escaped_vi->solution && bitmap_bit_p (escaped_vi->solution, anything_id);
 
   EXECUTE_IF_SET_IN_BITMAP (from, 0, i, bi)
     {
@@ -6803,8 +6808,10 @@ set_uids_in_ptset (bitmap into, bitmap from, struct pt_solution *pt,
 	  pt->vars_contains_escaped = true;
 	  pt->vars_contains_escaped_heap |= vi->is_heap_var;
 	}
-      if (escaped_return_vi->solution
-	  && bitmap_bit_p (escaped_return_vi->solution, i))
+
+      if (everything_escaped_return
+	  || (escaped_return_vi->solution
+	      && bitmap_bit_p (escaped_return_vi->solution, i)))
 	pt->vars_contains_escaped_heap |= vi->is_heap_var;
 
       if (vi->is_restrict_var)

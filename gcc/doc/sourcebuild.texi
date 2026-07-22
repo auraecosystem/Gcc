@@ -1975,6 +1975,9 @@ at plain @option{-O2}.
 @item tls
 Target supports thread-local storage.
 
+@item tls_link
+Target supports linking TLS executables.
+
 @item tls_native
 Target supports native (rather than emulated) thread-local storage.
 
@@ -2210,6 +2213,11 @@ ARM target supports options to generate instructions from ARMv8.1-M with
 the M-Profile Vector Extension (MVE). Some multilibs may be incompatible
 with these options.
 
+@item arm_v8_1m_mve_link
+ARM target supports linking programs using the options selected by
+@code{arm_v8_1m_mve_ok}. Some multilibs may be incompatible with these
+options.
+
 @item arm_v8_1m_mve_fp_ok
 ARM target supports options to generate instructions from ARMv8.1-M with
 the Half-precision floating-point instructions (HP), Floating-point Extension
@@ -2338,6 +2346,11 @@ ARM target supporting @code{-mbranch-protection=standard}.
 
 @item arm_pacbti_hw
 Test system supports for executing non nop pacbti instructions.
+
+@item arm_mixed_fp
+On Arm targets, true when the target uses hardware instructions for
+single-precision floatint-point values, but software emulation for
+double-precision values.
 
 @end table
 
@@ -2703,6 +2716,10 @@ Target supports the execution of @code{amx-transpose} instructions.
 
 @item amx_fp8
 Target supports the execution of @code{amx-fp8} instructions.
+
+@item can_deref_null
+Target runtime permits dereferencing a null pointer without trapping, for
+example because address zero is mapped and readable.
 
 @item cell_hw
 Test system can execute AltiVec and Cell PPU instructions.

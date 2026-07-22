@@ -8945,7 +8945,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	      /* [basic.start.main]/3: A program that defines main as deleted
 		 is ill-formed.  */
 	      error ("%<::main%> cannot be deleted");
-	      DECL_INITIAL (decl) = NULL_TREE;
+	      DECL_INITIAL (decl) = error_mark_node;
 	    }
 	  else
 	    {
@@ -9837,7 +9837,7 @@ cp_finish_decomp (tree decl, cp_decomp *decomp, bool test_p)
 	    }
 	  first = DECL_CHAIN (first);
 	}
-      if (DECL_P (decl) && DECL_NAMESPACE_SCOPE_P (decl))
+      if (DECL_P (decl) && TREE_STATIC (decl))
 	SET_DECL_ASSEMBLER_NAME (decl, get_identifier ("<decomp>"));
       return false;
     }
@@ -18948,7 +18948,7 @@ maybe_prepare_return_this (tree cdtor)
   if (targetm.cxx.cdtor_returns_this ())
     if (tree val = DECL_ARGUMENTS (cdtor))
       {
-	suppress_warning (val, OPT_Wuse_after_free);
+	suppress_warning (val, OPT_Wuse_after_free_);
 	return val;
       }
 

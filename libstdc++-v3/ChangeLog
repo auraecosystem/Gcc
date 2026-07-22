@@ -1,3 +1,649 @@
+2026-07-16  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-07-15  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/126111
+	* include/std/format (__format::__write_escape_seq): Remove
+	unnecessary alias declaration.
+	* include/std/spanstream (wspanbuf, wispanstream, wospanstream)
+	(wspanstream): Only declare for _GLIBCXX_USE_WCHAR_T.
+	* include/std/syncstream (wsyncbuf wosyncstream): Likewise.
+	* src/c++23/std.cc.in: Add preprocessor checks for
+	_GLIBCXX_USE_WCHAR_T to names which depend on it.
+
+2026-07-02  Yi Chen  <chencyy@hygon.cn>
+
+	Backported from master:
+	2026-07-01  Yi Chen  <chencyy@hygon.cn>
+
+	* src/c++11/random.cc (random_device::_M_init): Add signature_HYGON_ebx to
+	the RDSEED and RDRAND CPUID vendor allowlists.  For the default device on
+	Hygon, prefer RDRAND via a dedicated check at the top of the function.
+
+2026-07-02  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-25  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/125956
+	* src/c++20/format.cc [_GLIBCXX_HAVE_ICONV] (iconv_input): New
+	concept.
+	(__encoding::conv) [_GLIBCXX_HAVE_ICONV]: Use iconv_input to
+	decide which type to cast the input pointer to.
+
+2026-07-02  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-24  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/118158
+	* testsuite/27_io/filesystem/operations/pr118158.cc: Add
+	dg-require-mkfifo.
+
+2026-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-06-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/c++23/Makefile.am (stamp-modules-bits): Use abs_builddir instead
+	of abs_srcdir.
+	* src/c++23/Makefile.in: Regenerate.
+
+2026-06-24  Alexandre Oliva  <oliva@adacore.com>
+
+	Backported from master:
+	2026-06-24  Alexandre Oliva  <oliva@adacore.com>
+
+	* src/c++23/Makefile.am (libstdc++.modules.json): Rewrite
+	without abspath make function.
+	(stamp-modules-bits): Likewise.
+	* src/c++23/Makefile.in: Rebuilt.
+
+2026-06-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/chrono.h (std::chrono_literals): Fix typo in
+	comment.
+
+2026-06-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	* doc/xml/manual/debug_mode.xml: Remove 404 link to stlport
+	website and modernise some text about debug modes in other
+	implementations.
+	* doc/html/manual/debug_mode_design.html: Regenerate.
+
+2026-06-12  Release Manager
+
+	* GCC 15.3.0 released.
+
+2026-06-05  XU Kailiang  <xu2k3l4@outlook.com>
+
+	PR libstdc++/117214
+	* include/bits/chrono_io.h (__formatter_chrono::_M_a_A)
+	(__formatter_chrono::_M_b_B, __formatter_chrono::_M_p): Use
+	_M_locale_fmt to format %a/%A/%b/%B/%p.
+	* testsuite/std/time/format/pr117214_custom_timeput.cc: New
+	test.
+
+2026-06-04  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2025-07-01  Patrick Palka  <ppalka@redhat.com>
+
+	PR libstdc++/120789
+	* include/bits/ranges_algo.h (__remove_if_fn::operator()): Use
+	ranges::iter_move(iter) instead of std::move(*iter).
+	* testsuite/25_algorithms/remove_if/120789.cc: New test.
+
+2026-06-04  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2025-07-01  Patrick Palka  <ppalka@redhat.com>
+
+	PR libstdc++/120789
+	* include/bits/ranges_algo.h (__unique_fn::operator()): Use
+	ranges::iter_move(iter) instead of std::move(*iter).
+	* testsuite/25_algorithms/unique/120789.cc: New test.
+
+2026-06-04  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-04-02  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/ext/pb_ds/detail/gp_hash_table_map_/find_no_store_hash_fn_imps.hpp:
+	Add missing #endif.
+
+2026-06-04  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-06-04  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/debug/safe_iterator.h: Remove trailing whitespace.
+
+2026-06-04  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	Backported from master:
+	2025-12-19  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/debug/helper_functions.h (__gnu_debug::__can_advance):
+	Declare as _GLIBCXX20_CONSTEXPR.
+	* include/debug/safe_iterator.h (__gnu_debug::__can_advance):
+	Define as _GLIBCXX20_CONSTEXPR, and return true for constexpr
+	evaluation.
+	(__gnu_debug::__base): Define as _GLIBCXX20_CONSTEXPR.
+
+2026-06-04  François Dumont  <frs.dumont@gmail.com>
+
+	PR libstdc++/119163
+	* include/debug/functions.h (__check_valid_range): Add C++20 constexpr.
+	* include/debug/helper_functions.h (__valid_range): Likewise.
+	* include/debug/safe_iterator.h (__valid_range): Likewise.
+
+2026-06-04  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-10-22  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/122224
+	* include/bits/stl_iterator_base_funcs.h (prev): Compare
+	distance as n > 0 instead of n != 0.
+	* testsuite/24_iterators/range_operations/122224.cc: New test.
+
+2026-06-03  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-06-02  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/120386
+	* include/bits/ranges_algo.h (__unique_copy_fn): Reorder
+	arguments for third case to match the first two cases.
+	* include/bits/stl_algo.h (__unique_copy): Replace three
+	overloads with two, depending only on the iterator category of
+	the input range.  Dispatch to __unique_copy_1 for the
+	non-forward case.
+	(__unique_copy_1): New overloads for the case where the input
+	range uses non-forward iterators.
+	(unique_copy): Only pass the input range category to
+	__unique_copy.
+	* testsuite/25_algorithms/unique_copy/lwg2439.cc: New test.
+
+2026-06-03  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-05-23  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/120384
+	* include/bits/stl_algo.h (__unique_copy): Remove all
+	_BinaryPredicateConcept concept checks.
+	(unique_copy): Check _BinaryPredicateConcept in overload that
+	takes a predicate.
+	* testsuite/25_algorithms/unique_copy/120384.cc: New test.
+
+2026-06-01  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-03-18  Jakub Jelinek  <jakub@redhat.com>
+
+	* include/bits/regex_compiler.h (_Compiler::_M_pop): Uglify ret
+	variable name.
+
+2026-05-21  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-05-19  Patrick Palka  <ppalka@redhat.com>
+
+	PR libstdc++/125374
+	* include/std/flat_map (_Flat_map_impl::_M_try_emplace): Forward
+	instead of unconditionally moving __k when inserting it.
+	* testsuite/23_containers/flat_map/1.cc (test10): New test.
+
+2026-05-21  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-04-10  Patrick Palka  <ppalka@redhat.com>
+
+	* include/std/ranges (lazy_split_view::begin): Add
+	const _Pattern constraint on const overload as per LWG 3599.
+	(lazy_split_view::end): Likewise.
+	* testsuite/std/ranges/adaptors/lazy_split.cc (test14): New
+	test.
+
+2026-05-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	* src/c++20/tzdata.zi: Import new file from 2026b release.
+
+2026-05-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-18  Jonathan Wakely  <jwakely@redhat.com>
+
+	* testsuite/25_algorithms/pstl/alg_sorting/minmax_element.cc:
+	Reduce iterations for debug mode.
+
+2026-05-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/125369
+	* include/bits/chrono_io.h (__detail::_Parser::operator()):
+	Check for errors when parsing digits for a %z format.
+	* testsuite/std/time/parse/125369.cc: New test.
+
+2026-05-14  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	* src/c++17/fs_path.cc (path::operator+=): Use pointer
+	comparison to detect aliasing instead of a loop.
+
+2026-05-14  Jonathan Wakely  <jwakely@redhat.com>
+
+	* testsuite/std/time/clock/local/io.cc: Call test_format.
+
+2026-05-14  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-01-07  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/123100
+	* include/std/sstream (basic_stringbuf::str()&&): Handle the
+	case where _M_string is not being used for the buffer.
+	* testsuite/27_io/basic_stringbuf/str/char/123100.cc: New test.
+
+2026-05-14  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-04-24  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/std/chrono (chrono::__detail::__get_leap_second_info):
+	Update expiry date for leap seconds list.
+	* src/c++20/tzdb.cc (tzdb_list::_Node::_S_read_leap_seconds):
+	Likewise.
+	* src/c++20/tzdata.zi: Import new file from 2026a release.
+
+2026-05-14  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/122567
+	* src/c++20/tzdb.cc (tzdb::current_zone): Loop over all trailing
+	components of /etc/localtime path. Use readlink instead of
+	std::filesystem::read_symlink.
+
+2026-05-14  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/124513
+	* src/c++20/tzdb.cc (operator>>(istream&, at_time::Indicator&)):
+	Do not peek at the next character if eofbit is already set.
+	(istream& operator>>(istream&, at_time&)): Skip whitespace
+	before the first character. Handle EOF when parsing "-" as time.
+	Do not peek for ":" or "." if eofbit already set.
+	* testsuite/std/time/time_zone/116110.cc (test_apia): Remove
+	offset of 24h now that the UNTIL time is parsed correctly.
+	* testsuite/std/time/time_zone/124513.cc: New test.
+
+2026-05-14  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/116110
+	* src/c++20/tzdb.cc (operator>>(istream&, ZoneInfo&)): Adjust
+	inf.m_until according to indicator suffix on AT time in UNTIL.
+	* testsuite/std/time/time_zone/116110.cc (test_kiritimati):
+	Remove FIXME now that the UNTIL time is adjusted for STDOFF.
+	(test_apia): Adjust FIXME now that UNTIL time is adusted for
+	STDOFF.
+	* testsuite/std/time/time_zone/get_info_sys.cc: Adjust expected
+	results to account for corrected logic.
+	* testsuite/std/time/zoned_time/1.cc: Likewise.
+
+2026-05-14  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-19  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/116110
+	* src/c++20/tzdb.cc (time_zone::_M_get_sys_info): Update
+	info.offset and info.save to values from the active rule.
+	* testsuite/std/time/time_zone/116110.cc: New test.
+
+2026-05-05  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-05  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/109965
+	* doc/doxygen/mainpage.html: Link to topics.html instead of
+	modules.html
+
+2026-05-05  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-05-05  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/unique_ptr.h (unique_ptr::_Nothrow_deref): New
+	helper for pre-C++20.
+	(unique_ptr::operator*): Either constrain or use _Nothrow_deref.
+	* testsuite/20_util/unique_ptr/lwg4324.cc: New test.
+
+2026-05-05  Jonathan Wakely  <jwakely@redhat.com>
+
+	* doc/xml/manual/status_cxx2023.xml: Update status table.
+	* doc/html/manual/status.html: Regenerate.
+
+2026-04-16  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	Backported from master:
+	2026-04-14  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	* include/bits/version.def (stdbit_h, stdckdint_h): Define.
+	* include/bits/version.h: Regenerate.
+	* include/c_compatibility/stdbit.h (__cpp_lib_stdbit_h): Define
+	and use it in guards.
+	* include/c_compatibility/stdckdint.h (__cpp_lib_stdckdint_h):
+	Define and use it in guards.
+
+2026-04-07  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-04-02  Patrick Palka  <ppalka@redhat.com>
+
+	* include/std/ranges (zip_view::size): Uglify 'sizes'
+	parameter.
+
+2026-03-31  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-17  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/124463
+	* include/bits/deque.tcc (__uninitialized_copy_a): Define
+	overloads for input and output iterators being std::deque
+	iterators, and for only the output iterator being a std::deque
+	iterator.
+	(__uninitialized_move_a): Overload for input and output
+	iterators being std::deque iterators.
+	* include/bits/stl_uninitialized.h (__uninitialized_copy_a)
+	(__uninitialized_move_a): Declare overloads for std::deque
+	iterators.
+
+2026-03-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	* src/c++20/tzdb.cc [_AIX]: Change #ifndef to #ifdef.
+
+2026-03-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-20  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/124568
+	* testsuite/24_iterators/istreambuf_iterator/105580.cc: Add
+	no_pch option.
+
+2026-03-16  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	Backported from master:
+	2026-03-05  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	PR libstdc++/124124
+	* testsuite/29_atomics/atomic/cons/zero_padding.cc: Limit size of
+	test types to four bytes.
+
+2026-03-16  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	PR libstdc++/105580
+	* include/std/streambuf (streambuf::gptr, streambuf::egptr)
+	(streambuf::gbump): Surround with pragma disabling -Wnull-dereference.
+	* testsuite/24_iterators/istreambuf_iterator/105580.cc: New test.
+	(cherry picked from commits
+	8758503918a91dacff4dbc7126eced21787fbfc9
+	bfc2b87f8244a13ab00e8e3fe2af1d6d18fcaa36
+	a523d1ecc89dcb7ea205e3de22d00443d4a0d91d)
+
+2026-03-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-02-11  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/124015
+	* include/bits/regex.tcc (regex_traits::lookup_classname): Fix
+	handling of icase parameter.
+
+2026-03-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-02-11  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/124015
+	* testsuite/28_regex/traits/char/lookup_classname.cc: Check for
+	correct result for unrecognized classname. Check that lookup is
+	case insensitive. Check that all required classnames are
+	recognized. Check that icase flag only affects "lower" and
+	"upper".
+	* testsuite/28_regex/traits/wchar_t/lookup_classname.cc:
+	Likewise.
+
+2026-03-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-02-13  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/121771
+	* include/std/tuple (tuple::tuple(const Elements&...)): Use
+	type_identity_t to prevent constructor being used for CTAD.
+	(tuple::tuple(allocator_arg_t, const A&, const Elements&...)):
+	Likewise.
+	* testsuite/20_util/tuple/cons/121771.cc: New test.
+
+2026-03-09  Xi Ruoyao  <xry111@xry111.site>
+
+	Backported from master:
+	2026-02-12  Xi Ruoyao  <xry111@xry111.site>
+		    Jonathan Wakely  <jwakely@redhat.com>
+
+	* testsuite/17_intro/badnames.cc (__unused): Do not define.
+	* testsuite/17_intro/names.cc [glibc == 2.43] (__unused): Undef.
+
+2026-03-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-10-29  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/regex.tcc (regex_traits::value): Use __c instead
+	of __ch.
+
+2026-03-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-11-21  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/regex_automaton.tcc [_GLIBCXX_DEBUG]: Include
+	<ostream> so that _State_base::_M_print etc. can use it.
+
+2026-03-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-10-29  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/regex.tcc (regex_traits::value): Implement
+	without using istringstream.
+	* include/std/regex: Do not include <sstream>.
+
+2026-03-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-04-29  Jonathan Wakely  <jwakely@redhat.com>
+
+	* include/bits/regex_compiler.h: Replace _GLIBCXX17_CONSTEXPR
+	with constexpr and disable diagnostics with pragmas.
+	(_AnyMatcher::operator()): Use constexpr-if instead of tag
+	dispatching. Postpone calls to _M_translate until after checking
+	result of earlier calls.
+	(_AnyMatcher::_M_apply): Remove both overloads.
+	(_BracketMatcher::operator(), _BracketMatcher::_M_ready):
+	Replace tag dispatching with 'if constexpr'.
+	(_BracketMatcher::_M_apply(_CharT, true_type)): Remove.
+	(_BracketMatcher::_M_apply(_CharT, false_type)): Remove second
+	parameter.
+	(_BracketMatcher::_M_make_cache): Remove both overloads.
+	* include/bits/regex_compiler.tcc (_BracketMatcher::_M_apply):
+	Remove second parameter.
+	* include/bits/regex_executor.tcc: Replace _GLIBCXX17_CONSTEXPR
+	with constexpr and disable diagnostics with pragmas.
+	(_Executor::_M_handle_backref): Replace __glibcxx_assert with
+	static_assert.
+	(_Executor::_M_handle_accept): Mark _S_opcode_backref case as
+	unreachable for non-DFS mode and do not instantiate
+	_M_handle_backref for that case.
+
+2026-03-04  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-03-04  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/124363
+	* include/std/string_view: Adjust comment on #endif to match #if
+	condition. Likewise for header guard.
+
+2026-03-03  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-02-12  Patrick Palka  <ppalka@redhat.com>
+
+	PR libstdc++/114865
+	* include/std/atomic (atomic<_Tp>::atomic(_Tp)) [C++11]:
+	Enable __builtin_clear_padding logic.
+	* testsuite/29_atomics/atomic/compare_exchange_padding.cc: Enable
+	this test in earlier modes, including C++11.
+	* testsuite/29_atomics/atomic/cons/zero_padding.cc [C++11]:
+	Enable tests verifying cleared padding bits for a non-static-init
+	std::atomic object.
+
+2026-02-26  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	PR libstdc++/123875
+	* include/bits/atomic_base.h (__atomic_impl::__clear_padding):
+	Use if constexpr unconditionally.
+	(__atomic_float<_Fp>::__atomic_float(_Fp)): Skip __clear_padding
+	call for constant evaluation.
+	* include/std/atomic (atomic<_Tp>::atomic(_Tp)): Likewise.
+	* testsuite/29_atomics/atomic/cons/zero_padding.cc: New test.
+	* testsuite/29_atomics/atomic_float/zero_padding.cc: New test.
+	(cherry picked from commits
+	6b550d69fe7cb62ea6e240ce7a4ba29ce33aa1b1
+	682c95b808724e6f876ea709b873ac6771704d7b
+	060d7c2a9c1fe16d23d98a74287fdb7c73ddb784
+	f3ba5ad088cebe117f857329a35b95d18d97a808)
+
+2026-02-10  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-11-24  Jonathan Wakely  <jwakely@redhat.com>
+
+	* python/libstdcxx/v6/xmethods.py (ListMethodsMatcher.match):
+	Fix lookup for node type.
+
+2026-02-10  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2025-11-24  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/122821
+	* python/libstdcxx/v6/xmethods.py (_versioned_namespace): Remove
+	global variable.
+	(is_specialization_of): Do not use _versioned_namespace. Add
+	__debug:: to regex.
+
+2026-02-10  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-02-10  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/123991
+	* include/bits/basic_string.h (compare(size_type, size_type, T)):
+	Remove noexcept-specifier.
+	(compare(size_type, size_type, T, size_type, size_type)):
+	Likewise.
+	* include/bits/cow_string.h (compare(size_type, size_type, T)):
+	Remove noexcept-specifier.
+	(compare(size_type, size_type, T, size_type, size_type)):
+	Likewise.
+	* testsuite/21_strings/basic_string/operations/compare/char/123991.cc:
+	New test.
+	* testsuite/21_strings/basic_string/operations/compare/wchar_t/123991.cc:
+	New test.
+
+2026-02-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	Backported from master:
+	2026-02-09  Jonathan Wakely  <jwakely@redhat.com>
+
+	PR libstdc++/124024
+	* include/bits/out_ptr.h (out_ptr): Fix doxygen comment to refer
+	to the right function.
+	(inout_ptr): Improve markup in doxygen comment.
+
+2026-02-06  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	Backported from master:
+	2025-08-26  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	PR libstdc++/90192
+	* include/bits/stl_vector.h (vector<T>::_M_fill_append): Declare.
+	(vector<T>::fill): Use _M_fill_append instead of _M_fill_insert.
+	* include/bits/vector.tcc (vector<T>::_M_fill_append): Define
+	(vector<T>::_M_fill_insert): Delegate to _M_fill_append when
+	elements are appended.
+	* testsuite/23_containers/vector/modifiers/moveable.cc: Updated
+	copycount for inserting at the end (appending).
+	* testsuite/23_containers/vector/modifiers/resize.cc: New test.
+	* testsuite/backward/hash_set/check_construct_destroy.cc: Updated
+	copycount, the hash_set constructor uses insert to fill buckets
+	with nullptrs.
+
+2026-02-05  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	Backported from master:
+	2026-01-19  Tomasz Kamiński  <tkaminsk@redhat.com>
+
+	PR libstdc++/114153
+	* include/bits/ranges_cmp.h (__detail::__less_builtin_ptr_cmp):
+	Add __not_overloaded_spaceship spaceship check.
+	* include/bits/stl_function.h (greater<void>::operator())
+	(less<void>::operator(), greater_equal<void>::operator())
+	(less_equal<void>::operator()): Implement using if constexpr.
+	(greater<void>::__S_cmp, less<void>::__S_cmp)
+	(greater_equal<void>::__ptr_comp, less_equal<void>::S_cmp):
+	Remove.
+	(greater<void>::__ptr_cmp, less<void>::__ptr_cmp)
+	(greater_equal<void>::__ptr_comp, less_equal<void>::ptr_cmp): Change
+	tostatic constexpr variable. Define in terms of requires expressions
+	and __not_overloaded_spaceship check.
+	* include/std/concepts: (__detail::__not_overloaded_spaceship):
+	Define.
+	* libsupc++/compare: (__detail::__3way_builtin_ptr_cmp): Use
+	__not_overloaded_spaceship concept.
+	* testsuite/20_util/function_objects/comparisons_pointer_spaceship.cc: New test.
+
 2026-01-22  Frank Scheiner  <frank.scheiner@web.de>
 
 	Backported from master:

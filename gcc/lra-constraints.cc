@@ -1798,6 +1798,36 @@ simplify_operand_subreg (int nop, machine_mode reg_mode)
     }
   else if (REG_P (reg) && REGNO (reg) < FIRST_PSEUDO_REGISTER)
     {
+      /* A narrowing subreg of a hard register that is not representable as a
+	 hard register (its offset does not fall on a register boundary) cannot
+	 be turned into one, and would otherwise be resolved to the wrong part
+	 of the register.  Reload it through memory so that the correct bytes
+	 are accessed, as is done for pseudos below.  Leave the frame, arg and
+	 stack pointers alone: simplify_subreg_regno can reject them simply
+	 because reload is not finished yet.  */
+      if (partial_subreg_p (mode, innermode)
+	  && REGNO (reg) != FRAME_POINTER_REGNUM
+	  && REGNO (reg) != ARG_POINTER_REGNUM
+	  && REGNO (reg) != STACK_POINTER_REGNUM
+	  && simplify_subreg_regno (REGNO (reg), innermode,
+				    SUBREG_BYTE (operand), mode) < 0)
+	{
+	  if (get_reload_reg (type, innermode, reg, NO_REGS, NULL,
+			      true, false, "non-representable subreg", &new_reg))
+	    {
+	      bitmap_set_bit (&lra_subreg_reload_pseudos, REGNO (new_reg));
+	      bool insert_before = (type != OP_OUT
+				    || read_modify_subreg_p (operand));
+	      bool insert_after = (type != OP_IN);
+	      insert_move_for_subreg (insert_before ? &before : NULL,
+				      insert_after ? &after : NULL,
+				      reg, new_reg);
+	    }
+	  SUBREG_REG (operand) = new_reg;
+	  lra_process_new_insns (curr_insn, before, after,
+				 "Inserting non-representable subreg reload");
+	  return true;
+	}
       alter_subreg (curr_id->operand_loc[nop], false);
       return true;
     }
@@ -2217,6 +2247,8 @@ process_alt_operands (int only_alternative)
   if (only_alternative >= 0)
     preferred &= ALTERNATIVE_BIT (only_alternative);
 
+  bool prefer_memory_p = false;
+ repeat:
   for (nalt = 0; nalt < n_alternatives; nalt++)
     {
       /* Loop over operands for one constraint alternative.  */
@@ -2549,6 +2581,11 @@ process_alt_operands (int only_alternative)
 		      || general_constant_p (op)
 		      || spilled_pseudo_p (op))
 		    win = true;
+		  if (REG_P (op) && prefer_memory_p)
+		    {
+		      badop = false;
+		      offmemok = true;
+		    }
 		  cl = GENERAL_REGS;
 		  cl_filter = nullptr;
 		  goto reg;
@@ -2665,7 +2702,7 @@ process_alt_operands (int only_alternative)
 				   (this_alternative_exclude_start_hard_regs,
 				    hard_regno[nop]))))
 			win = true;
-		      else if (hard_regno[nop] < 0)
+		      else if (hard_regno[nop] < 0 && !prefer_memory_p)
 			{
 			  if (in_class_p (op, this_alternative, NULL))
 			    win = true;
@@ -2767,6 +2804,12 @@ process_alt_operands (int only_alternative)
 	    this_alternative_match_win = true;
 	  else
 	    {
+	      if (prefer_memory_p && offmemok)
+		{
+		  winreg = false;
+		  this_alternative = NO_REGS;
+		}
+
 	      int const_to_mem = 0;
 	      bool no_regs_p;
 
@@ -3300,6 +3343,17 @@ process_alt_operands (int only_alternative)
 	       ira_class_hard_regs_num[all_this_alternative],
 	       all_used_nregs, all_reload_nregs);
 	  overall += LRA_MAX_REJECT;
+	  if (!prefer_memory_p && INSN_CODE (curr_insn) < 0)
+	    {
+	      /* asm can permit memory and reg and can be not enough regs for
+		 asm -- try now memory: */
+	      prefer_memory_p = true;
+	      if (lra_dump_file != NULL)
+		fprintf
+		  (lra_dump_file,
+		   "            Trying now memory for operands\n");
+	      goto repeat;
+	    }
 	}
       ok_p = true;
       curr_alt_dont_inherit_ops_num = 0;

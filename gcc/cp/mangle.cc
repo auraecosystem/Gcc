@@ -753,13 +753,13 @@ unmangled_name_p (const tree decl)
     }
   else if (VAR_P (decl))
     {
+      /* extern "C" declarations aren't mangled.  */
+      if (DECL_NAMESPACE_SCOPE_P (decl) && DECL_EXTERN_C_P (decl))
+	return true;
+
       /* static variables are mangled.  */
       if (!DECL_EXTERNAL_LINKAGE_P (decl))
 	return false;
-
-      /* extern "C" declarations aren't mangled.  */
-      if (DECL_EXTERN_C_P (decl))
-	return true;
 
       /* Other variables at non-global scope are mangled.  */
       if (CP_DECL_CONTEXT (decl) != global_namespace)
@@ -2688,9 +2688,21 @@ write_type (tree type)
 	      break;
 
 	    case PACK_INDEX_TYPE:
-	      /* TODO Mangle pack indexing
-		 <https://github.com/itanium-cxx-abi/cxx-abi/issues/175>.  */
-	      sorry ("mangling type pack index");
+	      /* https://github.com/itanium-cxx-abi/cxx-abi/issues/175.  */
+	      write_string ("Dy");
+	      if (TREE_CODE (PACK_INDEX_PACK (type)) == TREE_VEC)
+		{
+		  write_char ('J');
+		  for (int i = 0; i < TREE_VEC_LENGTH (PACK_INDEX_PACK (type));
+		       ++i)
+		    write_template_arg (TREE_VEC_ELT (PACK_INDEX_PACK (type),
+						      i));
+		  write_char ('E');
+		}
+	      else
+		/* Dy rather than DyDp.  */
+		write_type (PACK_EXPANSION_PATTERN (PACK_INDEX_PACK (type)));
+	      write_expression (PACK_INDEX_INDEX (type));
 	      break;
 
 	    case LANG_TYPE:
@@ -3544,6 +3556,23 @@ write_expression (tree expr)
 	}
       else
 	goto normal_expr;
+    }
+  else if (code == PACK_INDEX_EXPR)
+    {
+      /* https://github.com/itanium-cxx-abi/cxx-abi/issues/175.  */
+      write_string ("sy");
+      if (TREE_CODE (PACK_INDEX_PACK (expr)) == TREE_VEC)
+	{
+	  write_char ('J');
+	  for (int i = 0; i < TREE_VEC_LENGTH (PACK_INDEX_PACK (expr));
+	       ++i)
+	    write_template_arg (TREE_VEC_ELT (PACK_INDEX_PACK (expr), i));
+	  write_char ('E');
+	}
+      else
+	/* sy rather than sysp.  */
+	write_expression (PACK_EXPANSION_PATTERN (PACK_INDEX_PACK (expr)));
+      write_expression (PACK_INDEX_INDEX (expr));
     }
   else if (TREE_CODE (expr) == ALIGNOF_EXPR)
     {

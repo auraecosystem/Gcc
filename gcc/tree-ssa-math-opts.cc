@@ -2972,6 +2972,11 @@ convert_plusminus_to_widen (gimple_stmt_iterator *gsi, gimple *stmt,
   if (to_mode == from_mode)
     return false;
 
+  /* For fixed point types, the mode classes could be different
+     so reject that case. */
+  if (GET_MODE_CLASS (from_mode) != GET_MODE_CLASS (to_mode))
+    return false;
+
   from_unsigned1 = TYPE_UNSIGNED (type1);
   from_unsigned2 = TYPE_UNSIGNED (type2);
   optype = type1;
@@ -3462,6 +3467,10 @@ convert_mult_to_fma (gimple *mul_stmt, tree op1, tree op2,
       tree_code code;
       if (!can_interpret_as_conditional_op_p (use_stmt, &cond, &code, ops,
 					      &else_value, &len, &bias))
+	return false;
+
+      /* The multiplication result must be one of the addition operands.  */
+      if (ops[0] != result && ops[1] != result)
 	return false;
 
       switch (code)
@@ -5286,7 +5295,11 @@ match_uaddc_usubc (gimple_stmt_iterator *gsi, gimple *stmt, tree_code code)
 			TYPE_MODE (type)) == CODE_FOR_nothing
       || (rhs[2]
 	  && optab_handler (code == PLUS_EXPR ? uaddc5_optab : usubc5_optab,
-			    TYPE_MODE (type)) == CODE_FOR_nothing))
+			    TYPE_MODE (type)) == CODE_FOR_nothing)
+      || !types_compatible_p (type,
+			      TREE_TYPE (TREE_TYPE (gimple_call_lhs (ovf1))))
+      || !types_compatible_p (type,
+			      TREE_TYPE (TREE_TYPE (gimple_call_lhs (ovf2)))))
     return false;
   tree arg1, arg2, arg3 = NULL_TREE;
   gimple *re1 = NULL, *re2 = NULL;

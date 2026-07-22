@@ -1426,12 +1426,6 @@ get_class_info_from_ss (stmtblock_t * pre, gfc_ss *ss, tree *eltype,
 	  tmp2 = gfc_class_len_get (class_expr);
 	  gfc_add_modify (pre, tmp, tmp2);
 	}
-
-      if (rhs_function)
-	{
-	  tmp = gfc_class_data_get (class_expr);
-	  gfc_conv_descriptor_offset_set (pre, tmp, gfc_index_zero_node);
-	}
     }
   else if (rhs_ss->info->data.array.descriptor)
    {
@@ -3372,18 +3366,51 @@ gfc_add_loop_ss_code (gfc_loopinfo * loop, gfc_ss * ss, bool subscript,
 	  break;
 
 	case GFC_SS_FUNCTION:
-	  /* Array function return value.  We call the function and save its
-	     result in a temporary for use inside the loop.  */
-	  gfc_init_se (&se, NULL);
-	  se.loop = loop;
-	  se.ss = ss;
-	  if (gfc_is_class_array_function (expr))
-	    expr->must_finalize = 1;
-	  gfc_conv_expr (&se, expr);
-	  gfc_add_block_to_block (&outer_loop->pre, &se.pre);
-	  gfc_add_block_to_block (&outer_loop->post, &se.post);
-	  gfc_add_block_to_block (&outer_loop->post, &se.finalblock);
-	  ss_info->string_length = se.string_length;
+	  {
+	    /* Array function return value.  We call the function and save its
+	       result in a temporary for use inside the loop.  */
+	    gfc_init_se (&se, NULL);
+	    se.loop = loop;
+	    se.ss = ss;
+	    bool class_func = gfc_is_class_array_function (expr);
+	    if (class_func)
+	      expr->must_finalize = 1;
+	    gfc_conv_expr (&se, expr);
+	    gfc_add_block_to_block (&outer_loop->pre, &se.pre);
+	    if (class_func
+		&& se.expr
+		&& GFC_CLASS_TYPE_P (TREE_TYPE (se.expr)))
+	      {
+		tree tmp = gfc_class_data_get (se.expr);
+		info->descriptor = tmp;
+		info->data = gfc_conv_descriptor_data_get (tmp);
+		info->offset = gfc_conv_descriptor_offset_get (tmp);
+		for (gfc_ss *s = ss; s; s = s->parent)
+		  for (int n = 0; n < s->dimen; n++)
+		    {
+		      int dim = s->dim[n];
+		      tree tree_dim = gfc_rank_cst[dim];
+
+		      tree start;
+		      start = gfc_conv_descriptor_lbound_get (tmp, tree_dim);
+		      start = gfc_evaluate_now (start, &outer_loop->pre);
+		      info->start[dim] = start;
+
+		      tree end;
+		      end = gfc_conv_descriptor_ubound_get (tmp, tree_dim);
+		      end = gfc_evaluate_now (end, &outer_loop->pre);
+		      info->end[dim] = end;
+
+		      tree stride;
+		      stride = gfc_conv_descriptor_stride_get (tmp, tree_dim);
+		      stride = gfc_evaluate_now (stride, &outer_loop->pre);
+		      info->stride[dim] = stride;
+		    }
+	      }
+	    gfc_add_block_to_block (&outer_loop->post, &se.post);
+	    gfc_add_block_to_block (&outer_loop->post, &se.finalblock);
+	    ss_info->string_length = se.string_length;
+	  }
 	  break;
 
 	case GFC_SS_CONSTRUCTOR:
@@ -3781,6 +3808,29 @@ trans_array_bound_check (gfc_se * se, gfc_ss *ss, tree index, int n,
 }
 
 
+/* Helper functions to detect impure functions in an expression.  */
+
+static const char *impure_name = NULL;
+static bool
+expr_contains_impure_fcn (gfc_expr *e, gfc_symbol* sym ATTRIBUTE_UNUSED,
+	 int* g ATTRIBUTE_UNUSED)
+{
+  if (e && e->expr_type == EXPR_FUNCTION
+      && !gfc_pure_function (e, &impure_name)
+      && !gfc_implicit_pure_function (e))
+    return true;
+
+  return false;
+}
+
+static bool
+gfc_expr_contains_impure_fcn (gfc_expr *e)
+{
+  impure_name = NULL;
+  return gfc_traverse_expr (e, NULL, &expr_contains_impure_fcn, 0);
+}
+
+
 /* Generate code for bounds checking for elemental dimensions.  */
 
 static void
@@ -3803,10 +3853,17 @@ array_bound_check_elemental (gfc_se * se, gfc_ss * ss, gfc_expr * expr)
 		{
 		  if (ar->dimen_type[dim] == DIMEN_ELEMENT)
 		    {
+		      if (gfc_expr_contains_impure_fcn (ar->start[dim]))
+			gfc_warning_now (0, "Bounds checking of the elemental "
+					 "index at %L will cause two calls to "
+					 "%qs, which is not declared to be "
+					 "PURE or is not implicitly pure.",
+					 &ar->start[dim]->where, impure_name);
 		      gfc_se indexse;
 		      gfc_init_se (&indexse, NULL);
 		      gfc_conv_expr_type (&indexse, ar->start[dim],
 					  gfc_array_index_type);
+		      gfc_add_block_to_block (&se->pre, &indexse.pre);
 		      trans_array_bound_check (se, ss, indexse.expr, dim,
 					       &ar->where,
 					       ar->as->type != AS_ASSUMED_SIZE
@@ -5205,7 +5262,8 @@ done:
 	      int dim = ss->dim[n];
 
 	      info->start[dim]  = gfc_index_zero_node;
-	      info->end[dim]    = gfc_index_zero_node;
+	      if (ss_info->type != GFC_SS_FUNCTION)
+		info->end[dim]    = gfc_index_zero_node;
 	      info->stride[dim] = gfc_index_one_node;
 	    }
 	  break;
@@ -5890,6 +5948,46 @@ set_loop_bounds (gfc_loopinfo *loop)
 }
 
 
+/* Last attempt to set the loop bounds, in case they depend on an allocatable
+   function result.  */
+
+static void
+late_set_loop_bounds (gfc_loopinfo *loop)
+{
+  int n, dim;
+  gfc_array_info *info;
+  gfc_ss **loopspec;
+
+  loopspec = loop->specloop;
+
+  for (n = 0; n < loop->dimen; n++)
+    {
+      /* Set the extents of this range.  */
+      if (loop->from[n] == NULL_TREE
+	  || loop->to[n] == NULL_TREE)
+	{
+	  /* We should have found the scalarization loop specifier.  If not,
+	     that's bad news.  */
+	  gcc_assert (loopspec[n]);
+
+	  info = &loopspec[n]->info->data.array;
+	  dim = loopspec[n]->dim[n];
+
+	  if (loopspec[n]->info->type == GFC_SS_FUNCTION
+	      && info->start[dim]
+	      && info->end[dim])
+	    {
+	      loop->from[n] = info->start[dim];
+	      loop->to[n] = info->end[dim];
+	    }
+	}
+    }
+
+  for (loop = loop->nested; loop; loop = loop->next)
+    late_set_loop_bounds (loop);
+}
+
+
 /* Initialize the scalarization loop.  Creates the loop variables.  Determines
    the range of the loop variables.  Creates a temporary if required.
    Also generates code for scalar expressions which have been
@@ -5907,6 +6005,8 @@ gfc_conv_loop_setup (gfc_loopinfo * loop, locus * where)
      This may include calculating the loop bounds, so do it before
      allocating the temporary.  */
   gfc_add_loop_ss_code (loop, loop->ss, false, where);
+
+  late_set_loop_bounds (loop);
 
   tmp_ss = loop->temp_ss;
   /* If we want a temporary then create it.  */
@@ -5964,9 +6064,11 @@ gfc_set_delta (gfc_loopinfo *loop)
       gfc_ss_type ss_type;
 
       ss_type = ss->info->type;
-      if (ss_type != GFC_SS_SECTION
-	  && ss_type != GFC_SS_COMPONENT
-	  && ss_type != GFC_SS_CONSTRUCTOR)
+      if (!(ss_type == GFC_SS_SECTION
+	    || ss_type == GFC_SS_COMPONENT
+	    || ss_type == GFC_SS_CONSTRUCTOR
+	    || (ss_type == GFC_SS_FUNCTION
+		&& gfc_is_class_array_function (ss->info->expr))))
 	continue;
 
       info = &ss->info->data.array;
@@ -6799,8 +6901,22 @@ gfc_conv_array_initializer (tree type, gfc_expr * expr)
 
   if (expr->expr_type == EXPR_VARIABLE
       && expr->symtree->n.sym->attr.flavor == FL_PARAMETER
-      && expr->symtree->n.sym->value)
+      && expr->symtree->n.sym->value
+      && !expr->ref)
     expr = expr->symtree->n.sym->value;
+
+  /* After parameter substitution the expression should be a constant, array
+     constructor, structure constructor, or NULL.  Anything else is invalid
+     and must not ICE later in lowering.  */
+  if (expr->expr_type != EXPR_CONSTANT
+      && expr->expr_type != EXPR_STRUCTURE
+      && expr->expr_type != EXPR_ARRAY
+      && expr->expr_type != EXPR_NULL)
+    {
+      gfc_error ("Array initializer at %L does not reduce to a constant "
+		 "expression", &expr->where);
+      return build_constructor (type, NULL);
+    }
 
   switch (expr->expr_type)
     {
@@ -8930,6 +9046,34 @@ is_pointer (gfc_expr *e)
   return sym->attr.pointer || sym->attr.proc_pointer;
 }
 
+/* Assumed-rank actual argument: the caller only allocates storage for dtype
+   rank dimensions. Copying GFC_MAX_DIMENSIONS dim entries would read past the
+   physical end of the descriptor. Copy the header fields explicitly and use a
+   runtime-sized memcpy for the dim[] entries.  */
+void
+gfc_resize_assumed_rank_dim_field (gfc_se *se, stmtblock_t *block, tree desc)
+{
+  tree rank, dim_field, dim_size, copy_size, dst_ptr, src_ptr;
+
+  gfc_conv_descriptor_data_set (block, desc,
+				gfc_conv_descriptor_data_get (se->expr));
+  gfc_conv_descriptor_offset_set (block, desc,
+				  gfc_conv_descriptor_offset_get (se->expr));
+  gfc_add_modify (block, gfc_conv_descriptor_dtype (desc),
+		  gfc_conv_descriptor_dtype (se->expr));
+  rank = fold_convert (size_type_node, gfc_conv_descriptor_rank (se->expr));
+  dim_field = gfc_get_descriptor_dimension (se->expr);
+  dim_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (dim_field)));
+  copy_size = fold_build2_loc (input_location, MULT_EXPR,
+			       size_type_node, rank, dim_size);
+  dst_ptr = gfc_build_addr_expr (pvoid_type_node,
+				 gfc_get_descriptor_dimension (desc));
+  src_ptr = gfc_build_addr_expr (pvoid_type_node, dim_field);
+  gfc_add_expr_to_block (block, build_call_expr_loc (input_location,
+			 builtin_decl_explicit (BUILT_IN_MEMCPY),
+			 3, dst_ptr, src_ptr, copy_size));
+}
+
 /* Convert an array for passing as an actual parameter.  */
 
 void
@@ -9204,7 +9348,12 @@ gfc_conv_array_parameter (gfc_se *se, gfc_expr *expr, bool g77,
 	      gfc_conv_descriptor_offset_set (&block, arr, gfc_index_zero_node);
 	      se->expr = arr;
 	    }
-	  gfc_class_array_data_assign (&block, tmp, se->expr, true);
+	  if (expr->rank == -1)
+	    gfc_resize_assumed_rank_dim_field (se, &block, tmp);
+	  else if (CLASS_DATA (fsym)->as->rank == -1)
+	    gfc_class_array_data_assign (&block, tmp, se->expr, false);
+	  else
+	    gfc_class_array_data_assign (&block, tmp, se->expr, true);
 
 	  /* Handle optional.  */
 	  if (fsym && fsym->attr.optional && sym && sym->attr.optional)
@@ -9333,18 +9482,11 @@ gfc_conv_array_parameter (gfc_se *se, gfc_expr *expr, bool g77,
 	{
 	  tmp = build_fold_indirect_ref_loc (input_location, desc);
 
-	  gfc_ss * ss = gfc_walk_expr (expr);
-	  if (!transposed_dims (ss))
+	  if (!ctree)
 	    {
-	      if (!ctree)
-		gfc_conv_descriptor_data_set (&se->pre, tmp, ptr);
-	    }
-	  else if (!ctree)
-	    {
+	      /* The original descriptor may have transposed dims so we
+		 can't reuse it directly; we have to create a new one.  */
 	      tree old_field, new_field;
-
-	      /* The original descriptor has transposed dims so we can't reuse
-		 it directly; we have to create a new one.  */
 	      tree old_desc = tmp;
 	      tree new_desc = gfc_create_var (TREE_TYPE (old_desc), "arg_desc");
 
@@ -9352,17 +9494,111 @@ gfc_conv_array_parameter (gfc_se *se, gfc_expr *expr, bool g77,
 	      new_field = gfc_conv_descriptor_dtype (new_desc);
 	      gfc_add_modify (&se->pre, new_field, old_field);
 
-	      old_field = gfc_conv_descriptor_offset (old_desc);
-	      new_field = gfc_conv_descriptor_offset (new_desc);
-	      gfc_add_modify (&se->pre, new_field, old_field);
-
-	      for (int i = 0; i < expr->rank; i++)
+	      if (expr->rank == -1)
 		{
-		  old_field = gfc_conv_descriptor_dimension (old_desc,
-			gfc_rank_cst[get_array_ref_dim_for_loop_dim (ss, i)]);
-		  new_field = gfc_conv_descriptor_dimension (new_desc,
-			gfc_rank_cst[i]);
-		  gfc_add_modify (&se->pre, new_field, old_field);
+		  tree idx = gfc_create_var (TREE_TYPE (gfc_conv_descriptor_rank
+							(old_desc)),
+					     "idx");
+		  tree stride = gfc_create_var (gfc_array_index_type, "stride");
+		  stmtblock_t loop_body;
+
+		  gfc_conv_descriptor_offset_set (&se->pre, new_desc,
+						  gfc_index_zero_node);
+		  gfc_conv_descriptor_span_set (&se->pre, new_desc,
+						gfc_conv_descriptor_span_get
+						(old_desc));
+		  gfc_add_modify (&se->pre, stride, gfc_index_one_node);
+
+		  gfc_init_block (&loop_body);
+
+		  old_field = gfc_conv_descriptor_lbound_get (old_desc, idx);
+		  gfc_conv_descriptor_lbound_set (&loop_body, new_desc, idx,
+						  old_field);
+
+		  old_field = gfc_conv_descriptor_ubound_get (old_desc, idx);
+		  gfc_conv_descriptor_ubound_set (&loop_body, new_desc, idx,
+						  old_field);
+
+		  gfc_conv_descriptor_stride_set (&loop_body, new_desc, idx,
+						  stride);
+
+		  tree offset = fold_build2_loc (input_location, MULT_EXPR,
+						 gfc_array_index_type, stride,
+						 gfc_conv_descriptor_lbound_get
+						 (new_desc, idx));
+		  offset = fold_build2_loc (input_location, MINUS_EXPR,
+					    gfc_array_index_type,
+					    gfc_conv_descriptor_offset_get
+					    (new_desc), offset);
+		  gfc_conv_descriptor_offset_set (&loop_body, new_desc, offset);
+
+		  tree extent = gfc_conv_array_extent_dim
+				(gfc_conv_descriptor_lbound_get (new_desc, idx),
+				 gfc_conv_descriptor_ubound_get (new_desc, idx),
+				 NULL);
+		  extent = fold_build2_loc (input_location, MULT_EXPR,
+					    gfc_array_index_type, stride,
+					    extent);
+		  gfc_add_modify (&loop_body, stride, extent);
+
+		  gfc_simple_for_loop (&se->pre, idx,
+				       build_int_cst (TREE_TYPE (idx), 0),
+				       gfc_conv_descriptor_rank (old_desc),
+				       LT_EXPR,
+				       build_int_cst (TREE_TYPE (idx), 1),
+				       gfc_finish_block (&loop_body));
+		}
+	      else
+		{
+		  tree offset = gfc_index_zero_node;
+
+		  tree stride = gfc_index_one_node;
+
+		  for (int i = 0; i < expr->rank; i++)
+		    {
+		      tree dim = gfc_rank_cst[i];
+
+		      tree lbound = gfc_conv_descriptor_lbound_get (old_desc,
+								    dim);
+		      lbound = gfc_evaluate_now (lbound, &se->pre);
+		      gfc_conv_descriptor_lbound_set (&se->pre, new_desc, dim,
+						      lbound);
+
+		      tree ubound = gfc_conv_descriptor_ubound_get (old_desc,
+								    dim);
+		      ubound = gfc_evaluate_now (ubound, &se->pre);
+		      gfc_conv_descriptor_ubound_set (&se->pre, new_desc, dim,
+						      ubound);
+
+		      gfc_conv_descriptor_stride_set (&se->pre, new_desc, dim,
+						      stride);
+
+		      tree tmp = fold_build2_loc (input_location, MULT_EXPR,
+						  gfc_array_index_type,
+						  stride, lbound);
+		      offset = fold_build2_loc (input_location, MINUS_EXPR,
+						gfc_array_index_type,
+						offset, tmp);
+		      offset = gfc_evaluate_now (offset, &se->pre);
+
+		      /* Now calculate the stride for next dimension, unless the
+			 current dimension is the last one.  */
+		      if (i == expr->rank - 1)
+			break;
+
+		      tmp = fold_build2_loc (input_location, MINUS_EXPR,
+					     gfc_array_index_type,
+					     lbound, gfc_index_one_node);
+		      tree extent = fold_build2_loc (input_location, MINUS_EXPR,
+						     gfc_array_index_type,
+						     ubound, tmp);
+		      stride = fold_build2_loc (input_location, MULT_EXPR,
+						gfc_array_index_type,
+						stride, extent);
+		      stride = gfc_evaluate_now (stride, &se->pre);
+		    }
+
+		  gfc_conv_descriptor_offset_set (&se->pre, new_desc, offset);
 		}
 
 	      if (flag_coarray == GFC_FCOARRAY_LIB
@@ -9378,7 +9614,6 @@ gfc_conv_array_parameter (gfc_se *se, gfc_expr *expr, bool g77,
 	      gfc_conv_descriptor_data_set (&se->pre, new_desc, ptr);
 	      se->expr = gfc_build_addr_expr (NULL_TREE, new_desc);
 	    }
-	  gfc_free_ss (ss);
 	}
 
       if (gfc_option.rtcheck & GFC_RTCHECK_ARRAY_TEMPS)
@@ -12082,8 +12317,16 @@ gfc_trans_deferred_array (gfc_symbol * sym, gfc_wrapped_block * block)
       && !INTEGER_CST_P (sym->ts.u.cl->backend_decl))
     {
       if (sym->ts.deferred && !sym->ts.u.cl->length && !sym->attr.dummy)
-	gfc_add_modify (&init, sym->ts.u.cl->backend_decl,
-			build_zero_cst (TREE_TYPE (sym->ts.u.cl->backend_decl)));
+	{
+	  tree len_expr = sym->ts.u.cl->backend_decl;
+	  tree init_val = build_zero_cst (TREE_TYPE (len_expr));
+	  if (VAR_P (len_expr)
+	      && sym->attr.save
+	      && !DECL_INITIAL (len_expr))
+	    DECL_INITIAL (len_expr) = init_val;
+	  else
+	    gfc_add_modify (&init, len_expr, init_val);
+	}
       gfc_conv_string_length (sym->ts.u.cl, NULL, &init);
       gfc_trans_vla_type_sizes (sym, &init);
 

@@ -5940,6 +5940,11 @@ cp_parser_pack_index (cp_parser *parser, tree pack)
   if (TREE_CODE (pack) == TYPE_DECL)
     pack = TREE_TYPE (pack);
   pack = make_pack_expansion (pack);
+  if (!type_dependent_expression_p (index))
+    index = build_converted_constant_expr (size_type_node, index,
+					   tf_warning_or_error);
+  if (error_operand_p (index))
+    return error_mark_node;
   return make_pack_index (pack, index);
 }
 
@@ -11268,10 +11273,24 @@ cp_parser_expression (cp_parser* parser, cp_id_kind * pidk,
 	     and one CPP_NUMBER plus CPP_COMMA before it and one
 	     CPP_COMMA plus CPP_NUMBER after it is guaranteed by
 	     the preprocessor.  Thus, parse the whole CPP_EMBED just
-	     as a single INTEGER_CST, the last byte in it.  */
+	     as a single INTEGER_CST, the last byte in it.  Though,
+	     don't use that shortcut if the comma operator could be
+	     overloaded.  */
 	  tree raw_data = cp_lexer_peek_token (parser->lexer)->u.value;
 	  location_t loc = cp_lexer_peek_token (parser->lexer)->location;
 	  cp_lexer_consume_token (parser->lexer);
+	  if (OVERLOAD_TYPE_P (TREE_TYPE (expression))
+	      || type_dependent_expression_p (expression))
+	    for (unsigned i = 0; i < RAW_DATA_LENGTH (raw_data) - 1U; ++i)
+	      {
+		assignment_expression
+		  = *raw_data_iterator (raw_data, i);
+		assignment_expression.set_location (loc);
+		expression
+		  = build_x_compound_expr (loc, expression,
+					   assignment_expression, NULL_TREE,
+					   complain_flags (decltype_p));
+	      }
 	  assignment_expression
 	    = *raw_data_iterator (raw_data, RAW_DATA_LENGTH (raw_data) - 1);
 	  assignment_expression.set_location (loc);
@@ -27615,6 +27634,7 @@ cp_parser_class_specifier (cp_parser* parser)
       case CPP_SEMICOLON:
       case CPP_MULT:
       case CPP_AND:
+      case CPP_AND_AND:
       case CPP_OPEN_PAREN:
       case CPP_CLOSE_PAREN:
       case CPP_COMMA:
@@ -42742,7 +42762,7 @@ cp_parser_omp_clause_proc_bind (cp_parser *parser, tree list,
   return c;
 
  invalid_kind:
-  cp_parser_error (parser, "invalid depend kind");
+  cp_parser_error (parser, "invalid proc_bind kind");
  resync_fail:
   cp_parser_skip_to_closing_parenthesis (parser, /*recovering=*/true,
 					 /*or_comma=*/false,
@@ -42809,7 +42829,7 @@ cp_parser_omp_clause_device_type (cp_parser *parser, tree list,
   return c;
 
  invalid_kind:
-  cp_parser_error (parser, "invalid depend kind");
+  cp_parser_error (parser, "expected %<host%>, %<nohost%> or %<any%>");
  resync_fail:
   cp_parser_skip_to_closing_parenthesis (parser, /*recovering=*/true,
 					 /*or_comma=*/false,
@@ -46410,7 +46430,7 @@ cp_parser_omp_loop_nest (cp_parser *parser, bool *if_p)
 	  TREE_VEC_ELT (omp_for_parse_state->condv, depth) = NULL_TREE;
 	  TREE_VEC_ELT (omp_for_parse_state->incrv, depth) = NULL_TREE;
 	  if (omp_for_parse_state->orig_declv)
-	    TREE_VEC_ELT (omp_for_parse_state->incrv, depth) = NULL_TREE;
+	    TREE_VEC_ELT (omp_for_parse_state->orig_declv, depth) = NULL_TREE;
 	  vec_safe_push (omp_for_parse_state->init_blockv, NULL_TREE);
 	  vec_safe_push (omp_for_parse_state->body_blockv, NULL_TREE);
 	  vec_safe_push (omp_for_parse_state->init_placeholderv, NULL_TREE);
@@ -48025,7 +48045,7 @@ cp_parser_omp_taskwait (cp_parser *parser, cp_token *pragma_tok)
   if (clauses)
     {
       tree stmt = make_node (OMP_TASK);
-      TREE_TYPE (stmt) = void_node;
+      TREE_TYPE (stmt) = void_type_node;
       OMP_TASK_CLAUSES (stmt) = clauses;
       OMP_TASK_BODY (stmt) = NULL_TREE;
       SET_EXPR_LOCATION (stmt, pragma_tok->location);
@@ -50330,7 +50350,7 @@ cp_parser_omp_dispatch (cp_parser *parser, cp_token *pragma_tok)
   if (depend_clauses != NULL_TREE)
     {
       tree stmt = make_node (OMP_TASK);
-      TREE_TYPE (stmt) = void_node;
+      TREE_TYPE (stmt) = void_type_node;
       OMP_TASK_CLAUSES (stmt) = depend_clauses;
       OMP_TASK_BODY (stmt) = NULL_TREE;
       SET_EXPR_LOCATION (stmt, loc);

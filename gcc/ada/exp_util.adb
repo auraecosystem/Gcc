@@ -971,23 +971,22 @@ package body Exp_Util is
          Size_Id : constant Entity_Id := Make_Temporary (Loc, 'S');
 
          Actuals      : List_Id;
-         Alloc_Expr   : Node_Id := Empty;
+         Alloc_Expr   : Node_Id;
          Fin_Coll_Id  : Entity_Id;
          Proc_To_Call : Entity_Id;
          Ptr_Coll_Id  : Entity_Id;
-         Subpool      : Node_Id := Empty;
+         Subpool      : Node_Id;
 
       begin
-         --  When we are building an allocator procedure, extract the allocator
-         --  node for later processing and calculation of alignment.
+         --  When we are building an allocator procedure, extract the qualified
+         --  expression from the allocator if there is one.
 
-         if Is_Allocate then
-            --  Extract the qualified expression if there is one from the
-            --  allocator.
-
-            if Nkind (Expression (Expr)) = N_Qualified_Expression then
-               Alloc_Expr := Expression (Expr);
-            end if;
+         if Is_Allocate
+           and then Nkind (Expression (Expr)) = N_Qualified_Expression
+         then
+            Alloc_Expr := Expression (Expr);
+         else
+            Alloc_Expr := Empty;
          end if;
 
          --  Step 1: Construct all the actuals for the call to library routine
@@ -1001,15 +1000,14 @@ package body Exp_Util is
 
             --  b) Subpool
 
-            if Nkind (Expr) = N_Allocator then
-               Subpool := Subpool_Handle_Name (Expr);
-            end if;
+            Subpool := Subpool_Handle_Name (Expr);
 
             --  If a subpool is present it can be an arbitrary name, so make
             --  the actual by copying the tree.
 
             if Present (Subpool) then
-               Append_To (Actuals, New_Copy_Tree (Subpool, New_Sloc => Loc));
+               Append_To
+                 (Actuals, New_Copy_Tree (Subpool, New_Scope => Proc_Id));
             else
                Append_To (Actuals, Make_Null (Loc));
             end if;
@@ -6126,7 +6124,7 @@ package body Exp_Util is
          return Empty;
       end if;
 
-      return Find_Optional_Prim_Op (T, Op_Name);
+      return Find_Optional_Prim_Op (T, Op_Name, Controlled_Op => True);
    end Find_Controlled_Prim_Op;
 
    ------------------------
@@ -6633,11 +6631,13 @@ package body Exp_Util is
    ---------------------------
 
    function Find_Optional_Prim_Op
-     (T : Entity_Id; Name : Name_Id) return Entity_Id
+     (T             : Entity_Id;
+      Name          : Name_Id;
+      Controlled_Op : Boolean := False) return Entity_Id
    is
+      Op   : Entity_Id;
       Prim : Elmt_Id;
       Typ  : Entity_Id := T;
-      Op   : Entity_Id;
 
    begin
       if Is_Class_Wide_Type (Typ) then
@@ -6659,14 +6659,23 @@ package body Exp_Util is
          Op := Node (Prim);
 
          --  We can retrieve primitive operations by name if it is an internal
-         --  name. For equality we must check that both of its operands have
-         --  the same type, to avoid confusion with user-defined equalities
-         --  than may have a asymmetric signature.
+         --  name. For equality, we must check that both of its operands have
+         --  the same type, to avoid confusion with user-defined equalities,
+         --  which may have an asymmetric signature. For controlled operations,
+         --  we check that the primitive is a procedure with a single In Out
+         --  parameter of a non-access type.
 
          exit when Chars (Op) = Name
            and then
              (Name /= Name_Op_Eq
-               or else Etype (First_Formal (Op)) = Etype (Last_Formal (Op)));
+               or else Etype (First_Formal (Op)) = Etype (Last_Formal (Op)))
+           and then
+             (not Controlled_Op
+               or else
+                 (Ekind (Op) = E_Procedure
+                   and then Ekind (First_Formal (Op)) = E_In_Out_Parameter
+                   and then not Is_Access_Type (Etype (First_Formal (Op)))
+                   and then No (Next_Formal (First_Formal (Op)))));
 
          Next_Elmt (Prim);
       end loop;

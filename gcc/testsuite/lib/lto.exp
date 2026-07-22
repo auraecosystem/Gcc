@@ -313,6 +313,7 @@ proc lto-build-archive { testname objlist dest } {
     global testcase
     global tool
     global GCC_UNDER_TEST
+    global GCC_AR_UNDER_TEST
 
     upvar dg-messages-by-file dg-messages-by-file
 
@@ -327,9 +328,20 @@ proc lto-build-archive { testname objlist dest } {
 	}
     }
 
-    # Hack up the gcc-ar command from $GCC_UNDER_TEST.
-    set ar_cmd [file dirname [lindex $GCC_UNDER_TEST 0]]
-    set ar_cmd "$ar_cmd/gcc-ar [lrange $GCC_UNDER_TEST 1 end]"
+    # For now find gcc-ar in the same directory as $GCC_UNDER_TEST, unless
+    # GCC_AR_UNDER_TEST is defined.
+
+    if ![info exists GCC_AR_UNDER_TEST] {
+	if { ![is_remote host] && [string match "*/*" [lindex $GCC_UNDER_TEST 0]] } {
+	    set ar_cmd [file dirname [lindex $GCC_UNDER_TEST 0]]/[gcc-transform-out-of-tree gcc-ar]
+	} else {
+	    set ar_cmd [gcc-transform-out-of-tree gcc-ar]
+	}
+	set ar_cmd "$ar_cmd [lrange $GCC_UNDER_TEST 1 end]"
+    } else {
+        set ar_cmd $GCC_AR_UNDER_TEST
+    }
+
     set ar_output [remote_exec host "$ar_cmd rcs $dest $objlist"]
     set retval [lindex $ar_output 0]
     set retmsg [lindex $ar_output 1]
@@ -699,9 +711,19 @@ proc lto-execute-1 { src1 sid } {
     set i 1
     set done 0
     while { !$done } {
-	set names [glob -nocomplain -types f -- "${dir}/${base}_${i}.{c,C,ii,\[fF\]{,90,95,03,08},d,m,mm}"]
+	set prefix "${dir}/${base}_${i}"
+
+	# glob returns a case insensitive list if filesystem is case
+	# insensitive.  To have a case sensitive list, fetch the extended list
+	# and then filter it to avoid duplicates.
+	regsub -all {([.^$*+?()$${}|])} $prefix {\\\1} pattern
+	set pattern [format {^%s.(c|C|ii|[fF](|90|95|03|08)|d|m|mm)$} $pattern]
+	set names [lsearch -inline -all -regexp \
+	  [glob -nocomplain -types f -- "${prefix}.*"] $pattern]
+
 	if { [llength ${names}] > 1 } {
-	    warning "lto-execute: more than one file matched ${dir}/${base}_${i}.{c,C,ii,\[fF\]{,90,95,03,08},d,m,mm}"
+	    warning "lto-execute: more than one file matched $pattern"
+	    verbose "matching files: $names"
 	}
 	if { [llength ${names}] == 1 } {
 	    lappend src_list [lindex ${names} 0]

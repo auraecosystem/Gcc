@@ -7121,17 +7121,17 @@ package body Sem_Ch13 is
                            Set_Class_Wide_Equivalent_Type (Etyp,
                              Make_CW_Equivalent_Type (Etyp, Empty, Actions));
 
-                           --  Add a Compile_Time_Error sizing check as a hint
-                           --  to the backend.
+                           --  Insert its declaration immediately after that of
+                           --  the root type.
 
-                           Append_To (Actions,
-                             Make_CW_Size_Compile_Check
-                               (Etype (Etyp), U_Ent));
+                           Insert_Actions_After
+                             (Declaration_Node (Etype (Etyp)), Actions);
 
-                           --  Set the expansion to occur during freezing when
-                           --  everything is analyzed
+                           --  Add a Compile_Time_Error size check for the root
+                           --  type at the freeze point.
 
-                           Append_Freeze_Actions (Etyp, Actions);
+                           Append_Freeze_Action (Etype (Etyp),
+                             Make_CW_Size_Compile_Check (Etype (Etyp), U_Ent));
 
                            Set_Is_Mutably_Tagged_Type (Etyp);
                         end;
@@ -16885,6 +16885,7 @@ package body Sem_Ch13 is
       begin
          return Ekind (E) = E_Procedure
            and then Scope (E) = Scope (Typ)
+           and then Is_Primitive (E)
            and then Present (First_Formal (E))
            and then Ekind (First_Formal (E)) = E_In_Out_Parameter
            and then Etype (First_Formal (E)) = Typ
@@ -16929,6 +16930,7 @@ package body Sem_Ch13 is
             while Present (It.Typ) loop
                if Is_Finalizable_Primitive (It.Nam) then
                   Set_Entity (N, It.Nam);
+                  Set_Is_Overloaded (N, False);
                   return;
                end if;
 
@@ -16938,7 +16940,7 @@ package body Sem_Ch13 is
       end if;
 
       Error_Msg_N
-        ("finalizable primitive must be local procedure whose only formal " &
+        ("subprogram must denote primitive procedure whose only formal " &
          "parameter has mode `IN OUT` and is of the finalizable type", N);
    end Resolve_Finalizable_Argument;
 

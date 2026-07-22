@@ -637,13 +637,13 @@ package body Sem_Ch12 is
    --  of freeze nodes for instance bodies that may depend on other instances.
 
    function Find_Actual_Type
-     (Typ       : Entity_Id;
-      Gen_Type  : Entity_Id) return Entity_Id;
+     (Typ     : Entity_Id;
+      Gen_Typ : Entity_Id) return Entity_Id;
    --  When validating the actual types of a child instance, check whether
    --  the formal is a formal type of the parent unit, and retrieve the current
    --  actual for it. Typ is the entity in the analyzed formal type declaration
    --  (component or index type of an array type, or designated type of an
-   --  access formal) and Gen_Type is the enclosing analyzed formal array
+   --  access formal) and Gen_Typ is the enclosing analyzed formal array
    --  or access type. The desired actual may be a formal of a parent, or may
    --  be declared in a formal package of a parent. In both cases it is a
    --  generic actual type because it appears within a visible instance.
@@ -2596,20 +2596,9 @@ package body Sem_Ch12 is
                if Ekind (Etype (Match)) /= E_Void
                  and then Is_Mutably_Tagged_Type (Etype (Match))
                then
-                  --  The declaration of the CW-equivalent type of a mutably
-                  --  tagged type is analyzed when the tagged type is frozen.
-
-                  if Nkind (I_Node) /= N_Formal_Package_Declaration
-                    and then Ekind (Defining_Identifier (Assoc.An_Formal)) /=
-                                                              E_Incomplete_Type
-                  then
-                     Freeze_Before (I_Node, Root_Type (Etype (Match)));
-                  end if;
-
                   Rewrite (Match, New_Occurrence_Of
                     (Class_Wide_Equivalent_Type
                       (Etype (Match)), Sloc (Match)));
-
                   Analyze (Match);
                end if;
 
@@ -9869,10 +9858,10 @@ package body Sem_Ch12 is
    ----------------------
 
    function Find_Actual_Type
-     (Typ      : Entity_Id;
-      Gen_Type : Entity_Id) return Entity_Id
+     (Typ     : Entity_Id;
+      Gen_Typ : Entity_Id) return Entity_Id
    is
-      Gen_Scope : constant Entity_Id := Scope (Gen_Type);
+      Gen_Scope : constant Entity_Id := Scope (Gen_Typ);
       T         : Entity_Id;
 
    begin
@@ -15878,10 +15867,6 @@ package body Sem_Ch12 is
 
                if Is_Type (E1) and then Is_Tagged_Type (E2) then
                   Set_Instance_Of (Class_Wide_Type (E1), Class_Wide_Type (E2));
-               end if;
-
-               if Is_Constrained (E1) then
-                  Set_Instance_Of (Base_Type (E1), Base_Type (E2));
                end if;
 
                if Ekind (E1) = E_Package and then No (Renamed_Entity (E1)) then

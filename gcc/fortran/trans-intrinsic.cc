@@ -9606,9 +9606,15 @@ gfc_conv_intrinsic_loc (gfc_se * se, gfc_expr * expr)
 	gfc_add_data_component (arg_expr);
       gfc_conv_expr_reference (se, arg_expr);
     }
-  else
+  else if (gfc_is_simply_contiguous (arg_expr, false, false))
     gfc_conv_array_parameter (se, arg_expr, true, NULL, NULL, NULL);
+  else
+    {
+      gfc_conv_expr_descriptor (se, arg_expr);
+      se->expr = gfc_conv_descriptor_data_get (se->expr);
+    }
   se->expr = convert (gfc_get_int_type (gfc_index_integer_kind), se->expr);
+  se->expr = gfc_evaluate_now (se->expr, &se->pre);
 
   /* Create a temporary variable for loc return value.  Without this,
      we get an error an ICE in gcc/expr.cc(expand_expr_addr_expr_1).  */
@@ -9677,7 +9683,17 @@ conv_isocbinding_function (gfc_se *se, gfc_expr *expr)
       se->expr = gfc_evaluate_now (se->expr, &se->pre);
     }
   else if (expr->value.function.isym->id == GFC_ISYM_C_FUNLOC)
-    gfc_conv_expr_reference (se, arg->expr);
+    {
+      gfc_conv_expr_reference (se, arg->expr);
+      if (arg->expr->symtree->n.sym->attr.proc_pointer
+	  && arg->expr->symtree->n.sym->attr.dummy)
+	se->expr = build_fold_indirect_ref_loc (input_location, se->expr);
+      /* The code below is necessary to create a reference from the calling
+	 subprogram to the argument of C_FUNLOC() in the call graph.
+	 Please see PR 117303 for more details. */
+      se->expr = convert (pvoid_type_node, se->expr);
+      se->expr = gfc_evaluate_now (se->expr, &se->pre);
+    }
   else if (expr->value.function.isym->id == GFC_ISYM_C_ASSOCIATED)
     {
       gfc_se arg1se;

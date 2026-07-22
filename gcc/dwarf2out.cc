@@ -5942,7 +5942,7 @@ equate_type_number_to_die (tree type, dw_die_ref type_die)
 static dw_die_ref maybe_create_die_with_external_ref (tree);
 struct GTY(()) sym_off_pair
 {
-  const char * GTY((skip)) sym;
+  const char *sym;
   unsigned HOST_WIDE_INT off;
 };
 static GTY(()) hash_map<tree, sym_off_pair> *external_die_map;
@@ -23473,6 +23473,7 @@ dwarf2out_abstract_function (tree decl)
     }
 
   if (DECL_DECLARED_INLINE_P (decl)
+      && !DECL_ARTIFICIAL (decl)
       && lookup_attribute ("artificial", DECL_ATTRIBUTES (decl)))
     add_AT_flag (old_die, DW_AT_artificial, 1);
 

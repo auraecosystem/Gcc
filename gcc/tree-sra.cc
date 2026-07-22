@@ -1880,12 +1880,13 @@ make_fancy_name (tree expr)
    something for which get_addr_base_and_unit_offset returns NULL, gsi must
    be non-NULL and is used to insert new statements either before or below
    the current one as specified by INSERT_AFTER.  This function is not capable
-   of handling bitfields.  */
+   of handling bitfields.  If FORCE_REF_ALL is true then the memory access
+   will use alias-set zero.  */
 
 tree
 build_ref_for_offset (location_t loc, tree base, poly_int64 offset,
 		      bool reverse, tree exp_type, gimple_stmt_iterator *gsi,
-		      bool insert_after)
+		      bool insert_after, bool force_ref_all = false)
 {
   tree prev_base = base;
   tree off;
@@ -1923,19 +1924,22 @@ build_ref_for_offset (location_t loc, tree base, poly_int64 offset,
       else
 	gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 
-      off = build_int_cst (reference_alias_ptr_type (prev_base), byte_offset);
+      off = build_int_cst (force_ref_all ? ptr_type_node
+			   : reference_alias_ptr_type (prev_base), byte_offset);
       base = tmp;
     }
   else if (TREE_CODE (base) == MEM_REF)
     {
-      off = build_int_cst (TREE_TYPE (TREE_OPERAND (base, 1)),
+      off = build_int_cst (force_ref_all ? ptr_type_node
+			   : TREE_TYPE (TREE_OPERAND (base, 1)),
 			   base_offset + byte_offset);
       off = int_const_binop (PLUS_EXPR, TREE_OPERAND (base, 1), off);
       base = unshare_expr (TREE_OPERAND (base, 0));
     }
   else
     {
-      off = build_int_cst (reference_alias_ptr_type (prev_base),
+      off = build_int_cst (force_ref_all ? ptr_type_node
+			   : reference_alias_ptr_type (prev_base),
 			   base_offset + byte_offset);
       base = build_fold_addr_expr (unshare_expr (base));
     }
@@ -1998,12 +2002,13 @@ build_reconstructed_reference (location_t, tree base, struct access *model)
    build_ref_for_offset, furthermore, when GSI is NULL, the function expects
    that it re-builds the entire reference from a DECL to the final access and
    so will create a MEM_REF when OFFSET does not exactly match offset of
-   MODEL.  */
+   MODEL.  If FORCE_REF_ALL is true then the memory access will use
+   alias-set zero.  */
 
 static tree
 build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
 		     struct access *model, gimple_stmt_iterator *gsi,
-		     bool insert_after)
+		     bool insert_after, bool force_ref_all = false)
 {
   gcc_assert (offset >= 0);
   if (TREE_CODE (model->expr) == COMPONENT_REF
@@ -2015,7 +2020,7 @@ build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
       offset -= int_bit_position (fld);
       exp_type = TREE_TYPE (TREE_OPERAND (model->expr, 0));
       t = build_ref_for_offset (loc, base, offset, model->reverse, exp_type,
-				gsi, insert_after);
+				gsi, insert_after, force_ref_all);
       /* The flag will be set on the record type.  */
       REF_REVERSE_STORAGE_ORDER (t) = 0;
       return fold_build3_loc (loc, COMPONENT_REF, TREE_TYPE (fld), t, fld,
@@ -2025,6 +2030,7 @@ build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
     {
       tree res;
       if (model->grp_same_access_path
+	  && !force_ref_all
 	  && !TREE_THIS_VOLATILE (base)
 	  && (TYPE_ADDR_SPACE (TREE_TYPE (base))
 	      == TYPE_ADDR_SPACE (TREE_TYPE (model->expr)))
@@ -2036,7 +2042,8 @@ build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
 	return res;
       else
 	return build_ref_for_offset (loc, base, offset, model->reverse,
-				     model->type, gsi, insert_after);
+				     model->type, gsi, insert_after,
+				     force_ref_all);
     }
 }
 
@@ -2078,16 +2085,20 @@ build_debug_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
 }
 
 /* Construct a memory reference consisting of component_refs and array_refs to
-   a part of an aggregate *RES (which is of type TYPE).  The requested part
-   should have type EXP_TYPE at be the given OFFSET.  This function might not
-   succeed, it returns true when it does and only then *RES points to something
-   meaningful.  This function should be used only to build expressions that we
-   might need to present to user (e.g. in warnings).  In all other situations,
+   a part of an aggregate *RES which is of type TYPE.  The requested part
+   should have type EXP_TYPE at the given OFFSET.  CUR_SIZE must be the size of
+   *RES unless it is known that *RES alone cannot be the result.  This function
+   might not succeed, it returns true when it does and only then *RES points to
+   something meaningful.
+
+   This function should be used only to build expressions that we might need to
+   present to user (e.g. in warnings).  In all other situations,
    build_ref_for_model or build_ref_for_offset should be used instead.  */
 
 static bool
 build_user_friendly_ref_for_offset (tree *res, tree type, HOST_WIDE_INT offset,
-				    tree exp_type)
+				    HOST_WIDE_INT cur_size, tree exp_type,
+				    HOST_WIDE_INT exp_size)
 {
   while (1)
     {
@@ -2095,7 +2106,8 @@ build_user_friendly_ref_for_offset (tree *res, tree type, HOST_WIDE_INT offset,
       tree tr_size, index, minidx;
       HOST_WIDE_INT el_size;
 
-      if (offset == 0 && exp_type
+      if (offset == 0
+	  && cur_size == exp_size
 	  && types_compatible_p (exp_type, type))
 	return true;
 
@@ -2133,7 +2145,8 @@ build_user_friendly_ref_for_offset (tree *res, tree type, HOST_WIDE_INT offset,
 			     NULL_TREE);
 	      expr_ptr = &expr;
 	      if (build_user_friendly_ref_for_offset (expr_ptr, TREE_TYPE (fld),
-						      offset - pos, exp_type))
+						      offset - pos, size,
+						      exp_type, exp_size))
 		{
 		  *res = expr;
 		  return true;
@@ -2156,17 +2169,12 @@ build_user_friendly_ref_for_offset (tree *res, tree type, HOST_WIDE_INT offset,
 	  *res = build4 (ARRAY_REF, TREE_TYPE (type), *res, index,
 			 NULL_TREE, NULL_TREE);
 	  offset = offset % el_size;
+	  cur_size = el_size;
 	  type = TREE_TYPE (type);
 	  break;
 
 	default:
-	  if (offset != 0)
-	    return false;
-
-	  if (exp_type)
-	    return false;
-	  else
-	    return true;
+	  return false;
 	}
     }
 }
@@ -2312,6 +2320,11 @@ path_comparable_for_same_access (tree expr)
   if (TREE_CODE (expr) == MEM_REF)
     {
       if (!zerop (TREE_OPERAND (expr, 1)))
+	return false;
+      gcc_assert (TREE_CODE (TREE_OPERAND (expr, 0)) == ADDR_EXPR
+		  && DECL_P (TREE_OPERAND (TREE_OPERAND (expr, 0), 0)));
+      if (TYPE_MAIN_VARIANT (TREE_TYPE (expr))
+	  != TYPE_MAIN_VARIANT (TREE_TYPE (TREE_OPERAND (TREE_OPERAND (expr, 0), 0))))
 	return false;
     }
   else
@@ -3052,7 +3065,8 @@ create_artificial_child_access (struct access *parent, struct access *model,
   struct access *access = access_pool.allocate ();
   memset (access, 0, sizeof (struct access));
   if (!build_user_friendly_ref_for_offset (&expr, TREE_TYPE (expr), new_offset,
-					   model->type))
+					   parent->size, model->type,
+					   model->size))
     {
       access->grp_no_warning = true;
       expr = build_ref_for_model (EXPR_LOCATION (parent->base), parent->base,
@@ -3193,8 +3207,11 @@ propagate_subaccesses_from_rhs (struct access *lacc, struct access *racc)
 	  tree t = lacc->base;
 
 	  lacc->type = racc->type;
+	  /* We know racc and lacc are of different types so can pass -1 as
+	     cur_size.  */
 	  if (build_user_friendly_ref_for_offset (&t, TREE_TYPE (t),
-						  lacc->offset, racc->type))
+						  lacc->offset, -1,
+						  racc->type, racc->size))
 	    {
 	      lacc->expr = t;
 	      lacc->grp_same_access_path = true;
@@ -3918,16 +3935,18 @@ analyze_all_variable_accesses (void)
    replacements in the interval <start_offset, start_offset + chunk_size>,
    otherwise copy all.  GSI is a statement iterator used to place the new
    statements.  WRITE should be true when the statements should write from AGG
-   to the replacement and false if vice versa.  if INSERT_AFTER is true, new
+   to the replacement and false if vice versa.  If INSERT_AFTER is true, new
    statements will be added after the current statement in GSI, they will be
-   added before the statement otherwise.  */
+   added before the statement otherwise.  If FORCE_REF_ALL is true then
+   memory accesses will use alias-set zero.  */
 
 static void
 generate_subtree_copies (struct access *access, tree agg,
 			 HOST_WIDE_INT top_offset,
 			 HOST_WIDE_INT start_offset, HOST_WIDE_INT chunk_size,
 			 gimple_stmt_iterator *gsi, bool write,
-			 bool insert_after, location_t loc)
+			 bool insert_after, location_t loc,
+			 bool force_ref_all = false)
 {
   /* Never write anything into constant pool decls.  See PR70602.  */
   if (!write && constant_decl_p (agg))
@@ -3945,7 +3964,7 @@ generate_subtree_copies (struct access *access, tree agg,
 	  gassign *stmt;
 
 	  expr = build_ref_for_model (loc, agg, access->offset - top_offset,
-				      access, gsi, insert_after);
+				      access, gsi, insert_after, force_ref_all);
 
 	  if (write)
 	    {
@@ -3995,7 +4014,7 @@ generate_subtree_copies (struct access *access, tree agg,
       if (access->first_child)
 	generate_subtree_copies (access->first_child, agg, top_offset,
 				 start_offset, chunk_size, gsi,
-				 write, insert_after, loc);
+				 write, insert_after, loc, force_ref_all);
 
       access = access->next_sibling;
     }
@@ -4297,14 +4316,14 @@ sra_modify_call_arg (tree *expr, gimple_stmt_iterator *call_gsi,
   gimple *stmt = gsi_stmt (*call_gsi);
   location_t loc = gimple_location (stmt);
   generate_subtree_copies (access, base, 0, 0, 0, call_gsi, false, false,
-			   loc);
+			   loc, true);
 
   if (flags & EAF_NO_DIRECT_CLOBBER)
     return true;
 
   if (!stmt_ends_bb_p (stmt))
     generate_subtree_copies (access, base, 0, 0, 0, refresh_gsi, true,
-			     true, loc);
+			     true, loc, true);
   else
     {
       edge e;
@@ -4313,7 +4332,7 @@ sra_modify_call_arg (tree *expr, gimple_stmt_iterator *call_gsi,
 	{
 	  gimple_stmt_iterator alt_gsi = gsi_start_edge (e);
 	  generate_subtree_copies (access, base, 0, 0, 0, &alt_gsi, true,
-				   true, loc);
+				   true, loc, true);
 	}
     }
   return true;

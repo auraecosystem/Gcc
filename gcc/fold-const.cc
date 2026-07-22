@@ -2559,6 +2559,8 @@ fold_convert_const (enum tree_code code, tree type, tree arg1)
 	  return v.build ();
 	}
     }
+  else if (TREE_CODE (type) == NULLPTR_TYPE && integer_zerop (arg1))
+    return build_zero_cst (type);
   return NULL_TREE;
 }
 
@@ -2781,6 +2783,10 @@ fold_convert_loc (location_t loc, tree type, tree arg)
       tem = fold_ignored_result (arg);
       return fold_build1_loc (loc, NOP_EXPR, type, tem);
 
+    case NULLPTR_TYPE:
+      if (integer_zerop (arg))
+	return build_zero_cst (type);
+      /* FALLTHRU */
     default:
       if (TYPE_MAIN_VARIANT (type) == TYPE_MAIN_VARIANT (orig))
 	return fold_build1_loc (loc, NOP_EXPR, type, arg);
@@ -10679,11 +10685,10 @@ fold_vec_perm (tree type, tree arg0, tree arg1, const vec_perm_indices &sel)
 
   /* For fall back case, we want to ensure we have VLS vectors
      with equal length.  */
-  if (!sel.length ().is_constant (&nelts))
+  if (!sel.length ().is_constant (&nelts)
+      || !known_eq (sel.length (), TYPE_VECTOR_SUBPARTS (TREE_TYPE (arg0))))
     return NULL_TREE;
 
-  gcc_assert (known_eq (sel.length (),
-			TYPE_VECTOR_SUBPARTS (TREE_TYPE (arg0))));
   tree *in_elts = XALLOCAVEC (tree, nelts * 2);
   if (!vec_cst_ctor_to_array (arg0, nelts, in_elts)
       || !vec_cst_ctor_to_array (arg1, nelts, in_elts + nelts))

@@ -267,6 +267,8 @@ is_factor_profitable (gimple *def_stmt, basic_block merge, tree arg)
   FOR_EACH_IMM_USE_FAST (use_p, iter, arg)
     {
       gimple *use_stmt = USE_STMT (use_p);
+      if (is_gimple_debug (use_stmt))
+	continue;
       basic_block use_bb = gimple_bb (use_stmt);
       if (dominated_by_p (CDI_DOMINATORS, merge, use_bb))
 	return true;
@@ -3222,15 +3224,35 @@ cond_removal_in_builtin_zero_pattern (basic_block cond_bb,
       || arg != gimple_cond_lhs (cond))
     return false;
 
-  /* Canonicalize.  */
-  if ((e2->flags & EDGE_TRUE_VALUE
-       && gimple_cond_code (cond) == NE_EXPR)
-      || (e1->flags & EDGE_TRUE_VALUE
-	  && gimple_cond_code (cond) == EQ_EXPR))
+  edge true_edge, false_edge;
+  /* We need to know which is the true edge and which is the false
+     edge so that we know when to invert the condition below.  */
+  extract_true_false_edges_from_block (cond_bb, &true_edge, &false_edge);
+
+  /* Forward the edges over the middle basic block.  */
+  if (true_edge->dest == middle_bb)
+    true_edge = EDGE_SUCC (true_edge->dest, 0);
+  if (false_edge->dest == middle_bb)
+    false_edge = EDGE_SUCC (false_edge->dest, 0);
+
+  /* Canonicalize the args with respect to the edges,
+     arg0 is from the true edge and arg1 is from the
+     false edge.
+     That is `cond ? arg0 : arg1`.*/
+  if (true_edge == e1)
+    gcc_assert (false_edge == e2);
+  else
     {
+      gcc_assert (false_edge == e1);
+      gcc_assert (true_edge == e2);
       std::swap (arg0, arg1);
-      std::swap (e1, e2);
     }
+
+  /* Canonicalize the args such that we get:
+     `arg != 0 ? arg0 : arg1`. So swap arg0/arg1
+     around if cond was an equals.  */
+  if (gimple_cond_code (cond) == EQ_EXPR)
+    std::swap (arg0, arg1);
 
   /* Check PHI arguments.  */
   if (lhs != arg0
@@ -3845,9 +3867,21 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
       return false;
     }
 
-  /* Find pairs of stores with equal LHS.  */
+  /* Clear visited on else stores, we want to make sure to pick each store
+     at most once to avoid quadratic behavior.  */
+  for (auto else_dr : else_datarefs)
+    {
+      if (DR_IS_READ (else_dr))
+	continue;
+      gimple_set_visited (DR_STMT (else_dr), false);
+    }
+
+  /* Find pairs of stores with equal LHS.  Work from the end to avoid
+     re-ordering stores unnecessarily.  */
   auto_vec<std::pair<gimple *, gimple *>, 1> stores_pairs;
-  for (auto then_dr : then_datarefs)
+  unsigned i;
+  data_reference_p then_dr;
+  FOR_EACH_VEC_ELT_REVERSE (then_datarefs, i, then_dr)
     {
       if (DR_IS_READ (then_dr))
         continue;
@@ -3858,12 +3892,16 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
 	continue;
       found = false;
 
-      for (auto else_dr : else_datarefs)
+      unsigned j;
+      data_reference_p else_dr;
+      FOR_EACH_VEC_ELT_REVERSE (else_datarefs, j, else_dr)
         {
           if (DR_IS_READ (else_dr))
             continue;
 
           else_store = DR_STMT (else_dr);
+	  if (gimple_visited_p (else_store))
+	    continue;
           else_lhs = gimple_get_lhs (else_store);
 	  if (else_lhs == NULL_TREE)
 	    continue;
@@ -3878,6 +3916,7 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
       if (!found)
         continue;
 
+      gimple_set_visited (else_store, true);
       stores_pairs.safe_push (std::make_pair (then_store, else_store));
     }
 
