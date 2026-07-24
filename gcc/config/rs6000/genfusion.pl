@@ -216,6 +216,14 @@ sub gen_logical_addsubf
 
     my %xxeval_fusions = (
       "vand_vand"   =>   1,
+      "vandc_vand"  =>   2,
+      "vxor_vand"   =>   6,
+      "vor_vand"    =>   7,
+      "vnor_vand"   =>   8,
+      "veqv_vand"   =>   9,
+      "vorc_vand"   =>  11,
+      "vandc_vandc" =>  13,
+      "vnand_vand"  =>  14,
     );
 
     KIND: foreach $kind ('scalar','vector') {
