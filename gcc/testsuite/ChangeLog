@@ -1,3 +1,217 @@
+2026-07-21  Alice Carlotti  <alice.carlotti@arm.com>
+
+	PR target/119210
+	* gcc.target/aarch64/sme/za_state_8.c: New test.
+
+2026-07-20  Mikael Morin  <mikael@gcc.gnu.org>
+
+	Backported from master:
+	2026-07-03  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/97592
+	PR fortran/125998
+	* gfortran.dg/contiguous_17.f90: New test.
+
+2026-07-20  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	Backported from master:
+	2026-06-29  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	PR target/105116
+	* gcc.target/aarch64/sve/pr105116.c: New test.
+	* gcc.target/aarch64/sve/pr105116-run.c: New test.
+
+2026-07-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	Backported from master:
+	2026-07-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/torture/bitint-101.c: Require bitint.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126262
+	* gcc.dg/torture/bitint-102.c: New test.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126257
+	* gcc.dg/torture/bitint-101.c: New test.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/126084
+	* gcc.dg/asan/bitint-1.c: New test.
+	* gcc.dg/asan/bitint-2.c: New test.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-14  Jakub Jelinek  <jakub@redhat.com>
+		    H.J. Lu  <hjl.tools@gmail.com>
+
+	PR tree-optimization/120201
+	* g++.dg/asan/pr120201-1.C: New test.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.dg/opt/20260703-1.C: New test.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/126057
+	* g++.dg/cpp2a/decomp11.C: New test.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-06-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/125674
+	* g++.dg/template/bitfield5.C: New test.
+	* g++.dg/template/bitfield6.C: New test.
+
+2026-07-16  Jeevitha  <jeevitha@linux.ibm.com>
+
+	Backported from master:
+	2026-07-16  Jeevitha Palanisamy  <jeevitha@linux.ibm.com>
+
+	PR target/106895
+	* gcc.target/powerpc/pr106895-1.c: New test.
+	* gcc.target/powerpc/pr106895-2.c: New test.
+
+2026-07-14  Richard Earnshaw  <rearnsha@arm.com>
+
+	Backported from master:
+	2024-09-11  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/116597
+	* gcc.target/arm/pac-sibcall-2.c: New test.
+	* gcc.target/arm/pac-sibcall-3.c: New test.
+
+2026-07-12  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-05-07  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/125172
+	* gfortran.dg/associate_79.f90: New test.
+
+2026-07-09  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-07-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/103367
+	* gfortran.dg/pr103367_2.f90: New test.
+	* gfortran.dg/pr103367_3.f90: New test.
+	* gfortran.dg/pr103367_4.f90: New test.
+
+2026-07-09  Christopher Albert  <albert@tugraz.at>
+
+	Backported from master:
+	2026-04-09  Christopher Albert  <albert@tugraz.at>
+
+	PR fortran/103367
+	* gfortran.dg/pr103367.f90: Expect a constant-expression error and
+	prune the legacy-extension warning.
+
+2026-07-09  Christopher Albert  <albert@tugraz.at>
+
+	Backported from master:
+	2026-04-07  Christopher Albert  <albert@tugraz.at>
+
+	PR fortran/103367
+	* gfortran.dg/pr103367.f90: New test.
+
+2026-07-07  Icenowy Zheng  <zhengxingda@iscas.ac.cn>
+
+	Backported from master:
+	2026-07-01  Icenowy Zheng  <zhengxingda@iscas.ac.cn>
+
+	PR target/126049
+	* gcc.target/riscv/rvv/autovec/pr126049.c: New.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/67459
+	PR target/122948
+	* gcc.target/sh/pr122948.c: New test.
+
+2026-07-03  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	PR rtl-optimization/125173
+	* gcc.dg/pr125173-1.c: Remove option
+	-fno-fuse-ops-with-volatile-access.
+
+2026-07-01  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	Backported from master:
+	2026-06-26  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	PR target/125972
+	* gcc.target/s390/pr125972.c: New test.
+
+2026-07-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt109.adb: New test.
+	* gnat.dg/opt109_pkg.ads, gnat.dg/opt109_pkg.adb: New helper.
+
+2026-06-30  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	Backported from master:
+	2026-06-12  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	PR rtl-optimization/125173
+	* gcc.dg/pr125173-1.c: New test.
+
+2026-06-30  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	Backported from master:
+	2026-04-22  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	PR target/124908
+	* gcc.target/aarch64/sve/acle/general/ld1rq_2.c: New test.
+
+2026-06-29  Alex Coplan  <alex.coplan@arm.com>
+
+	Backported from master:
+	2026-06-23  Alex Coplan  <alex.coplan@arm.com>
+
+	PR target/125818
+	* gcc.target/aarch64/torture/pr125818.c: New test.
+
+2026-06-29  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-06-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/125992
+	* gcc.target/s390/pr125992.c: New test.
+
+2026-06-29  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-06-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/125611
+	* gcc.target/i386/ssse3-pr125611.c: New test.
+
 2026-06-27  Patrick Palka  <ppalka@redhat.com>
 
 	Backported from master:

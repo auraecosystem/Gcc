@@ -1,3 +1,178 @@
+2026-07-21  Alice Carlotti  <alice.carlotti@arm.com>
+
+	* config/aarch64/aarch64.cc (aarch64_start_call_args): Extend
+	comment.
+
+2026-07-21  Alice Carlotti  <alice.carlotti@arm.com>
+
+	* config/aarch64/aarch64.cc (aarch64_mode_confluence): Fix
+	comment typo.
+	* target.def (mode_switching): Fix incorrect variable names in
+	documentation.
+	* doc/tm.texi: Regenerate.
+
+2026-07-21  Alice Carlotti  <alice.carlotti@arm.com>
+
+	PR target/119210
+	* config/aarch64/aarch64.cc (aarch64_mode_emit_local_sme_state):
+	Add PSTATE.ZA enablement, and zero it if already enabled.
+
+2026-07-20  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	Backported from master:
+	2026-06-29  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	PR target/105116
+	* lra-constraints.cc (simplify_operand_subreg): Reload a
+	non-representable narrowing subreg of a hard register through
+	memory instead of resolving it lossily.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126262
+	* gimple-lower-bitint.cc (build_bitint_stmt_ssa_conflicts): Treat
+	IFN_MUL_OVERFLOW and IFN_UBSAN_CHECK_MUL like IFN_BSWAP, regardless
+	of bitint_big_endian.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126257
+	* match.pd (x+x -> x*2): Only optimize if 2 is representable in the
+	type.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/126084
+	* gimple-lower-bitint.cc: Include "attribs.h" and "asan.h".
+	(gimple_lower_bitint): Use asan_expand_poison_ifn to lower
+	.ASAN_POISON calls with large/huge _BitInt lhs.
+	* asan.cc (report_error_func): Set *nargs and use _n builtin
+	even if size is not a power of two or larger than 16.
+	(asan_expand_poison_ifn): Handle nargs == 2.
+
+2026-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-07-14  Jakub Jelinek  <jakub@redhat.com>
+		    H.J. Lu  <hjl.tools@gmail.com>
+
+	PR tree-optimization/120201
+	* cfgexpand.cc (expand_used_vars): Set data.asan_alignb to
+	maximum of itself and crtl->stack_alignment_needed
+	/ BITS_PER_UNIT.
+
+2026-07-16  Jeevitha  <jeevitha@linux.ibm.com>
+
+	Backported from master:
+	2026-07-16  Jeevitha Palanisamy  <jeevitha@linux.ibm.com>
+
+	PR target/106895
+	* config/rs6000/rs6000.h (enum rs6000_builtin_type_index): Add
+	RS6000_BTI_INTPTI and RS6000_BTI_UINTPTI.
+	(intPTI_type_internal_node, uintPTI_type_internal_node): New
+	PTImode type macros.
+	* config/rs6000/rs6000-builtin.cc (rs6000_init_builtins): Register
+	signed and unsigned PTImode internal builtin types.
+	* config/rs6000/sync.md (trunctipti2): New splitter.
+	(extendptiti2): Likewise.
+	(zero_extendptiti2): Likewise.
+
+2026-07-14  Richard Earnshaw  <rearnsha@arm.com>
+
+	Backported from master:
+	2024-09-11  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/116597
+	* config/arm/arm.cc (arm_function_ok_for_sibcall): Use the list of
+	actuals for the call, not the list of formals.
+
+2026-07-07  Icenowy Zheng  <zhengxingda@iscas.ac.cn>
+
+	Backported from master:
+	2026-07-01  Icenowy Zheng  <zhengxingda@iscas.ac.cn>
+
+	PR target/126049
+	* config/riscv/autovec.md: Change fmin/fmax reduction initial
+	value from inf/-inf to NaN for proper semantics of corresponding
+	C funtion.
+
+2026-07-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/67459
+	PR target/122948
+	* config/sh/sh.md (addc): Fix T bit set expression.
+	(subc): Likewise.
+
+2026-07-01  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	Backported from master:
+	2026-06-26  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	PR target/125972
+	* config/s390/s390.cc (s390_rtx_costs): Deal with non-compare
+	conditions during costing.  Also fix some indentation.
+
+2026-07-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-structalias.cc (set_uids_in_ptset): If ANYTHING is
+	present in the ESCAPED_RETURN solution, record that the global
+	solution has an escaped heap if FROM contains a heap variable.
+
+2026-06-30  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	Backported from master:
+	2026-06-12  Stefan Schulze Frielinghaus  <stefansf@gcc.gnu.org>
+
+	PR rtl-optimization/125173
+	* ira.cc (combine_and_move_insns): Allow multiple uses within
+	an insn.
+
+2026-06-30  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	Backported from master:
+	2026-04-22  Kyrylo Tkachov  <ktkachov@nvidia.com>
+
+	PR target/124908
+	* config/aarch64/aarch64-sve-builtins-base.cc
+	(svld1rq_impl::fold): When the SVE vector length equals the
+	quadword width, emit VIEW_CONVERT_EXPR instead of VEC_PERM_EXPR.
+
+2026-06-29  Alex Coplan  <alex.coplan@arm.com>
+
+	Backported from master:
+	2026-06-23  Alex Coplan  <alex.coplan@arm.com>
+
+	PR target/125818
+	* config/aarch64/aarch64-sve-builtins-base.cc (svset_impl::fold): Fix
+	unsharing to ensure the returned stmt has the exact same lhs as the
+	original.
+
+2026-06-29  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-06-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/125992
+	* config/s390/s390.md (*brx_stage1_<GPR:mode>): Add CC_REGNUM clobber.
+
+2026-06-29  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-06-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/125611
+	* config/i386/sse.md (<ssse3_avx2>_pmulhrsw<mode>3, smulhrs<mode>3):
+	Use vector_operand instead of nonimmediate_operand.
+
 2026-06-26  Release Manager
 
 	* GCC 14.4.0 released.

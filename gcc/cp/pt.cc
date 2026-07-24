@@ -15394,11 +15394,26 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain,
 	    cp_apply_type_quals_to_decl (cp_type_quals (type), r);
 
 	    if (DECL_C_BIT_FIELD (r))
-	      /* For bit-fields, DECL_BIT_FIELD_REPRESENTATIVE gives the
-		 number of bits.  */
-	      DECL_BIT_FIELD_REPRESENTATIVE (r)
-		= tsubst_expr (DECL_BIT_FIELD_REPRESENTATIVE (t), args,
-			       complain, in_decl);
+	      {
+		/* For bit-fields, DECL_BIT_FIELD_REPRESENTATIVE gives the
+		   number of bits.  */
+		tree width
+		  = tsubst_expr (DECL_BIT_FIELD_REPRESENTATIVE (t), args,
+				 complain, in_decl);
+		if (width
+		    && width != error_mark_node
+		    && !type_dependent_expression_p (width)
+		    && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P
+			 (TREE_TYPE (width)))
+		  {
+		    if (complain & tf_error)
+		      error_at (DECL_SOURCE_LOCATION (t),
+		      		"width of bit-field %qD has non-integral "
+				"type %qT", r, TREE_TYPE (width));
+		    RETURN (error_mark_node);
+		  }
+		DECL_BIT_FIELD_REPRESENTATIVE (r) = width;
+	      }
 	    if (DECL_INITIAL (t))
 	      {
 		/* Set up DECL_TEMPLATE_INFO so that we can get at the
@@ -18692,6 +18707,12 @@ tsubst_stmt (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 			decomp = &decomp_d;
 			ndecl = tsubst_decomp_names (decl, pattern_decl, args,
 						     complain, in_decl, decomp);
+			if (ndecl == error_mark_node && TREE_STATIC (decl))
+			  {
+			    /* As in cp_finish_decomp.  */
+			    tree id = get_identifier ("<decomp>");
+			    SET_DECL_ASSEMBLER_NAME (decl, id);
+			  }
 		      }
 
 		    init = tsubst_init (init, decl, args, complain, in_decl);
