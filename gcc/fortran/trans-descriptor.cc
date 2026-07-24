@@ -908,7 +908,8 @@ gfc_init_static_descriptor (tree descr)
 
 
 void
-gfc_init_descriptor_variable (stmtblock_t *block, gfc_symbol *sym, gfc_expr *expr, tree descr)
+gfc_nullify_descriptor (stmtblock_t *block, gfc_symbol *sym, gfc_expr *expr,
+			tree descr, tree string_length)
 {
   symbol_attribute attr = gfc_symbol_attr (sym);
 
@@ -940,8 +941,15 @@ gfc_init_descriptor_variable (stmtblock_t *block, gfc_symbol *sym, gfc_expr *exp
     rank = -1;
 
   tree etype = gfc_get_element_type (TREE_TYPE (descr));
-  gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype_rank_type (rank, etype));
+  tree dtype = gfc_get_dtype_rank_type_slen (rank, etype, string_length);
+  gfc_conv_descriptor_dtype_set (block, descr, dtype);
+}
+
+void
+gfc_init_descriptor_variable (stmtblock_t *block, gfc_symbol *sym,
+			      gfc_expr *expr, tree descr)
+{
+  return gfc_nullify_descriptor (block, sym, expr, descr, NULL_TREE);
 }
 
 

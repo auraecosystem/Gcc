@@ -1704,7 +1704,7 @@ gfc_get_desc_dim_type (void)
    unknown cases abort.  */
 
 tree
-gfc_get_dtype_rank_type (int rank, tree etype)
+gfc_get_dtype_rank_type_slen (int rank, tree etype, tree length)
 {
   tree ptype;
   tree size;
@@ -1769,7 +1769,7 @@ gfc_get_dtype_rank_type (int rank, tree etype)
     {
     case BT_CHARACTER:
       gcc_assert (TREE_CODE (ptype) == ARRAY_TYPE);
-      size = gfc_get_character_len_in_bytes (ptype);
+      size = gfc_get_character_len_in_bytes (ptype, length);
       break;
     case BT_VOID:
       gcc_assert (TREE_CODE (ptype) == POINTER_TYPE);
@@ -1781,6 +1781,13 @@ gfc_get_dtype_rank_type (int rank, tree etype)
     }
 
   return gfc_build_dtype_constructor (size, n, rank);
+}
+
+
+tree
+gfc_get_dtype_rank_type (int rank, tree etype)
+{
+  return gfc_get_dtype_rank_type_slen (rank, etype, NULL_TREE);
 }
 
 
