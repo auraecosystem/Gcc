@@ -1,3 +1,82 @@
+==================== Branch work252-dmf, patch #110 ====================
+
+Add -mcpu=future tests part 2
+
+2026-07-16  Avinash Jayakar  <avinashd@linux.ibm.com>
+	    Vijay Shankar  <vijay@linux.ibm.com>
+
+	PR target/100777
+	PR target/101849
+	PR target/102976
+	PR target/103127
+	PR target/104923
+	PR target/106016
+	PR target/106017
+	PR target/106833
+	PR target/110411
+	PR target/96446
+	PR target/96530
+	PR target/96808
+	PR target/97360
+	PR target/98872
+	* gcc.target/powerpc/pr100777.c: Move to...
+	* gcc.target/powerpc/pr100777.h: ...here.
+	* gcc.target/powerpc/pr101849.c: Move to...
+	* gcc.target/powerpc/pr101849.h: ...here.
+	* gcc.target/powerpc/pr103127.c: Move to...
+	* gcc.target/powerpc/pr103127.h: ...here.
+	* gcc.target/powerpc/pr104923.c: Move to...
+	* gcc.target/powerpc/pr104923.h: ...here.
+	* gcc.target/powerpc/pr106016.c: Move to...
+	* gcc.target/powerpc/pr106016.h: ...here.
+	* gcc.target/powerpc/pr106017.c: Move to...
+	* gcc.target/powerpc/pr106017.h: ...here.
+	* gcc.target/powerpc/pr110411-2.c: Move to...
+	* gcc.target/powerpc/pr110411-2.h: ...here.
+	* gcc.target/powerpc/pr96446.c: Move to...
+	* gcc.target/powerpc/pr96446.h: ...here.
+	* gcc.target/powerpc/pr96530.c: Move to...
+	* gcc.target/powerpc/pr96530.h: ...here.
+	* gcc.target/powerpc/pr96808.c: Move to...
+	* gcc.target/powerpc/pr96808.h: ...here.
+	* gcc.target/powerpc/pr97360.c: Move to...
+	* gcc.target/powerpc/pr97360.h: ...here.
+	* gcc.target/powerpc/pr98872.c: Move to...
+	* gcc.target/powerpc/pr98872.h: ...here.
+	* gcc.target/powerpc/pr102976.c: Removed.
+	* gcc.target/powerpc/pr103627-1.c: Removed.
+	* gcc.target/powerpc/pr106833.c: Removed.
+	* gcc.target/powerpc/pr100777.dmf.c: New test.
+	* gcc.target/powerpc/pr100777.nodmf.c: New test.
+	* gcc.target/powerpc/pr101849.dmf.c: New test.
+	* gcc.target/powerpc/pr101849.nodmf.c: New test.
+	* gcc.target/powerpc/pr102976.dmf.c: New test.
+	* gcc.target/powerpc/pr102976.h: New test.
+	* gcc.target/powerpc/pr102976.nodmf.c: New test.
+	* gcc.target/powerpc/pr103127.dmf.c: New test.
+	* gcc.target/powerpc/pr103127.nodmf.c: New test.
+	* gcc.target/powerpc/pr104923.dmf.c: New test.
+	* gcc.target/powerpc/pr104923.nodmf.c: New test.
+	* gcc.target/powerpc/pr106016.dmf.c: New test.
+	* gcc.target/powerpc/pr106016.nodmf.c: New test.
+	* gcc.target/powerpc/pr106017.dmf.c: New test.
+	* gcc.target/powerpc/pr106017.nodmf.c: New test.
+	* gcc.target/powerpc/pr106833.dmf.c: New test.
+	* gcc.target/powerpc/pr106833.h: New test.
+	* gcc.target/powerpc/pr106833.nodmf.c: New test.
+	* gcc.target/powerpc/pr110411-2.dmf.c: New test.
+	* gcc.target/powerpc/pr110411-2.nodmf.c: New test.
+	* gcc.target/powerpc/pr96446.dmf.c: New test.
+	* gcc.target/powerpc/pr96446.nodmf.c: New test.
+	* gcc.target/powerpc/pr96530.dmf.c: New test.
+	* gcc.target/powerpc/pr96530.nodmf.c: New test.
+	* gcc.target/powerpc/pr96808.dmf.c: New test.
+	* gcc.target/powerpc/pr96808.nodmf.c: New test.
+	* gcc.target/powerpc/pr97360.dmf.c: New test.
+	* gcc.target/powerpc/pr97360.nodmf.c: New test.
+	* gcc.target/powerpc/pr98872.dmf.c: New test.
+	* gcc.target/powerpc/pr98872.nodmf.c: New test.
+
 ==================== Branch work252-dmf, patch #104 ====================
 
 Add paddis support.
