@@ -1,3 +1,192 @@
+==================== Branch work253, patch #104 ====================
+
+Add paddis support.
+
+This patch adds support for the paddis instruction that might be added to a
+future PowerPC processor.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+2026-07-27  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/constraints.md (eU): New constraint.
+	(eV): Likewise.
+	* config/rs6000/predicates.md (paddis_operand): New predicate.
+	(paddis_paddi_operand): Likewise.
+	(add_cint_operand): Add paddis support.
+	(reg_or_add_cint_operand): Add support for adds that can be done with
+	paddis and paddi/addi.
+	(add_operand): Add support for adds that can be done with paddis, but
+	not paddis + paddi/addi..
+	* config/rs6000/rs6000.cc (num_insns_constant_gpr): Add support for adds
+	that can be done with paddis and also paddis combined with paddi/addi.
+	(print_operand): Add %B<n> for paddis support.
+	* config/rs6000/rs6000.h (TARGET_PADDIS): New macro.
+	(SIGNED_INTEGER_64BIT_P): Likewise.
+	* config/rs6000/rs6000.md (add<mode>3 define_expand): Add paddis
+	support.
+	(*add<mode>3 define_insn): Likewise.
+	(movdi_internal64): Likewise.
+	(movdi splitter): New splitter for paddis + paddi/addi.
+	* doc/md.texi (PowerPC constraints): Add eU and eV documentation.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/prefixed-addis.c: New test.
+
+==================== Branch work253, patch #103 ====================
+
+Support load/store vector with right length.
+
+This patch adds support for new instructions that may be added to the PowerPC
+architecture in the future to enhance the load and store vector with length
+instructions.
+
+The current instructions (lxvl, lxvll, stxvl, and stxvll) are inconvient to use
+since the count for the number of bytes must be in the top 8 bits of the GPR
+register, instead of the bottom 8 bits.  This meant that code generating these
+instructions typically had to do a shift left by 56 bits to get the count into
+the right position.  In a future version of the PowerPC architecture, new
+variants of these instructions might be added that expect the count to be in
+the bottom 8 bits of the GPR register.  These patches add this support to GCC
+if the user uses the -mcpu=future option.
+
+I discovered that the code in rs6000-string.cc to generate ISA 3.1 lxvl/stxvl
+future lxvll/stxvll instructions would generate these instructions on 32-bit.
+However the patterns for these instructions is only done on 64-bit systems.  So
+I added a check for 64-bit support before generating the instructions.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+The patches have been tested on both little and big endian systems.  Can I check
+it into the master branch?
+
+2026-07-27   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-string.cc (expand_block_move): Do not generate
+	lxvl and stxvl on 32-bit.
+	* config/rs6000/vsx.md (lxvl): If -mcpu=future, generate the lxvl with
+	the shift count automaticaly used in the insn.
+	(lxvrl): New insn for -mcpu=future.
+	(lxvrll): Likewise.
+	(stxvl): If -mcpu=future, generate the stxvl with the shift count
+	automaticaly used in the insn.
+	(stxvrl): New insn for -mcpu=future.
+	(stxvrll): Likewise.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/lxvrl.c: New test.
+
+==================== Branch work253, patch #102 ====================
+
+Add xvrlw support.
+
+This patch adds support for a possible new variant of the vector rotate left
+instruction that might be added to a future PowerPC.  This variant (xvrlw) can
+use any VSX register instead of requiring only Altivec registers.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+2026-07-27  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/altivec.md (xvrlw): New insn.
+	* config/rs6000/rs6000.h (TARGET_XVRLW): New macro.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/vector-rotate-left.c: New test.
+
+==================== Branch work253, patch #101 ====================
+
+Add saturate subtract support
+
+This patch adds support for saturating subtract instructions that might be added
+to a future PowerPC.r  I think I had originally submitted patches that added a
+new built-in function to generate the subfus and subdus instructions.  Segher
+suggested that instead of generating a built-in function, that I should just
+having GCC automatically recognize cases where a saturating subtract could be
+generated.  This patch generates the saturating subtract instructions in the
+appropriate context.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+2026-07-27   Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.md (gtu_geu): New code iterator.
+	(subfus<mode>3_<code>): New insns.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/saturate-subtract-1.c: New test.
+	* gcc.target/powerpc/saturate-subtract-2.c: Likewise.
+	* lib/target-supports.exp (check_effective_target_powerpc_future_ok):
+	New target test.
+
+==================== Branch work253, patch #100 ====================
+
+Use vector pair load/store for memcpy with -mcpu=future
+
+In the development for the power10 processor, GCC did not enable using the load
+vector pair and store vector pair instructions when optimizing things like
+memory copy.  This patch enables using those instructions if -mcpu=future is
+used.
+
+I have committed all of the patches in my backlog (dense math registers, other
+-mcpu=future instructions, random bug fixes, support for _Float16 and
+__bfloat16, and optimizations for vector logical operations on power10/power11)
+into the IBM vendor branch:
+
+	vendors/ibm/gcc-17-future
+
+I have tested these patches on both big endian and little endian PowerPC
+servers, with no regressions.  Can I check these patchs into the trunk?
+
+2026-07-27  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-cpus.def (FUTURE_MASKS_SERVER): Enable using load
+	vector pair and store vector pair instructions for memory copy
+	operations.
+	(POWERPC_MASKS): Make the option for enabling using load vector pair and
+	store vector pair operations set and reset when the PowerPC processor is
+	changed.
+	* config/rs6000/rs6000.cc (rs6000_machine_from_flags): Disable
+	-mblock-ops-vector-pair from influencing .machine selection.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/future-3.c: New test.
+
 ==================== Branch work253, baseline ====================
 
 2026-07-26   Michael Meissner  <meissner@linux.ibm.com>
