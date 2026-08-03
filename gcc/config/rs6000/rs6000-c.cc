@@ -594,6 +594,9 @@ rs6000_target_modify_macros (bool define_p, HOST_WIDE_INT flags)
 	 to __bf16.  */
       rs6000_define_or_undefine_macro (define_p, "__bfloat16=__bf16");
       rs6000_define_or_undefine_macro (define_p, "__BFLOAT16__");
+
+      if ((flags & OPTION_MASK_P9_VECTOR) != 0)
+	rs6000_define_or_undefine_macro (define_p, "__FLOAT16_HW__");
     }
   /* Tell the user if we are targeting CELL.  */
   if (rs6000_cpu == PROCESSOR_CELL)
