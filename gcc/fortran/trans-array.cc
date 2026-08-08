@@ -458,7 +458,8 @@ gfc_add_ss_to_loop (gfc_loopinfo * loop, gfc_ss * head)
 }
 
 
-/* Returns true if the expression is an array pointer.  */
+/* Returns true if the expression is an array pointer.  The tree must be a
+   descriptor.  */
 
 static bool
 is_pointer_array (tree expr)
@@ -480,13 +481,30 @@ is_pointer_array (tree expr)
       && GFC_DECL_PTR_ARRAY_P (TREE_OPERAND (expr, 0)))
     return true;
 
-  /* The field declaration is marked as an pointer array.  */
+  /* The field declaration is marked as a pointer array.  */
   if (TREE_CODE (expr) == COMPONENT_REF
       && GFC_DECL_PTR_ARRAY_P (TREE_OPERAND (expr, 1))
       && !GFC_CLASS_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 1))))
     return true;
 
   return false;
+}
+
+
+/* If EXPR is a decl flagged as a pointer array but has no descriptor of its
+   own, return the saved descriptor that holds its span,
+   otherwise NULL_TREE.  */
+
+static tree
+saved_desc_pointer_array (tree expr)
+{
+  if (VAR_P (expr)
+      && GFC_DECL_PTR_ARRAY_P (expr)
+      && GFC_ARRAY_TYPE_P (TREE_TYPE (expr))
+      && DECL_LANG_SPECIFIC (expr))
+    return GFC_DECL_SAVED_DESCRIPTOR (expr);
+
+  return NULL_TREE;
 }
 
 
@@ -553,6 +571,8 @@ gfc_get_array_span (tree desc, gfc_expr *expr)
   tree tmp;
   gfc_symbol *sym = (expr && expr->expr_type == EXPR_VARIABLE) ?
 		    expr->symtree->n.sym : NULL;
+  tree span_desc = (sym && sym->backend_decl)
+		   ? saved_desc_pointer_array (sym->backend_decl) : NULL_TREE;
 
   if (is_pointer_array (desc)
       || (get_CFI_desc (NULL, expr, &desc, NULL)
@@ -560,11 +580,8 @@ gfc_get_array_span (tree desc, gfc_expr *expr)
 	      ? GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (TREE_TYPE (desc)))
 	      : GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (desc)))))
     {
-      if (POINTER_TYPE_P (TREE_TYPE (desc)))
-	desc = build_fold_indirect_ref_loc (input_location, desc);
-
       /* This will have the span field set.  */
-      tmp = gfc_conv_descriptor_span_get (desc);
+      tmp = gfc_conv_descriptor_span_get (gfc_get_span_descriptor (desc));
     }
   else if (expr->ts.type == BT_ASSUMED)
     {
@@ -588,6 +605,25 @@ gfc_get_array_span (tree desc, gfc_expr *expr)
     /* Having escaped the above, this can only be a class array dummy.  */
     tmp = class_array_element_size (sym->backend_decl,
 				    UNLIMITED_POLY (sym));
+  else if (span_desc
+	   && (expr->ref == NULL
+	       || (expr->ref->type == REF_ARRAY && expr->ref->next == NULL)))
+    {
+      /* A descriptorless dummy re-passed to another procedure. Read its
+	 span from the saved descriptor.  */
+      if (POINTER_TYPE_P (TREE_TYPE (span_desc)))
+	span_desc = build_fold_indirect_ref_loc (input_location, span_desc);
+      tmp = gfc_conv_descriptor_span_get (span_desc);
+
+      /* An absent optional dummy has no valid saved descriptor to read;
+	 avoid trying to use it and fall back to the static element size. */
+      if (sym->attr.dummy && sym->attr.optional)
+	tmp = build3_loc (input_location, COND_EXPR, TREE_TYPE (tmp),
+			   gfc_conv_expr_present (sym), tmp,
+			   fold_convert (TREE_TYPE (tmp),
+					 TYPE_SIZE_UNIT (
+					   gfc_get_element_type (TREE_TYPE (desc)))));
+    }
   else
     {
       /* If none of the fancy stuff works, the span is the element
@@ -4049,6 +4085,9 @@ build_array_ref (tree desc, tree offset, tree decl, tree vptr)
 	    decl = TREE_OPERAND (cdesc, 0);
 	}
     }
+
+  if (decl == NULL_TREE && saved_desc_pointer_array (desc))
+    decl = desc;
 
   tmp = gfc_conv_array_data (desc);
   tmp = build_fold_indirect_ref_loc (input_location, tmp);
@@ -7589,6 +7628,10 @@ gfc_get_dataptr_offset (stmtblock_t *block, tree parm, tree desc, tree offset,
     }
 
   tmp = build_array_ref (desc, offset, NULL, NULL);
+
+  /* If there is a saved descriptor, use it.  */
+  if (POINTER_TYPE_P (TREE_TYPE (tmp)) && saved_desc_pointer_array (desc))
+    tmp = build_fold_indirect_ref_loc (input_location, tmp);
 
   /* Offset the data pointer for pointer assignments from arrays with
      subreferences; e.g. my_integer => my_type(:)%integer_component.  */

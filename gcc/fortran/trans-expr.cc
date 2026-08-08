@@ -837,6 +837,8 @@ gfc_class_array_data_assign (stmtblock_t *block, tree lhs_desc, tree rhs_desc,
 
   gfc_conv_descriptor_dtype_set (block, lhs_desc,
 				 gfc_conv_descriptor_dtype_get (rhs_desc));
+  gfc_conv_descriptor_span_set (block, lhs_desc,
+				gfc_conv_descriptor_span_get (rhs_desc));
 
   /* Assign the dimension as range-ref.  */
   lhs_dim = gfc_get_descriptor_dimension (lhs_desc);
@@ -6954,6 +6956,26 @@ conv_null_actual (gfc_se * parmse, gfc_expr * e, gfc_symbol * fsym)
 }
 
 
+/* Return true if the actual argument for the dummy FSYM may be passed as a
+   copy-in/copy-out temporary.  */
+
+static bool
+copy_in_out_allowed (gfc_symbol *fsym, bool nodesc_arg)
+{
+  if (fsym == NULL || nodesc_arg || fsym->as == NULL)
+    return true;
+
+  if ((!fsym->attr.target && !fsym->attr.pointer)
+      || fsym->attr.value
+      || fsym->attr.contiguous)
+    return true;
+
+  return fsym->as->type != AS_ASSUMED_SHAPE
+	 && fsym->as->type != AS_ASSUMED_RANK
+	 && !(fsym->attr.pointer && fsym->as->type == AS_DEFERRED);
+}
+
+
 /* Generate code for a procedure call.  Note can return se->post != NULL.
    If se->direct_byref is set then se->expr contains the return parameter.
    Return nonzero, if the call has alternate specifiers.
@@ -7985,7 +8007,8 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	      else if (e->expr_type == EXPR_VARIABLE
 		    && is_subref_array (e)
-		    && !(fsym && fsym->attr.pointer))
+		    && !(fsym && fsym->attr.pointer)
+		    && copy_in_out_allowed (fsym, nodesc_arg))
 		/* The actual argument is a component reference to an
 		   array of derived types.  In this case, the argument
 		   is converted to a temporary, which is passed and then
@@ -8004,20 +8027,19 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		parmse.expr = e->symtree->n.sym->backend_decl;
 
 	      else if (gfc_is_class_array_ref (e, NULL)
-		       && fsym && fsym->ts.type == BT_DERIVED)
+		       && fsym && fsym->ts.type == BT_DERIVED
+		       && copy_in_out_allowed (fsym, nodesc_arg))
 		/* The actual argument is a component reference to an
 		   array of derived types.  In this case, the argument
 		   is converted to a temporary, which is passed and then
-		   written back after the procedure call.
-		   OOP-TODO: Insert code so that if the dynamic type is
-		   the same as the declared type, copy-in/copy-out does
-		   not occur.  */
+		   written back after the procedure call.  */
 		gfc_conv_subref_array_arg (&parmse, e, nodesc_arg,
 					   fsym->attr.intent,
 					   fsym->attr.pointer);
 
 	      else if (gfc_is_class_array_function (e)
-		       && fsym && fsym->ts.type == BT_DERIVED)
+		       && fsym && fsym->ts.type == BT_DERIVED
+		       && copy_in_out_allowed (fsym, nodesc_arg))
 		/* See previous comment.  For function actual argument,
 		   the write out is not needed so the intent is set as
 		   intent in.  */
