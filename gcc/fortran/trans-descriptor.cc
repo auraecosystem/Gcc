@@ -901,8 +901,6 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree scalar)
   tree etype = TREE_TYPE (scalar);
   if (!POINTER_TYPE_P (TREE_TYPE (scalar)))
     scalar = gfc_build_addr_expr (NULL_TREE, scalar);
-  else if (TREE_TYPE (etype) && TREE_CODE (TREE_TYPE (etype)) == ARRAY_TYPE)
-    etype = TREE_TYPE (etype);
 
   gfc_conv_descriptor_dtype_set (block, descr,
 				 gfc_get_dtype_rank_type (0, etype));
