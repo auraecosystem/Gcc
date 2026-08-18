@@ -1698,6 +1698,35 @@ gfc_get_desc_dim_type (void)
 }
 
 
+/* Return the type that will be inherited by any entity accessible through a
+   class container of type CLASS_TYPE.  In other words, given class(foo), return
+   foo.  */
+
+static tree
+get_class_declared_type (tree class_type)
+{
+  gcc_assert (GFC_CLASS_TYPE_P (class_type));
+  tree data_field = TYPE_FIELDS (class_type);
+  gcc_checking_assert (TREE_CODE (data_field) == FIELD_DECL
+		       && DECL_NAME (data_field)
+		       && strcmp (IDENTIFIER_POINTER (DECL_NAME (data_field)),
+				  "_data")
+			  == 0);
+
+  tree data_type = TREE_TYPE (data_field);
+  tree declared_type;
+  if (GFC_DESCRIPTOR_TYPE_P (data_type))
+    declared_type = gfc_get_element_type (data_type);
+  else
+    {
+      gcc_assert (POINTER_TYPE_P (data_type));
+      declared_type = TREE_TYPE (data_type);
+    }
+
+  return declared_type;
+}
+
+
 /* Return the DTYPE for an array.  This describes the type and type parameters
    of the array.  */
 /* TODO: Only call this when the value is actually used, and make all the
@@ -1707,7 +1736,6 @@ tree
 gfc_get_dtype_rank_type (int rank, tree etype)
 {
   tree ptype;
-  tree size;
   int n;
 
   ptype = etype;
@@ -1749,7 +1777,10 @@ gfc_get_dtype_rank_type (int rank, tree etype)
 
     case RECORD_TYPE:
       if (GFC_CLASS_TYPE_P (etype))
-	n = BT_CLASS;
+	{
+	  n = BT_CLASS;
+	  etype = get_class_declared_type (etype);
+	}
       else
 	n = BT_DERIVED;
       break;
@@ -1765,6 +1796,7 @@ gfc_get_dtype_rank_type (int rank, tree etype)
       gcc_unreachable ();
     }
 
+  tree size = NULL_TREE;
   switch (n)
     {
     case BT_CHARACTER:
@@ -1772,9 +1804,15 @@ gfc_get_dtype_rank_type (int rank, tree etype)
       size = gfc_get_character_len_in_bytes (ptype);
       break;
     case BT_VOID:
-      gcc_assert (TREE_CODE (ptype) == POINTER_TYPE);
-      size = size_in_bytes (ptype);
+      if (TREE_CODE (ptype) == POINTER_TYPE)
+	size = size_in_bytes (ptype);
       break;
+    case BT_CLASS:
+      if (VOID_TYPE_P (etype))
+	break;
+      /* For classes, the element length isn't a known constant, we set it to
+	 the declared type length instead if possible.  */
+      /* Fall through.  */
     default:
       size = size_in_bytes (etype);
       break;

@@ -646,15 +646,17 @@ gfc_build_dtype_constructor (tree size, int type, int rank)
   tree field;
   vec<constructor_elt, va_gc> *v = NULL;
 
-  gcc_assert (size);
-
-  STRIP_NOPS (size);
-  size = fold_convert (size_type_node, size);
   tree dtype_type_node = get_dtype_type_node ();
-  field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
-			     GFC_DTYPE_ELEM_LEN);
-  CONSTRUCTOR_APPEND_ELT (v, field,
-			  fold_convert (TREE_TYPE (field), size));
+  if (size)
+    {
+      STRIP_NOPS (size);
+      size = fold_convert (size_type_node, size);
+      field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
+				 GFC_DTYPE_ELEM_LEN);
+      CONSTRUCTOR_APPEND_ELT (v, field,
+			      fold_convert (TREE_TYPE (field), size));
+    }
+
   field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
 			     GFC_DTYPE_VERSION);
   CONSTRUCTOR_APPEND_ELT (v, field,
