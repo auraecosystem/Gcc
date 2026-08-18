@@ -901,10 +901,7 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree scalar)
   tree etype = TREE_TYPE (scalar);
   if (!POINTER_TYPE_P (TREE_TYPE (scalar)))
     scalar = gfc_build_addr_expr (NULL_TREE, scalar);
-
-  gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype_rank_type (0, etype));
-  gfc_conv_descriptor_data_set (block, descr, scalar);
+  set_descriptor_from_scalar (block, descr, etype, scalar, NULL_TREE);
 }
 
 
