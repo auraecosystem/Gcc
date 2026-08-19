@@ -899,6 +899,53 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree scalar)
 }
 
 
+/* Return true if EXPR is a polymorphic reference; otherwise return false.  If
+   CLASS_REF isn't nullptr, set its target to a reference to the class container
+   in the true case, and leave it unmodified in the false case.  */
+
+static bool
+is_polymorphic_ref (tree expr, tree *class_ref = nullptr)
+{
+  tree e = expr;
+  while (true)
+    {
+      STRIP_NOPS (e);
+      if (TREE_CODE (e) == ADDR_EXPR)
+	;
+      else if (POINTER_TYPE_P (TREE_TYPE (e))
+	       && GFC_CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (e))))
+	{
+	  if (class_ref != nullptr)
+	    *class_ref = build_fold_indirect_ref_loc (input_location, e);
+	  return true;
+	}
+      else if (GFC_CLASS_TYPE_P (TREE_TYPE (e)))
+	{
+	  if (class_ref != nullptr)
+	    *class_ref = e;
+	  return true;
+	}
+      else if (TREE_CODE (e) == COMPONENT_REF)
+	{
+	  tree base_obj = TREE_OPERAND (e, 0);
+	  tree field_decl = TREE_OPERAND (e, 1);
+	  tree field_name = DECL_NAME (field_decl);
+	  if (!((GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base_obj))
+		 && strcmp (IDENTIFIER_POINTER (field_name), "data") == 0)
+		|| (GFC_CLASS_TYPE_P (TREE_TYPE (base_obj))
+		    && strcmp (IDENTIFIER_POINTER (field_name), "_data") == 0)))
+	    return false;
+	}
+      else if (!(TREE_CODE (e) == INDIRECT_REF
+		 || TREE_CODE (e) == ARRAY_REF
+		 || TREE_CODE (e) == POINTER_PLUS_EXPR))
+	return false;
+
+      e = TREE_OPERAND (e, 0);
+    }
+}
+
+
 /* Add code to BLOCK initializing the zero-rank array descriptor DESCR, so that
    it represents the same data as the class descriptor reference SCALAR
    corresponding to the scalar polymorphic expression SCALAR_EXPR.  This is used
@@ -909,12 +956,11 @@ void
 gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
 				      tree scalar)
 {
-  tree scalar_type = TREE_TYPE (scalar);
-  tree etype = POINTER_TYPE_P (scalar_type)
-	       ? TREE_TYPE (scalar_type)
-	       : scalar_type;
-  gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype_rank_type (0, etype));
+  tree class_ref;
+  if (!is_polymorphic_ref (scalar, &class_ref))
+    gcc_unreachable ();
+  tree dtype_val = gfc_get_dtype_rank_type (0, TREE_TYPE (class_ref));
+  gfc_conv_descriptor_dtype_set (block, descr, dtype_val);
 
   tree tmp = scalar;
   if (GFC_CLASS_TYPE_P (TREE_TYPE (tmp))
