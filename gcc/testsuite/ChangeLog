@@ -1,3 +1,361 @@
+2026-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/126867
+	* g++.dg/cpp1z/has-unique-obj-representations6.C: New test.
+
+2026-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/126752
+	* g++.dg/cpp0x/initlist-array25.C: New test.
+
+2026-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/126093
+	* g++.dg/reflect/mangle1.C: Add 2 new tests for reflections of
+	conversion templates.
+
+2026-08-18  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126534
+	* gcc.dg/pr126534.c: New test.
+
+2026-08-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-08-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/126872
+	* gfortran.dg/bind_c_private_1.f90: New test.
+
+2026-08-16  Christopher Albert  <albert@tugraz.at>
+
+	Backported from master:
+	2026-08-16  Christopher Albert  <albert@tugraz.at>
+
+	PR fortran/110626
+	* gfortran.dg/finalize_62.f90: New test.
+
+2026-08-14  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-08-14  Patrick Palka  <ppalka@redhat.com>
+
+	PR c++/126483
+	* g++.dg/opt/is_constant_evaluated3b.C: xfail a1 initializer
+	folding.
+	* g++.dg/cpp2a/is-constant-evaluated16.C: New test.
+
+2026-08-14  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-08-14  Patrick Palka  <ppalka@redhat.com>
+
+	* g++.dg/opt/is_constant_evaluated3a.C: New test.
+	* g++.dg/opt/is_constant_evaluated3b.C: New test.
+
+2026-08-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/126754
+	* g++.dg/cpp1y/constexpr-lambda2.C: New test.
+
+2026-08-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-08-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/104048
+	* gfortran.dg/recursive_alloc_comp_7.f90: New test.
+	* gfortran.dg/recursive_alloc_comp_8.f90: New test.
+
+2026-08-14  Kito Cheng  <kito.cheng@sifive.com>
+
+	Backported from master:
+	2026-08-06  Kito Cheng  <kito.cheng@sifive.com>
+
+	PR target/126454
+	* gcc.target/riscv/pr126454.c: New test.
+
+2026-08-13  Patrick Palka  <ppalka@redhat.com>
+
+	Backported from master:
+	2026-08-13  Patrick Palka  <ppalka@redhat.com>
+
+	PR c++/126783
+	* g++.dg/modules/gmf-6.C: New test.
+
+2026-08-12  Wang Jinghao  <zheng.xianyuwang@gmail.com>
+
+	Backported from master:
+	2026-06-17  Wang Jinghao  <zheng.xianyuwang@gmail.com>
+
+	* g++.dg/reflect/is_explicit_object_parameter2.C: New test.
+
+2026-08-12  feedable  <feedabl3@gmail.com>
+
+	Backported from master:
+	2026-06-03  feedable  <feedabl3@gmail.com>
+
+	PR c++/124794
+	PR c++/125069
+	* g++.dg/reflect/member19.C: Enable tests.
+	* g++.dg/reflect/splice15.C: New test.
+	* g++.dg/reflect/splice16.C: New test.
+
+2026-08-11  Robin Dapp  <robin.dapp@oss.qualcomm.com>
+
+	Backported from master:
+	2026-07-25  Robin Dapp  <robin.dapp@oss.qualcomm.com>
+
+	PR target/126334
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-1.c:
+	Adjust test expectations.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-10.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-11.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-12.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-2.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-3.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-4.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-5.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-6.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-7.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-8.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/gather_load_32-9.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-1.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-10.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-11.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-2.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-3.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-4.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-5.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-6.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-7.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-8.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_gather_load_32-9.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-1.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-10.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-2.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-3.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-4.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-5.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-6.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-7.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-8.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_32-9.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-1.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-10.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-2.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-3.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-4.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-5.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-6.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-7.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-8.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/mask_scatter_store_64-9.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-1.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-10.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-2.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-4.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-5.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-6.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-7.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-8.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_32-9.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-1.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-10.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-2.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-3.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-4.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-5.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-6.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-7.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-8.c: Ditto.
+	* gcc.target/riscv/rvv/autovec/gather-scatter/scatter_store_64-9.c: Ditto.
+
+2026-08-11  Robin Dapp  <robin.dapp@oss.qualcomm.com>
+
+	Backported from master:
+	2026-08-04  Robin Dapp  <robin.dapp@oss.qualcomm.com>
+
+	PR target/126550
+	* gcc.target/riscv/rvv/autovec/pr126550-2.c: New test.
+	* gcc.target/riscv/rvv/autovec/pr126550.c: New test.
+
+2026-08-11  Hu, Lin1  <lin1.hu@intel.com>
+
+	Backported from master:
+	2026-08-11  Hu, Lin1  <lin1.hu@intel.com>
+
+	PR target/126676
+	* gcc.target/i386/pr126676.c: New test.
+
+2026-08-10  H.J. Lu  <hjl.tools@gmail.com>
+
+	Backported from master:
+	2026-08-04  H.J. Lu  <hjl.tools@gmail.com>
+
+	PR target/126320
+	PR target/126450
+	PR target/126529
+	* gcc.target/i386/pr126529-1.c: New test.
+	* gcc.target/i386/pr126529-2.c: Likewise.
+	* gcc.target/i386/pr126529-3.c: Likewise.
+	* gcc.target/i386/pr126529-4.c: Likewise.
+
+2026-08-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-05-23  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/125263
+	* gfortran.dg/pr125263.f90: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/126667
+	* gcc.dg/pr126667.c: New test.
+	* gcc.target/s390/pr126667.c: New test.
+
+2026-08-07  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-07-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/126205
+	* gfortran.dg/coarray/team_allocated_coarrays.f90: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/125541
+	* g++.dg/reflect/mangle1.C: Add further 2 tests.
+	* g++.dg/reflect/mangle9.C: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/125680
+	* g++.dg/reflect/mangle8.C: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/125601
+	* g++.dg/cpp26/expansion-stmt45.C: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/125591
+	* g++.dg/cpp26/decomp31.C: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libstdc++/125200
+	* g++.dg/plugin/std_module_exports_plugin.cc (plugin_dump_decl): Use
+	%< and %>.  Clarify the error message and add a note.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/125048
+	* c-c++-common/cpp/va-opt-11.c: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126464
+	* gcc.dg/pr126464.c: Guard uses of 1e300 with
+	__DBL_MAX_10_EXP__ >= 301 and uses of 1e4000L with
+	__LDBL_MAX_10_EXP__ >= 4001.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/124948
+	* gcc.dg/torture/bitint-100.c: Require also sync_int_long effective
+	target.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126601
+	* gcc.dg/tree-ssa/pr126601.c: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126564
+	* gcc.dg/torture/pr126564.c: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126549
+	* gcc.dg/torture/pr126549.c: New test.
+	* gcc.dg/torture/bitint-107.c: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126547
+	* gcc.dg/torture/pr126547.c: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/126576
+	* gcc.dg/torture/pr126576.c: New test.
+
+2026-08-07  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from master:
+	2026-08-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/126484
+	* g++.target/mips/pr126484.C: New test.
+
 2026-08-07  Release Manager
 
 	* GCC 16.2.0 released.

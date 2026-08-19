@@ -1,3 +1,69 @@
+2026-08-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-08-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/126872
+	* trans-decl.cc (gfc_finish_var_decl): Drop the unreachable
+	hidden-visibility case in the BIND(C) block.  Do not give hidden
+	visibility to a PRIVATE module variable with a binding label.
+	(build_function_decl): Do not give hidden visibility to a PRIVATE
+	module procedure with a binding label.
+
+2026-08-16  Christopher Albert  <albert@tugraz.at>
+
+	Backported from master:
+	2026-08-16  Christopher Albert  <albert@tugraz.at>
+
+	PR fortran/110626
+	* gfortran.h : Add finalize_only bitfield to gfc_expr.
+	* resolve.cc (generate_component_assignments): If the lhs has
+	no pointer or allocatable components, set use_finalize_only to
+	false. Otherwise it equals finalizable_lhs. Use the value to
+	set the expr1 finalize_only field and add the assignment to the
+	chain. If use_finalize_only is false, free the statements and
+	transfer the value to the final result.
+	* trans-expr.cc (gfc_trans_assignment_1): If expr1 is finalize_
+	only emit an empty statement.
+
+2026-08-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-08-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/104048
+	* trans-array.cc (structure_alloc_comps): Extend the wrapper
+	mechanism for same type allocatable arrays to scalars, creating
+	descriptors for them and passing to the deep copy library fcn..
+
+2026-08-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-05-23  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/125263
+	* trans-expr.cc (gfc_trans_assignment_1): Pass scalar class to
+	derived type assignment expressions to gfc_trans_scalar_assign.
+
+2026-08-07  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-07-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/126205
+	* gfortran.h: Add prototype for deallocate_allocated_coarrays.
+	hash_map team_allocated_coarrays, vector team_context_stack and
+	prototype for get_current_team_context.
+	* match.cc (gfc_match_allocate): Capture allocate expressions
+	of allocatable coarrays and stash in team_allocated_coarrays.
+	* parse.cc (parse_change_team): Push team context. When end is
+	seen, create the code to deallocate allocated coarrays in this
+	context, using deallocate_allocated_coarrays.
+	* st.cc (get_guarded_dealloc): Generate code to produce
+	IF (ALLOCATED (expr)) DEALLOCATE (expr).
+	(deallocate_allocated_coarrays): Modify the final array ref of
+	the allocate expressions and call get_guarded_dealloc.
+
 2026-08-07  Release Manager
 
 	* GCC 16.2.0 released.
