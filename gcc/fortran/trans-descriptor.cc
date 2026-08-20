@@ -857,13 +857,15 @@ gfc_create_null_actual_descriptor (stmtblock_t *block, gfc_typespec *ts,
 
 void
 gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr,
-				tree scalar, gfc_expr *scalar_expr,
-				tree cond_presence)
+				tree scalar, tree cond_presence)
 {
-  tree type = gfc_get_scalar_to_descriptor_type (TREE_TYPE (scalar),
-						 gfc_expr_attr (scalar_expr));
+  tree scalar_type = TREE_TYPE (scalar);
+  tree etype = POINTER_TYPE_P (scalar_type)
+	       ? TREE_TYPE (scalar_type)
+	       : scalar_type;
   gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype (type));
+				 gfc_get_dtype_rank_type (0, etype));
+
   gfc_copy_coarray_desc_part (block, descr, scalar);
   if (cond_presence)
     scalar = build3_loc (input_location, COND_EXPR,
@@ -905,12 +907,14 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree scalar)
 
 void
 gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
-				      tree scalar, gfc_expr *scalar_expr)
+				      tree scalar)
 {
-  tree type = gfc_get_scalar_to_descriptor_type (TREE_TYPE (scalar),
-						 gfc_expr_attr (scalar_expr));
+  tree scalar_type = TREE_TYPE (scalar);
+  tree etype = POINTER_TYPE_P (scalar_type)
+	       ? TREE_TYPE (scalar_type)
+	       : scalar_type;
   gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype (type));
+				 gfc_get_dtype_rank_type (0, etype));
 
   tree tmp = gfc_class_data_get (scalar);
   if (!POINTER_TYPE_P (TREE_TYPE (tmp)))
