@@ -847,6 +847,29 @@ gfc_create_null_actual_descriptor (stmtblock_t *block, gfc_typespec *ts,
 }
 
 
+/* Add code to BLOCK initializing the zero-rank array descriptor DESCR.  Guess
+   the dtype field initialization values using TYPE.  If COND_PRESENCE is set,
+   make the value assigned to the data field either SCALAR or nullptr depending
+   on COND_PRESENCE; otherwise SCALAR unconditionally.  */
+
+static void
+set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree type,
+			    tree scalar, tree cond_presence)
+{
+  gfc_conv_descriptor_dtype_set (block, descr,
+				 gfc_get_dtype_rank_type (0, type));
+
+  gfc_copy_coarray_desc_part (block, descr, scalar);
+  if (cond_presence)
+    scalar = build3_loc (input_location, COND_EXPR,
+			 TREE_TYPE (scalar),
+			 cond_presence, scalar,
+			 fold_convert (TREE_TYPE (scalar),
+				       null_pointer_node));
+  gfc_conv_descriptor_data_set (block, descr, scalar);
+}
+
+
 /* Add code to BLOCK initializing the zero-rank array descriptor DESCR, so that
    it represents the same data as the pointer-typed middle-end expression SCALAR
    corresponding to the scalar front-end expression SCALAR_EXPR.  If
@@ -863,17 +886,7 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr,
   tree etype = POINTER_TYPE_P (scalar_type)
 	       ? TREE_TYPE (scalar_type)
 	       : scalar_type;
-  gfc_conv_descriptor_dtype_set (block, descr,
-				 gfc_get_dtype_rank_type (0, etype));
-
-  gfc_copy_coarray_desc_part (block, descr, scalar);
-  if (cond_presence)
-    scalar = build3_loc (input_location, COND_EXPR,
-			 TREE_TYPE (scalar),
-			 cond_presence, scalar,
-			 fold_convert (TREE_TYPE (scalar),
-				       null_pointer_node));
-  gfc_conv_descriptor_data_set (block, descr, scalar);
+  set_descriptor_from_scalar (block, descr, etype, scalar, cond_presence);
 }
 
 
@@ -959,8 +972,6 @@ gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
   tree class_ref;
   if (!is_polymorphic_ref (scalar, &class_ref))
     gcc_unreachable ();
-  tree dtype_val = gfc_get_dtype_rank_type (0, TREE_TYPE (class_ref));
-  gfc_conv_descriptor_dtype_set (block, descr, dtype_val);
 
   tree tmp = scalar;
   if (GFC_CLASS_TYPE_P (TREE_TYPE (tmp))
@@ -970,7 +981,8 @@ gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
   if (!POINTER_TYPE_P (TREE_TYPE (tmp)))
     tmp = gfc_build_addr_expr (NULL_TREE, tmp);
 
-  gfc_conv_descriptor_data_set (block, descr, tmp);
+  set_descriptor_from_scalar (block, descr, TREE_TYPE (class_ref), tmp,
+			      NULL_TREE);
 }
 
 
