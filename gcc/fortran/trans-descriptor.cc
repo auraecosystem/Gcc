@@ -916,7 +916,11 @@ gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
   gfc_conv_descriptor_dtype_set (block, descr,
 				 gfc_get_dtype_rank_type (0, etype));
 
-  tree tmp = gfc_class_data_get (scalar);
+  tree tmp = scalar;
+  if (GFC_CLASS_TYPE_P (TREE_TYPE (tmp))
+      || (POINTER_TYPE_P (TREE_TYPE (tmp))
+	  && GFC_CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (tmp)))))
+    tmp = gfc_class_data_get (tmp);
   if (!POINTER_TYPE_P (TREE_TYPE (tmp)))
     tmp = gfc_build_addr_expr (NULL_TREE, tmp);
 
