@@ -976,6 +976,22 @@ gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
 
   set_descriptor_from_scalar (block, descr, TREE_TYPE (class_ref), tmp,
 			      NULL_TREE);
+
+  /* Set the elem_len field...  */
+  tree vptr = gfc_class_vptr_get (class_ref);
+  stmtblock_t b;
+  gfc_init_block (&b);
+  gfc_conv_descriptor_elem_len_set (&b, descr,
+				    gfc_vptr_size_get (vptr));
+  tree len_init = gfc_finish_block (&b);
+  /* ... if the vptr is non-NULL.  */
+  tree vptr_non_null = fold_build2_loc (input_location, NE_EXPR,
+					boolean_type_node, vptr,
+					build_zero_cst (TREE_TYPE (vptr)));
+  len_init = fold_build3_loc (input_location, COND_EXPR, void_type_node,
+			      vptr_non_null, len_init,
+			      build_empty_stmt (input_location));
+  gfc_add_expr_to_block (block, len_init);
 }
 
 
