@@ -892,7 +892,7 @@ gfc_conv_derived_to_class (gfc_se *parmse, gfc_expr *e, gfc_symbol *fsym,
 	  /* Scalar to an assumed-rank array.  */
 	  if (fsym->ts.u.derived->components->as)
 	    gfc_set_descriptor_from_scalar (&parmse->pre, ctree,
-					    parmse->expr, e, cond_optional);
+					    parmse->expr, cond_optional);
           else
 	    {
 	      tmp = fold_convert (TREE_TYPE (ctree), parmse->expr);
@@ -1320,7 +1320,7 @@ gfc_conv_class_to_class (gfc_se *parmse, gfc_expr *e, gfc_typespec class_ts,
       && e->rank != class_ts.u.derived->components->as->rank)
     {
       if (e->rank == 0)
-	gfc_set_descriptor_from_scalar_class (&block, ctree, parmse->expr, e);
+	gfc_set_descriptor_from_scalar_class (&block, ctree, parmse->expr);
       else
 	gfc_class_array_data_assign (&block, ctree, parmse->expr, false);
     }
