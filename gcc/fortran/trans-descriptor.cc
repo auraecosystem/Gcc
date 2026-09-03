@@ -646,15 +646,24 @@ gfc_build_dtype_constructor (tree size, int type, int rank)
   tree field;
   vec<constructor_elt, va_gc> *v = NULL;
 
-  gcc_assert (size);
-
-  STRIP_NOPS (size);
-  size = fold_convert (size_type_node, size);
   tree dtype_type_node = get_dtype_type_node ();
-  field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
-			     GFC_DTYPE_ELEM_LEN);
-  CONSTRUCTOR_APPEND_ELT (v, field,
-			  fold_convert (TREE_TYPE (field), size));
+  /* Create initialization for the element length field using the SIZE provided
+     as input.  In the unlimited polymorphic case, SIZE is null and the
+     initialization is omitted.  Otherwise, the value provided as SIZE and used
+     here is that of the declared type.  In the polymorphic case (either
+     unlimited or not), the field is expected to be explicitly set at a later
+     time with the actual runtime value, which may be different from the
+     initial value set here.  */
+  if (size)
+    {
+      STRIP_NOPS (size);
+      size = fold_convert (size_type_node, size);
+      field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
+				 GFC_DTYPE_ELEM_LEN);
+      CONSTRUCTOR_APPEND_ELT (v, field,
+			      fold_convert (TREE_TYPE (field), size));
+    }
+
   field = gfc_advance_chain (TYPE_FIELDS (dtype_type_node),
 			     GFC_DTYPE_VERSION);
   CONSTRUCTOR_APPEND_ELT (v, field,
