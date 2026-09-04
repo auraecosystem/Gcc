@@ -3487,7 +3487,8 @@ operator_logical_and::op1_range (irange &r, tree type,
 
     case BRS_FALSE:
       // A FALSE result when op2 is TRUE, must have op1 FALSE.
-      if (!op2.contains_p (wi::zero (TYPE_PRECISION (op2.type ()))))
+      if (!op2.undefined_p ()
+	  && !op2.contains_p (wi::zero (TYPE_PRECISION (op2.type ()))))
 	{
 	  r = range_false (type);
 	  return true;
