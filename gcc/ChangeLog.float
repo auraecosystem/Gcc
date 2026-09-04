@@ -1,3 +1,28 @@
+==================== Branch work260-float, patch #210 ====================
+
+Pass/return HFmode and BFmode as SFmode.
+
+2026-09-03  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-call.cc (rs6000_promote_function_mode): Pass and
+	return BFmode and HFmode as SFmode.
+	* config/rs6000/rs6000-internal.h
+	(rs6000_promote_function_mode_convert): New declaration.
+	* config/rs6000/rs6000.cc (TARGET_PROMOTE_FUNCTION_MODE_CONVERT):
+	Override default.
+	(rs6000_function_value): Return BFmode/HFmode as SFmode.
+	* doc/tm.texi: Regenerate.
+	* doc/tm.texi.in: (TARGET_PROMOTE_FUNCTION_MODE_CONVERT): New hook.
+	* expr.cc (expand_expr_real_1): Add support for doing a conversion if
+	the argument is passed as a different mode instead of doing a SUBREG.
+	* target.def (promote_function_mode_convert): Add a new target hook to
+	possibly do a real conversion if a function argument is passed ass a
+	different mode.
+	* targhooks.cc (default_promot_function_mode_convert): Likewise.
+	* targhooks.h (default_promot_function_mode_convert): Likewise.
+
 ==================== Branch work260-float, patch #209 ====================
 
 Add _Float16 and __bf16 tests.
