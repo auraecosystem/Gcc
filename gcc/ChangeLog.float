@@ -1,3 +1,27 @@
+==================== Branch work260-float, patch #211 ====================
+
+Don't return HFmode/BFmode as SFmode.
+
+2026-09-03  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-call.cc (rs6000_promote_function_mode): Only
+	convert HFmode/BFmode to SFmode, but don't change return value at
+	present.
+	(rs6000_promote_function_mode_convert): Add unsignedp argument.
+	* config/rs6000/rs6000-internal.h
+	(rs6000_promote_function_mode_convert): Update calling sequence.
+	* config/rs6000/rs6000.cc (rs6000_function_value): Undo last change.
+	* doc/tm.texi: Regenerate.
+	* doc/tm.texi.in (TARGET_PROMOTE_FUNCTION_MODE_CONVERT): Update calling
+	sequence.
+	* expr.cc (expand_expr_real_1): Update call to
+	promote_function_mode_convert.
+	* target.def (PROMOTE_FUNCTION_MODE_CONVERT): Update calling sequence.
+	* targhooks.cc (default_promote_function_mode_convert): Likewise.
+	* targhooks.h (default_promote_function_mode_convert): Likewise.
+
 ==================== Branch work260-float, patch #210 ====================
 
 Pass/return HFmode and BFmode as SFmode.
