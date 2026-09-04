@@ -4931,6 +4931,17 @@ if you would like to apply the same rules given by @code{PROMOTE_MODE}.",
  default_promote_function_mode)
 
 DEFHOOK
+(promote_function_mode_convert,
+ "If @code{PROMOTE_FUNCTION_MODE} returns mode (@code{@var{NEW_MODE}}) which\n\
+is a different mode for the function argument or return value\n\
+(@code{@var{OLD_MODE}}) for @var{DECL_RTL}, either return @code{NULL_RTX} to\n\
+use @code{SUBREG} to pass the value untranslated, or return a conversion rtl.\n\
+\n\
+The default is to not do a conversion.",
+ rtx, (machine_mode new_mode, machine_mode old_mode, rtx decl_rtl),
+ default_promote_function_mode_convert)
+
+DEFHOOK
 (promote_prototypes,
  "This target hook returns @code{true} if an argument declared in a\n\
 prototype as an integral type smaller than @code{int} should actually be\n\

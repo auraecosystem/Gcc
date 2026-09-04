@@ -723,11 +723,29 @@ rs6000_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 			      int *punsignedp ATTRIBUTE_UNUSED,
 			      const_tree, int for_return ATTRIBUTE_UNUSED)
 {
+  if (FP16_SCALAR_MODE_P (mode))
+    return SFmode;
+
   if (GET_MODE_CLASS (mode) == MODE_INT
       && GET_MODE_SIZE (mode) < (TARGET_32BIT ? 4 : 8))
     mode = TARGET_32BIT ? SImode : DImode;
 
   return mode;
+}
+
+/* Convert 16-bit floating arguments and return values to SFmode.  */
+
+rtx
+rs6000_promote_function_mode_convert (machine_mode new_mode,
+				      machine_mode old_mode,
+				      rtx decl_rtl)
+{
+  if (new_mode != old_mode
+      && (FP16_SCALAR_MODE_P (new_mode)
+	  || FP16_SCALAR_MODE_P (old_mode)))
+    return convert_to_mode (new_mode, decl_rtl, 0);
+
+  return NULL_RTX;
 }
 
 /* Return true if TYPE must be passed on the stack and not in registers.  */

@@ -1110,6 +1110,15 @@ also define the hook to @code{default_promote_function_mode_always_promote}
 if you would like to apply the same rules given by @code{PROMOTE_MODE}.
 @end deftypefn
 
+@deftypefn {Target Hook} rtx TARGET_PROMOTE_FUNCTION_MODE_CONVERT (machine_mode @var{new_mode}, machine_mode @var{old_mode}, rtx @var{decl_rtl})
+If @code{PROMOTE_FUNCTION_MODE} returns mode (@code{@var{NEW_MODE}}) which
+is a different mode for the function argument or return value
+(@code{@var{OLD_MODE}}) for @var{DECL_RTL}, either return @code{NULL_RTX} to
+use @code{SUBREG} to pass the value untranslated, or return a conversion rtl.
+
+The default is to not do a conversion.
+@end deftypefn
+
 @defmac PARM_BOUNDARY
 Normal alignment required for function parameters on the stack, in
 bits.  All stack parameters receive at least this much alignment

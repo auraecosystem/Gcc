@@ -1513,6 +1513,9 @@ static const scoped_attribute_specs *const rs6000_attribute_table[] =
 #undef TARGET_PROMOTE_FUNCTION_MODE
 #define TARGET_PROMOTE_FUNCTION_MODE rs6000_promote_function_mode
 
+#undef TARGET_PROMOTE_FUNCTION_MODE_CONVERT
+#define TARGET_PROMOTE_FUNCTION_MODE_CONVERT rs6000_promote_function_mode_convert
+
 #undef TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
 #define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE rs6000_override_options_after_change
 
@@ -24422,6 +24425,9 @@ rs6000_function_value (const_tree valtype,
     regno = ALTIVEC_ARG_RETURN;
   else
     regno = GP_ARG_RETURN;
+
+  if (FP16_SCALAR_MODE_P (mode))
+    mode = SFmode;
 
   return gen_rtx_REG (mode, regno);
 }

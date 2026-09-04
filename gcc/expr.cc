@@ -11852,9 +11852,11 @@ expand_expr_real_1 (tree exp, rtx target, machine_mode tmode,
       /* If the mode of DECL_RTL does not match that of the decl,
 	 there are two cases: we are dealing with a BLKmode value
 	 that is returned in a register, or we are dealing with
-	 a promoted value.  In the latter case, return a SUBREG
-	 of the wanted mode, but mark it so that we know that it
-	 was already extended.  */
+	 a promoted value.
+
+	 In the latter case, either do a regular conversion or return a SUBREG
+	 of the wanted mode, but mark it so that we know that it was already
+	 extended.  */
       if (REG_P (decl_rtl)
 	  && dmode != BLKmode
 	  && GET_MODE (decl_rtl) != dmode)
@@ -11874,6 +11876,13 @@ expand_expr_real_1 (tree exp, rtx target, machine_mode tmode,
 	  else
 	    pmode = promote_ssa_mode (ssa_name, &unsignedp);
 	  gcc_assert (GET_MODE (decl_rtl) == pmode);
+
+	  /* Convert the value if the target wants it converted.  */
+	  rtx cvt = targetm.calls.promote_function_mode_convert (pmode, mode,
+								 decl_rtl);
+
+	  if (cvt)
+	    return EXTEND_BITINT (cvt);
 
 	  /* Some ABIs require scalar floating point modes to be passed
 	     in a wider scalar integer mode.  We need to explicitly
