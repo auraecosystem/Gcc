@@ -24426,9 +24426,6 @@ rs6000_function_value (const_tree valtype,
   else
     regno = GP_ARG_RETURN;
 
-  if (FP16_SCALAR_MODE_P (mode))
-    mode = SFmode;
-
   return gen_rtx_REG (mode, regno);
 }
 

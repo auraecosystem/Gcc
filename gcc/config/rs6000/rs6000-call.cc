@@ -721,9 +721,9 @@ machine_mode
 rs6000_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 			      machine_mode mode,
 			      int *punsignedp ATTRIBUTE_UNUSED,
-			      const_tree, int for_return ATTRIBUTE_UNUSED)
+			      const_tree, int for_return)
 {
-  if (FP16_SCALAR_MODE_P (mode))
+  if (FP16_SCALAR_MODE_P (mode) && !for_return)
     return SFmode;
 
   if (GET_MODE_CLASS (mode) == MODE_INT
@@ -738,12 +738,11 @@ rs6000_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 rtx
 rs6000_promote_function_mode_convert (machine_mode new_mode,
 				      machine_mode old_mode,
-				      rtx decl_rtl)
+				      rtx decl_rtl,
+				      int unsignedp)
 {
-  if (new_mode != old_mode
-      && (FP16_SCALAR_MODE_P (new_mode)
-	  || FP16_SCALAR_MODE_P (old_mode)))
-    return convert_to_mode (new_mode, decl_rtl, 0);
+  if (FP16_SCALAR_MODE_P (new_mode) || FP16_SCALAR_MODE_P (old_mode))
+    return convert_to_mode (new_mode, decl_rtl, unsignedp);
 
   return NULL_RTX;
 }

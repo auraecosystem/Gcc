@@ -11878,11 +11878,17 @@ expand_expr_real_1 (tree exp, rtx target, machine_mode tmode,
 	  gcc_assert (GET_MODE (decl_rtl) == pmode);
 
 	  /* Convert the value if the target wants it converted.  */
-	  rtx cvt = targetm.calls.promote_function_mode_convert (pmode, mode,
-								 decl_rtl);
+	  if (pmode != mode)
+	    {
+	      rtx cvt
+		= targetm.calls.promote_function_mode_convert (pmode,
+							       mode,
+							       decl_rtl,
+							       unsignedp);
 
-	  if (cvt)
-	    return EXTEND_BITINT (cvt);
+	      if (cvt)
+		return EXTEND_BITINT (cvt);
+	    }
 
 	  /* Some ABIs require scalar floating point modes to be passed
 	     in a wider scalar integer mode.  We need to explicitly

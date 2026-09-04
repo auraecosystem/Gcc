@@ -4932,13 +4932,15 @@ if you would like to apply the same rules given by @code{PROMOTE_MODE}.",
 
 DEFHOOK
 (promote_function_mode_convert,
- "If @code{PROMOTE_FUNCTION_MODE} returns mode (@code{@var{NEW_MODE}}) which\n\
+ "If @code{PROMOTE_FUNCTION_MODE} returns a mode (@code{@var{NEW_MODE}}) which\n\
 is a different mode for the function argument or return value\n\
 (@code{@var{OLD_MODE}}) for @var{DECL_RTL}, either return @code{NULL_RTX} to\n\
 use @code{SUBREG} to pass the value untranslated, or return a conversion rtl.\n\
+The argument @var{UNSIGNEDP} is non-0 if the type is unsigned.\n\
 \n\
 The default is to not do a conversion.",
- rtx, (machine_mode new_mode, machine_mode old_mode, rtx decl_rtl),
+ rtx, (machine_mode new_mode, machine_mode old_mode, rtx decl_rtl,
+       int unsignedp),
  default_promote_function_mode_convert)
 
 DEFHOOK

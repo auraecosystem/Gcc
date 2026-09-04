@@ -151,7 +151,7 @@ extern machine_mode rs6000_promote_function_mode (const_tree type ATTRIBUTE_UNUS
 						  const_tree, int);
 extern rtx rs6000_promote_function_mode_convert (machine_mode new_mode,
 						 machine_mode old_mode,
-						 rtx decl_rtl);
+						 rtx decl_rtl, int unsignedp);
 extern bool rs6000_return_in_memory (const_tree type,
 				     const_tree fntype ATTRIBUTE_UNUSED);
 extern bool rs6000_return_in_msb (const_tree valtype);

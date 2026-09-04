@@ -153,9 +153,10 @@ default_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 }
 
 rtx
-default_promot_function_mode_convert (machine_mode new_mode ATTRIBUTE_UNUSED,
-				      machine_mode old_mode ATTRIBUTE_UNUSED,
-				      rtx decl_rtx ATTRIBUTE_UNUSED)
+default_promote_function_mode_convert (machine_mode new_mode ATTRIBUTE_UNUSED,
+				       machine_mode old_mode ATTRIBUTE_UNUSED,
+				       rtx decl_rtx ATTRIBUTE_UNUSED,
+				       int unsignedp ATTRIBUTE_UNUSED)
 {
   return NULL_RTX;
 }
