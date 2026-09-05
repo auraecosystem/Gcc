@@ -232,12 +232,136 @@
   "xscvdphp %x0,%x1"
   [(set_attr "type" "fpsimple")])
 
-;; Convert BFmode to SFmode/DFmode.
+
+;; Convert BFmode to either SFmode or DFmode.
+(define_expand "extendbf<mode>2"
+  [(set (match_operand:SFDF 0 "register_operand")
+	(float_extend:SFDF
+	 (match_operand:BF 1 "register_operand")))]
+  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT"
+{
+  rtx op0 = operands[0];
+  rtx op1 = operands[1];
+
+  if (TARGET_BFLOAT16_HW)
+    emit_insn (gen_extendbf<mode>2_hw (op0, op1));
+
+  else if (<MODE>mode == SFmode)
+    emit_insn (gen_extendbfsf2_sw (op0, op1));
+
+  else
+    emit_insn (gen_extendbfdf2_sw (op0, op1));
+
+  DONE;
+})
+
+;; Convert BFmode to SFmode via software.
+;; BFmode format is the same as SFmode with the bottom 8 bits zero.  On
+;; 64-bit systems possibly combine the 8 bit shift to get SFmode and
+;; the 32 bit shift to use xcvspdpn.
+(define_insn_and_split "extendbfsf2_sw"
+  [(set (match_operand:SF 0 "gpc_reg_operand" "=wa,?r")
+	(float_extend:SF
+	 (match_operand:BF 1 "int_reg_operand" "r,r")))
+   (match_scratch:DI 2 "=r,X")]
+  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT"
+  "#"
+  "&& reload_completed"
+  [(pc)]
+{
+  rtx op0 = operands[0];
+  rtx op1 = operands[1];
+  rtx op2 = operands[2];
+
+  if (int_reg_operand (op0, SFmode))
+    {
+      rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (op1));
+
+      /* Do the convert in GPR using the SFmode memory format.  */
+      rtx op0_di = gen_rtx_REG (DImode, reg_or_subregno (op0));
+
+      emit_insn (gen_ashldi3 (op0_di, op1_di, GEN_INT (8)));
+    }
+
+  else
+    {
+      /* Do the shift in the GPR and then convert it to a VSX register.  */
+      rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (op1));
+
+      /* Combine shifting 8 bits left to convert to SFmode, and then
+         shifting those bits left 32 bits to generate xscvspdpn.  */
+      emit_insn (gen_ashldi3 (op2, op1_di, GEN_INT (40)));
+
+      /* Convert SFmode memory format to SFmode register format (DFmode).  */
+      emit_insn (gen_p8_mtvsrd_sf (op0, op2));
+      emit_insn (gen_vsx_xscvspdpn_directmove (op0, op0));
+    }
+
+  DONE;
+}
+  [(set_attr "type" "fpsimple,shift")
+   (set_attr "length" "12,*")])
+
+(define_insn_and_split "extendbfsf2_sw_memory"
+  [(set (match_operand:SF 0 "memory_operand" "=m")
+	(float_extend:SF
+	 (match_operand:BF 1 "int_reg_operand" "r")))
+   (match_scratch:DI 2 "=r")]
+  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW"
+  "#"
+  "&& reload_completed"
+  [(pc)]
+{
+  rtx op0 = operands[0];
+  rtx op1 = operands[1];
+  rtx op2 = operands[2];
+  rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (op1));
+  rtx op2_sf = gen_rtx_REG (SFmode, reg_or_subregno (op2));
+
+  /* Do the convert in GPR using the SFmode memory format.  */
+  emit_insn (gen_ashldi3 (op2, op1_di, GEN_INT (8)));
+  emit_move_insn (op0, op2_sf);
+  DONE;
+}
+  [(set_attr "type" "store")
+   (set_attr "length" "8")])
+
+;; Convert BFmode to DFmode via software on 64-bit systems.
+;; BFmode format is the same as SFmode with the bottom 8 bits zero.
+;; First convert to SFmode and then convert that to DFmode.
+(define_insn_and_split "extendbfdf2_sw"
+  [(set (match_operand:DF 0 "vsx_register_operand" "=wa")
+	(float_extend:DF
+	 (match_operand:BF 1 "int_reg_operand" "r")))
+   (match_scratch:DI 2 "=r")]
+  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT"
+  "#"
+  "&& reload_completed"
+  [(pc)]
+{
+  rtx op0_sf = gen_rtx_REG (SFmode, reg_or_subregno (operands[0]));
+  rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (operands[1]));
+  rtx op2_di = operands[2];
+
+  /* Combine shifting 8 bits left to convert to SFmode, and then
+     shifting those bits left 32 bits to generate xscvspdpn.  */
+  emit_insn (gen_ashldi3 (op2_di, op1_di, GEN_INT (40)));
+
+  /* Convert SFmode to DFmode.  */
+  emit_insn (gen_p8_mtvsrd_sf (op0_sf, op2_di));
+  emit_insn (gen_vsx_xscvspdpn_directmove (op0_sf, op0_sf));
+  DONE;
+}
+  [(set_attr "type" "fpsimple")
+   (set_attr "length" "12")])
+
+;; Convert BFmode to SFmode/DFmode via hardware.
 ;; 3 instructions are generated:
 ;;	XXSPLTW		-- duplicate BFmode into all even elements
 ;;	XVCVBF16SPN	-- convert even BFmode elements to SFmode
 ;;	XSCVSPNDP	-- convert memory format of SFmode to DFmode.
-(define_insn_and_split "extendbf<mode>2"
+
+(define_insn_and_split "extendbf<mode>2_hw"
   [(set (match_operand:SFDF 0 "vsx_register_operand" "=wa")
 	(float_extend:SFDF
 	 (match_operand:BF 1 "vsx_register_operand" "v")))
