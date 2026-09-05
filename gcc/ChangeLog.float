@@ -1,3 +1,22 @@
+==================== Branch work260-float, patch #212 ====================
+
+Add -mfloat16-convert; Improve bf to sf/df on power8/power9
+
+2026-09-04  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (extendbf<mode>2): Convert to be a
+	define_expand, and handle conversions on power8/power9 systems.
+	(extendbfsf2_sw): New insn.
+	(extendbfsf2_sw_memory): Likewise.
+	(extendbfdf2_sw): Likewise.
+	(extendbf<mode>2_hw): Rename from extendbf<mode>2.
+	* config/rs6000/rs6000-call.cc (rs6000_promote_function_mode): Only do
+	argument conversions if -mfloat16-convert.
+	(rs6000_promote_function_mode_convert): Likewise.
+	* config/rs6000/rs6000.opt (-mfloat16-convert): New option.
+
 ==================== Branch work260-float, patch #211 ====================
 
 Don't return HFmode/BFmode as SFmode.
