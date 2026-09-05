@@ -263,7 +263,8 @@
   [(set (match_operand:SF 0 "gpc_reg_operand" "=wa,?r")
 	(float_extend:SF
 	 (match_operand:BF 1 "int_reg_operand" "r,r")))
-   (match_scratch:DI 2 "=r,X")]
+   (match_scratch:DI 2 "=r,X")
+]
   "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT"
   "#"
   "&& reload_completed"
@@ -275,12 +276,11 @@
 
   if (int_reg_operand (op0, SFmode))
     {
-      rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (op1));
+      rtx op0_si = gen_rtx_REG (SImode, reg_or_subregno (op0));
+      rtx op1_si = gen_rtx_REG (SImode, reg_or_subregno (op1));
 
       /* Do the convert in GPR using the SFmode memory format.  */
-      rtx op0_di = gen_rtx_REG (DImode, reg_or_subregno (op0));
-
-      emit_insn (gen_ashldi3 (op0_di, op1_di, GEN_INT (8)));
+      emit_insn (gen_ashlsi3 (op0_si, op1_si, GEN_INT (16)));
     }
 
   else
@@ -288,9 +288,9 @@
       /* Do the shift in the GPR and then convert it to a VSX register.  */
       rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (op1));
 
-      /* Combine shifting 8 bits left to convert to SFmode, and then
+      /* Combine shifting 16 bits left to convert to SFmode, and then
          shifting those bits left 32 bits to generate xscvspdpn.  */
-      emit_insn (gen_ashldi3 (op2, op1_di, GEN_INT (40)));
+      emit_insn (gen_ashldi3 (op2, op1_di, GEN_INT (48)));
 
       /* Convert SFmode memory format to SFmode register format (DFmode).  */
       emit_insn (gen_p8_mtvsrd_sf (op0, op2));
@@ -315,11 +315,12 @@
   rtx op0 = operands[0];
   rtx op1 = operands[1];
   rtx op2 = operands[2];
-  rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (op1));
+  rtx op1_si = gen_rtx_REG (SImode, reg_or_subregno (op1));
+  rtx op2_si = gen_rtx_REG (SImode, reg_or_subregno (op2));
   rtx op2_sf = gen_rtx_REG (SFmode, reg_or_subregno (op2));
 
   /* Do the convert in GPR using the SFmode memory format.  */
-  emit_insn (gen_ashldi3 (op2, op1_di, GEN_INT (8)));
+  emit_insn (gen_ashlsi3 (op2_si, op1_si, GEN_INT (16)));
   emit_move_insn (op0, op2_sf);
   DONE;
 }
@@ -343,9 +344,9 @@
   rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (operands[1]));
   rtx op2_di = operands[2];
 
-  /* Combine shifting 8 bits left to convert to SFmode, and then
+  /* Combine shifting 16 bits left to convert to SFmode, and then
      shifting those bits left 32 bits to generate xscvspdpn.  */
-  emit_insn (gen_ashldi3 (op2_di, op1_di, GEN_INT (40)));
+  emit_insn (gen_ashldi3 (op2_di, op1_di, GEN_INT (48)));
 
   /* Convert SFmode to DFmode.  */
   emit_insn (gen_p8_mtvsrd_sf (op0_sf, op2_di));
