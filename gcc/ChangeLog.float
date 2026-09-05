@@ -1,3 +1,15 @@
+==================== Branch work260-float, patch #213 ====================
+
+Fix errors in bfloat16 conversions
+
+2026-09-05  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (extendbfsf2_sw): Fix thinkos.
+	(extendbfsf2_sw_memory): Likewise.
+	(extendbfdf2_sw): Likewise.
+
 ==================== Branch work260-float, patch #212 ====================
 
 Add -mfloat16-convert; Improve bf to sf/df on power8/power9
