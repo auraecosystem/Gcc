@@ -61,8 +61,7 @@ associated (const gfc_array_void *pointer, const gfc_array_void *target)
      spacing of the elements there instead, and carries the length
      separately.  Require the two to agree on one or the other: if they
      agree on neither, the storage sequences differ.  */
-  if (GFC_DESCRIPTOR_SIZE (pointer) != GFC_DESCRIPTOR_SIZE (target)
-      && GFC_DESCRIPTOR_SPAN (pointer) != GFC_DESCRIPTOR_SPAN (target))
+  if (GFC_DESCRIPTOR_SPAN (pointer) != GFC_DESCRIPTOR_SPAN (target))
     return 0;
   if (GFC_DESCRIPTOR_DTYPE (pointer).type != GFC_DESCRIPTOR_DTYPE (target).type)
     return 0;
