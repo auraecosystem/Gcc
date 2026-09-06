@@ -28,6 +28,25 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 extern int associated (const gfc_array_void *, const gfc_array_void *);
 export_proto(associated);
 
+/* Return the spacing in bytes of the elements of DESC in dimension N.  The
+   stride counts spans rather than elements, so descriptors that denote the
+   same storage sequence can hold different combinations of the two: elements
+   that are subobjects of larger ones are described either by the spacing of
+   the larger objects as the span, or by that spacing folded into the stride
+   with the element length as the span.  The product is what the two have in
+   common.  */
+
+static inline index_type
+stride_in_bytes (const gfc_array_void *desc, int n)
+{
+  index_type span = GFC_DESCRIPTOR_SPAN (desc);
+
+  if (span == 0)
+    span = GFC_DESCRIPTOR_SIZE (desc);
+
+  return GFC_DESCRIPTOR_STRIDE (desc, n) * span;
+}
+
 int
 associated (const gfc_array_void *pointer, const gfc_array_void *target)
 {
@@ -37,7 +56,13 @@ associated (const gfc_array_void *pointer, const gfc_array_void *target)
     return 0;
   if (GFC_DESCRIPTOR_DATA (pointer) != GFC_DESCRIPTOR_DATA (target))
     return 0;
-  if (GFC_DESCRIPTOR_SPAN (pointer) != GFC_DESCRIPTOR_SPAN (target))
+  /* The element length is normally held by the dtype, but the descriptor
+     built for a polymorphic pointer to a character section holds the
+     spacing of the elements there instead, and carries the length
+     separately.  Require the two to agree on one or the other: if they
+     agree on neither, the storage sequences differ.  */
+  if (GFC_DESCRIPTOR_SIZE (pointer) != GFC_DESCRIPTOR_SIZE (target)
+      && GFC_DESCRIPTOR_SPAN (pointer) != GFC_DESCRIPTOR_SPAN (target))
     return 0;
   if (GFC_DESCRIPTOR_DTYPE (pointer).type != GFC_DESCRIPTOR_DTYPE (target).type)
     return 0;
@@ -51,7 +76,8 @@ associated (const gfc_array_void *pointer, const gfc_array_void *target)
 
       if (extent != GFC_DESCRIPTOR_EXTENT(target,n))
         return 0;
-      if (GFC_DESCRIPTOR_STRIDE(pointer,n) != GFC_DESCRIPTOR_STRIDE(target,n) && extent != 1)
+      if (stride_in_bytes (pointer, n) != stride_in_bytes (target, n)
+	  && extent != 1)
         return 0;
       if (extent <= 0)
 	return 0;
