@@ -646,9 +646,13 @@ mfloat16
 Target Mask(FLOAT16) Var(rs6000_isa_flags)
 Enable or disable 16-bit floating point.
 
-mfloat16-convert
-Target Undocumented Var(TARGET_FLOAT16_CONVERT) Init(0) Save
+mfloat16-function-convert
+Target Undocumented Var(TARGET_FLOAT16_FUNCTION_CONVERT) Init(0) Save
 Pass and return 16-bit floating point as double.
+
+mbfloat16-convert
+Target Undocumented Var(TARGET_BFLOAT16_CONVERT) Init(1) Save
+Do __bf16 conversions with inline code.
 
 ; Documented parameters
 

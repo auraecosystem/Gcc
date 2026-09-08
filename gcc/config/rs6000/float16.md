@@ -28,7 +28,7 @@
 
 ;; Mode iterator for 16-bit floating point modes on machines with
 ;; hardware support both as a scalar and as a vector.
-(define_mode_iterator FP16_HW [(BF "TARGET_BFLOAT16_HW")
+(define_mode_iterator FP16_HW [(BF "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT")
 			       (HF "TARGET_FLOAT16_HW")])
 
 (define_mode_iterator VFP16_HW [(V8BF "TARGET_BFLOAT16_HW")
@@ -238,7 +238,7 @@
   [(set (match_operand:SFDF 0 "register_operand")
 	(float_extend:SFDF
 	 (match_operand:BF 1 "register_operand")))]
-  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT"
+  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT"
 {
   rtx op0 = operands[0];
   rtx op1 = operands[1];
@@ -265,7 +265,8 @@
 	 (match_operand:BF 1 "int_reg_operand" "r,r")))
    (match_scratch:DI 2 "=r,X")
 ]
-  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT"
+  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT
+   && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& reload_completed"
   [(pc)]
@@ -307,7 +308,7 @@
 	(float_extend:SF
 	 (match_operand:BF 1 "int_reg_operand" "r")))
    (match_scratch:DI 2 "=r")]
-  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW"
+  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& reload_completed"
   [(pc)]
@@ -335,7 +336,8 @@
 	(float_extend:DF
 	 (match_operand:BF 1 "int_reg_operand" "r")))
    (match_scratch:DI 2 "=r")]
-  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT"
+  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT
+    && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& reload_completed"
   [(pc)]
@@ -367,7 +369,7 @@
 	(float_extend:SFDF
 	 (match_operand:BF 1 "vsx_register_operand" "v")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW"
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& 1"
   [(pc)]
@@ -458,7 +460,7 @@
 	(float_truncate:BF
 	 (match_operand:SFDF 1 "vsx_register_operand" "wa")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW"
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& 1"
   [(pc)]
@@ -610,7 +612,7 @@
 	(float_truncate:BF
 	 (match_operand:HF 1 "vsx_register_operand" "wa")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW"
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& 1"
   [(pc)]
@@ -639,7 +641,7 @@
 	(float_truncate:BF
 	 (match_operand:HF 1 "memory_operand" "Z")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW"
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& reload_completed"
   [(pc)]
@@ -668,7 +670,7 @@
 	(float_extend:HF
 	 (match_operand:BF 1 "vsx_register_operand" "wa")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW"
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& 1"
   [(pc)]
@@ -697,7 +699,7 @@
 	(float_extend:HF
 	 (match_operand:BF 1 "memory_operand" "Z")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW"
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
   "#"
   "&& reload_completed"
   [(pc)]
