@@ -1,3 +1,39 @@
+==================== Branch work262-float, patch #210 ====================
+
+Convert __bf16 to float or double on power8 and power9.
+
+2026-09-10  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (extendbf<mode>): Convert to define_expand.
+	(extendbf<mode>2_p10): Rename from extendbf<mode>2.  Allow HFmode/BFmode
+	to be in all VSX registers, not just Altivec registers.
+	(extendbf<mode>2_not_p10): Implement BFmode to SFmode/DFmode conversions
+	just using shifts.
+	(extendbfsf2_memory): Rename from convert_bf_to_sf_store.
+	(fix_trunchf<mode>2): Split HFmode/BFmode fix truncate insns into
+	separate HFmode and BFmode insns.  On BFmode conversions, do the
+	conversion on power8/power9 using shifts and xscvspdpn.
+	(fixuns_trunchf<mode>2): Likewise.
+	(fix_truncbf<mode>2): Likewise.
+	(fixuns_truncbf<GPR:mode>2): Likewise.
+	(bfloat16_binary_op_internal1): Don't do optimization if
+	-mno-bfloat16-p10-convert.
+	(bfloat16_binary_op_internal2): Likewise.
+	(bfloat16_fma_internal1): Likewise.
+	(bfloat16_fma_internal2): Likewise.
+	(bfloat16_fms_internal1): Likewise.
+	(bfloat16_fms_internal2): Likewise.
+	(bfloat16_nfma_internal1): Likewise.
+	(bfloat16_nfma_internal2): Likewise.
+	(bfloat16_nfma_internal3): Likewise.
+	(bfloat16_nfms_internal1): Likewise.
+	(bfloat16_nfms_internal2): Likewise.
+	(bfloat16_nfms_internal3): Likewise.
+	* config/rs6000/rs6000.opt (-mbfloat16-convert): New option.
+	(-mbfloat16-p10-convert): Likewise.
+
 ==================== Branch work262-float, patch #209 ====================
 
 Add _Float16 and __bf16 tests.
