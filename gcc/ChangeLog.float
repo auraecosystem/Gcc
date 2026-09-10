@@ -1,3 +1,19 @@
+==================== Branch work260-float, patch #215 ====================
+
+Add -mbfloat16-p10-convert.
+
+2026-09-10  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (extendbf<mode>2): Add
+	-mbfloat16-p10-convert.
+	(extendbfsf2_sw): Likewise.
+	(extendbfsf2_sw_mem): Likewise.
+	(extendbfdf2_sw): Likewise.
+	(trunc<mode>bf2): Likewise.
+	* config/rs6000/rs6000.opt (-mbfloat16-p10-convert): New option.
+
 ==================== Branch work260-float, patch #214 ====================
 
 Add -mbfloat16-convert; Rename -mfloat16-convert to -mfloat16-function-convert.
