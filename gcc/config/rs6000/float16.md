@@ -233,16 +233,40 @@
   [(set_attr "type" "fpsimple")])
 
 ;; Convert BFmode to SFmode/DFmode.
-;; 3 instructions are generated:
+;; 3 instructions are generated on power10:
 ;;	XXSPLTW		-- duplicate BFmode into all even elements
 ;;	XVCVBF16SPN	-- convert even BFmode elements to SFmode
 ;;	XSCVSPNDP	-- convert memory format of SFmode to DFmode.
-(define_insn_and_split "extendbf<mode>2"
+;;
+;; 3 instructions are generated on power8/power9
+;;	SLDI		-- shift left 48 bits
+;;	MTVSRD		-- move to VSX register
+;;	XSCVSPNDP	-- convert memory format of SFmode to DFmode.
+;;
+;; We have 2 variants for testing.  One that uses the xvcvbf16spn
+;; instruction on power10, and one that does not.
+
+(define_expand "extendbf<mode>2"
+  [(set (match_operand:SFDF 0 "vsx_register_operand")
+	(float_extend:SFDF
+	 (match_operand:BF 1 "gpc_reg_operand")))]
+  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT"
+{
+  if (TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT)
+    emit_insn (gen_extendbf<mode>2_p10 (operands[0], operands[1]));
+  else
+    emit_insn (gen_extendbf<mode>2_not_p10 (operands[0], operands[1]));
+
+  DONE;
+})
+
+(define_insn_and_split "extendbf<mode>2_p10"
   [(set (match_operand:SFDF 0 "vsx_register_operand" "=wa")
 	(float_extend:SFDF
-	 (match_operand:BF 1 "vsx_register_operand" "v")))
+	 (match_operand:BF 1 "vsx_register_operand" "wa")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW"
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT
+   && TARGET_BFLOAT16_P10_CONVERT"
   "#"
   "&& 1"
   [(pc)]
@@ -254,13 +278,49 @@
   if (GET_CODE (op2) == SCRATCH)
     op2 = gen_reg_rtx (V4SFmode);
 
-  /* XXSPLTW -- duplicate BFmode element into all of the even elements.  We
-     can use splat words because we won't be using the odd elements  */
+  /* XXSPLTW -- duplicate BFmode element into all of the even elements.
+     We can use splat words because we won't be using the odd
+     elements.  */
   emit_insn (gen_xxspltw_bf (op2, op1));
 
   /* XVCVBF16SPN -- convert even V8BFmode elements to V4SFmode.  */
   rtx op2_v8bf = gen_lowpart (V8BFmode, op2);
   emit_insn (gen_cvt_fp16_to_v4sf_v8bf (op2, op2_v8bf));
+
+  /* XSCVSPNDP -- convert single V4SFmode element to DFmode.  */
+  emit_insn (GET_MODE (op0) == SFmode
+	     ? gen_xscvspdpn_sf (op0, op2)
+	     : gen_vsx_xscvspdpn (op0, op2));
+
+  DONE;
+}
+  [(set_attr "type" "fpsimple")
+   (set_attr "length" "12")])
+
+(define_insn_and_split "extendbf<mode>2_not_p10"
+  [(set (match_operand:SFDF 0 "vsx_register_operand" "=wa")
+	(float_extend:SFDF
+	 (match_operand:BF 1 "int_reg_operand" "r")))
+   (clobber (match_scratch:V4SF 2 "=wa"))
+   (clobber (match_scratch:DI 3 "=r"))]
+  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT
+   && (!TARGET_BFLOAT16_HW || !TARGET_BFLOAT16_P10_CONVERT)"
+  "#"
+  "&& reload_completed"
+  [(pc)]
+{
+  rtx op0 = operands[0];
+  rtx op1 = operands[1];
+  rtx op2 = operands[2];
+  rtx op3 = operands[3];
+  rtx op1_di = gen_rtx_REG (DImode, reg_or_subregno (op1));
+  rtx op2_di = gen_rtx_REG (DImode, reg_or_subregno (op2));
+
+  /* The shift left of 48 combines a shift left of 16 bits to
+     convert a BFmode to a SFmode with shift left of 32 bits
+     to do the xscvspdpn instruction.  */
+  emit_insn (gen_ashldi3 (op3, op1_di, GEN_INT (48)));
+  emit_move_insn (op2_di, op3);
 
   /* XSCVSPNDP -- convert single V4SFmode element to DFmode.  */
   emit_insn (GET_MODE (op0) == SFmode
@@ -294,7 +354,7 @@
 
 ;; Optimize storing the conversion of BFmode to SFmode by shifting the
 ;; BFmode left 16 bits.
-(define_insn_and_split "*convert_bf_to_sf_store"
+(define_insn_and_split "*extendbfsf2_memory"
   [(set (match_operand:SF 0 "memory_operand" "=m")
 	(float_extend:SF
 	 (match_operand:BF 1 "int_reg_operand" "r")))
@@ -646,27 +706,51 @@
 })
 
 ;; Convert 16-bit floating point modes to integers
-(define_expand "fix_trunc<FP16_HW:mode><GPR:mode>2"
+(define_expand "fix_trunchf<mode>2"
   [(set (match_operand:GPR 0 "vsx_register_operand")
 	(fix:GPR
-	 (match_operand:FP16_HW 1 "vsx_register_operand")))]
-  ""
+	 (match_operand:HF 1 "vsx_register_operand")))]
+  "TARGET_FLOAT16_HW"
 {
   rtx df_tmp = gen_reg_rtx (DFmode);
-  emit_insn (gen_extend<FP16_HW:mode>df2 (df_tmp, operands[1]));
-  emit_insn (gen_fix_truncdf<GPR:mode>2 (operands[0], df_tmp));
+  emit_insn (gen_extendhfdf2 (df_tmp, operands[1]));
+  emit_insn (gen_fix_truncdf<mode>2 (operands[0], df_tmp));
   DONE;
 })
 
-(define_expand "fixuns_trunc<FP16_HW:mode><GPR:mode>2"
+(define_expand "fixuns_trunchf<mode>2"
   [(set (match_operand:GPR 0 "vsx_register_operand")
 	(unsigned_fix:GPR
-	 (match_operand:FP16_HW 1 "vsx_register_operand")))]
-  ""
+	 (match_operand:HF 1 "vsx_register_operand")))]
+  "TARGET_FLOAT16_HW"
 {
   rtx df_tmp = gen_reg_rtx (DFmode);
-  emit_insn (gen_extend<FP16_HW:mode>df2 (df_tmp, operands[1]));
-  emit_insn (gen_fixuns_truncdf<GPR:mode>2 (operands[0], df_tmp));
+  emit_insn (gen_extendhfdf2 (df_tmp, operands[1]));
+  emit_insn (gen_fixuns_truncdf<mode>2 (operands[0], df_tmp));
+  DONE;
+})
+
+(define_expand "fix_truncbf<mode>2"
+  [(set (match_operand:GPR 0 "vsx_register_operand")
+	(fix:GPR
+	 (match_operand:BF 1 "vsx_register_operand")))]
+  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+  emit_insn (gen_extendbfdf2 (df_tmp, operands[1]));
+  emit_insn (gen_fix_truncdf<mode>2 (operands[0], df_tmp));
+  DONE;
+})
+
+(define_expand "fixuns_truncbf<GPR:mode>2"
+  [(set (match_operand:GPR 0 "vsx_register_operand")
+	(unsigned_fix:GPR
+	 (match_operand:BF 1 "vsx_register_operand")))]
+  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+  emit_insn (gen_extendbfdf2 (df_tmp, operands[1]));
+  emit_insn (gen_fixuns_truncdf<mode>2 (operands[0], df_tmp));
   DONE;
 })
 
@@ -1154,7 +1238,7 @@
 	(match_operator:SF 1 "fp16_binary_operator"
 			   [(match_operand:SF 2 "bfloat16_v4sf_operand")
 			    (match_operand:SF 3 "bfloat16_v4sf_operand")]))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[2], SFmode)
        || bfloat16_bf_operand (operands[3], SFmode))"
   "#"
@@ -1172,7 +1256,7 @@
 	 (match_operator:SF 1 "fp16_binary_operator"
 			    [(match_operand:SF 2 "bfloat16_v4sf_operand")
 			     (match_operand:SF 3 "bfloat16_v4sf_operand")])))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[2], SFmode)
        || bfloat16_bf_operand (operands[3], SFmode))"
   "#"
@@ -1190,7 +1274,7 @@
 	 (match_operand:SF 1 "bfloat16_v4sf_operand")
 	 (match_operand:SF 2 "bfloat16_v4sf_operand")
 	 (match_operand:SF 3 "bfloat16_v4sf_operand")))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1210,7 +1294,7 @@
 	  (match_operand:SF 1 "bfloat16_v4sf_operand")
 	  (match_operand:SF 2 "bfloat16_v4sf_operand")
 	  (match_operand:SF 3 "bfloat16_v4sf_operand"))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1230,7 +1314,7 @@
 	 (match_operand:SF 2 "bfloat16_v4sf_operand")
 	 (neg:SF
 	  (match_operand:SF 3 "bfloat16_v4sf_operand"))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1251,7 +1335,7 @@
 	  (match_operand:SF 2 "bfloat16_v4sf_operand")
 	  (neg:SF
 	   (match_operand:SF 3 "bfloat16_v4sf_operand")))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1271,7 +1355,7 @@
 	  (match_operand:SF 1 "bfloat16_v4sf_operand")
 	  (match_operand:SF 2 "bfloat16_v4sf_operand")
 	  (match_operand:SF 3 "bfloat16_v4sf_operand"))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1292,7 +1376,7 @@
 	   (match_operand:SF 1 "bfloat16_v4sf_operand")
 	   (match_operand:SF 2 "bfloat16_v4sf_operand")
 	   (match_operand:SF 3 "bfloat16_v4sf_operand")))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1313,7 +1397,7 @@
 	   (match_operand:SF 1 "bfloat16_v4sf_operand")
 	   (match_operand:SF 2 "bfloat16_v4sf_operand")
 	   (match_operand:SF 3 "bfloat16_v4sf_operand")))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1334,7 +1418,7 @@
 	  (match_operand:SF 2 "bfloat16_v4sf_operand")
 	  (neg:SF
 	   (match_operand:SF 3 "bfloat16_v4sf_operand")))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1356,7 +1440,7 @@
 	   (match_operand:SF 2 "bfloat16_v4sf_operand")
 	   (neg:SF
 	    (match_operand:SF 3 "bfloat16_v4sf_operand"))))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1378,7 +1462,7 @@
 	   (match_operand:SF 2 "bfloat16_v4sf_operand")
 	   (neg:SF
 	    (match_operand:SF 3 "bfloat16_v4sf_operand"))))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
