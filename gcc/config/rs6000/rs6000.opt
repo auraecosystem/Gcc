@@ -654,6 +654,10 @@ mbfloat16-convert
 Target Undocumented Var(TARGET_BFLOAT16_CONVERT) Init(1) Save
 Do __bf16 conversions with inline code.
 
+mbfloat16-p10-convert
+Target Undocumented Var(TARGET_BFLOAT16_P10_CONVERT) Init(1) Save
+Use power10 instructions to convert __bf16 to float/double.
+
 ; Documented parameters
 
 -param=rs6000-vect-unroll-limit=

@@ -243,7 +243,7 @@
   rtx op0 = operands[0];
   rtx op1 = operands[1];
 
-  if (TARGET_BFLOAT16_HW)
+  if (TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT)
     emit_insn (gen_extendbf<mode>2_hw (op0, op1));
 
   else if (<MODE>mode == SFmode)
@@ -265,8 +265,8 @@
 	 (match_operand:BF 1 "int_reg_operand" "r,r")))
    (match_scratch:DI 2 "=r,X")
 ]
-  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT
-   && TARGET_BFLOAT16_CONVERT"
+  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT
+   && (!TARGET_BFLOAT16_HW || !TARGET_BFLOAT16_P10_CONVERT)"
   "#"
   "&& reload_completed"
   [(pc)]
@@ -308,7 +308,8 @@
 	(float_extend:SF
 	 (match_operand:BF 1 "int_reg_operand" "r")))
    (match_scratch:DI 2 "=r")]
-  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
+  "TARGET_FLOAT16 && TARGET_BFLOAT16_CONVERT
+   && (!TARGET_BFLOAT16_HW || !TARGET_BFLOAT16_P10_CONVERT)"
   "#"
   "&& reload_completed"
   [(pc)]
@@ -336,8 +337,8 @@
 	(float_extend:DF
 	 (match_operand:BF 1 "int_reg_operand" "r")))
    (match_scratch:DI 2 "=r")]
-  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW && TARGET_DIRECT_MOVE_64BIT
-    && TARGET_BFLOAT16_CONVERT"
+  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT
+   && (!TARGET_BFLOAT16_HW || !TARGET_BFLOAT16_P10_CONVERT)"
   "#"
   "&& reload_completed"
   [(pc)]
@@ -460,7 +461,8 @@
 	(float_truncate:BF
 	 (match_operand:SFDF 1 "vsx_register_operand" "wa")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT"
+  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT
+   && !TARGET_BFLOAT16_P10_CONVERT"
   "#"
   "&& 1"
   [(pc)]
