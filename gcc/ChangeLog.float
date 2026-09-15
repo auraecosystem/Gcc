@@ -1,3 +1,34 @@
+==================== Branch work262-float, patch #211 ====================
+
+Float16 conversion functions pass 16-bit values in GPRs.
+
+2026-09-14  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (FP16_CVT): New iterator.
+	(extendbf<mode>2): Use TARGET_BFLOAT16_CVT.
+	(extendbf<mode>2_memory): Likewise.
+	(fix_trunc<FP16_HW:mode><GPR:mode>2): Go back to merged insns for BFmode
+	and HFmode.
+	(fixuns_trunc<FP16_HW:mode><GPR:mode>2): Likewise.
+	* config/rs6000/rs6000-call.cc (USE_FP_FOR_ARG_P): If
+	-mfloat16-convert-in-gprs pass/return 16-bit floating point values for
+	conversion functions.
+	(is_float16_convert_function): New helper function.
+	(mark_float16_convert_function): Likewise.
+	(init_cumulative_args): Add support for -mfloat16-convert-in-gprs.  If
+	-mdebug=arg, print the function name.
+	* config/rs6000/rs6000-protos.h (is_float16_convert_function): New
+	declaration.
+	(mark_float16_convert_function): Likewise.
+	* config/rs6000/rs6000.cc (init_float16): Mark 16-bit floating point
+	conversion functions.
+	(rs6000_init_libfuncs): Likewise.
+	* config/rs6000/rs6000.h (TARGET_BFLOAT16_CVT): New macro.
+	(struct rs6000_args): Add float16_convert field.
+	* config/rs6000/rs6000.opt (-mfloat16-convert-in-gprs): New option.
+
 ==================== Branch work262-float, patch #210 ====================
 
 Convert __bf16 to float or double on power8 and power9.
