@@ -3994,17 +3994,25 @@ rs6000_option_override_internal (bool global_init_p)
 	}
     }
 
-  /* 16-bit floating point needs 64-bit power8 at a minimum in order to load up
-     16-bit values into vector registers via loads/stores from GPRs and then
-     using direct moves.  Don't allow 16-bit float on big endian systems at the
-     current time.  */
-  if (TARGET_FLOAT16 && (!TARGET_DIRECT_MOVE_64BIT || BYTES_BIG_ENDIAN))
+  /* Limit 16-bit floating point to power9 or later in order to load up
+     16-bit values into vector registers via loads/stores from GPRs and
+     then using direct moves.  Don't allow 16-bit float on big endian
+     systems at the current time.  */
+  if (TARGET_FLOAT16)
     {
-      rs6000_isa_flags &= ~OPTION_MASK_FLOAT16;
-      if (rs6000_isa_flags_explicit & OPTION_MASK_FLOAT16)
-	error ("%qs is only available on 64-bit little endian systems "
-	       "that use at least %qs",
-	       "-mfloat16", "-mcpu=power8");
+      if (!TARGET_P9_VECTOR)
+	{
+	  rs6000_isa_flags &= ~OPTION_MASK_FLOAT16;
+	  if (rs6000_isa_flags_explicit & OPTION_MASK_FLOAT16)
+	    error ("%qs needs at least %qs", "-mfloat16", "-mcpu=power9");
+	}
+      else if (BYTES_BIG_ENDIAN || !TARGET_POWERPC64)
+	{
+	  rs6000_isa_flags &= ~OPTION_MASK_FLOAT16;
+	  if (rs6000_isa_flags_explicit & OPTION_MASK_FLOAT16)
+	    error ("%qs is only available on 64-bit little endian systems",
+		   "-mfloat16");
+	}
     }
 
   /* If hard-float/altivec/vsx were explicitly turned off then don't allow
@@ -24781,7 +24789,7 @@ rs6000_scalar_mode_supported_p (scalar_mode mode)
   else if (TARGET_FLOAT128_TYPE && (mode == KFmode || mode == IFmode))
     return true;
   else if (FP16_SCALAR_MODE_P (mode))
-    return true;
+    return TARGET_FLOAT16;
   else
     return default_scalar_mode_supported_p (mode);
 }
