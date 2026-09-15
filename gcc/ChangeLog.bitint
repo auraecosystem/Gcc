@@ -1,0 +1,14 @@
+==================== Branch work263-bitint, baseline ====================
+
+2026-09-15   Michael Meissner  <meissner@linux.ibm.com>
+
+Add ChangeLog.bitint and update REVISION.
+
+2026-09-15  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* ChangeLog.bitint: New file for branch.
+	* REVISION: Update.
+
+	Clone branch
