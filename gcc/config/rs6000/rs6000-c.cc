@@ -587,19 +587,21 @@ rs6000_target_modify_macros (bool define_p, HOST_WIDE_INT flags)
   if ((flags & OPTION_MASK_FLOAT16) != 0)
     {
       rs6000_define_or_undefine_macro (define_p, "__FLOAT16__");
-      rs6000_define_or_undefine_macro (define_p, "__BF16__");
+      rs6000_define_or_undefine_macro (define_p, "__BFLOAT16__");
 
       /* Older versions of the PowerPC __bf16 patches used __bfloat16 as the
 	 keyword instead of __bf16.  Support using __bfloat16 as an alternative
 	 to __bf16.  */
       rs6000_define_or_undefine_macro (define_p, "__bfloat16=__bf16");
-      rs6000_define_or_undefine_macro (define_p, "__BFLOAT16__");
 
       if ((flags & OPTION_MASK_P9_VECTOR) != 0)
 	rs6000_define_or_undefine_macro (define_p, "__FLOAT16_HW__");
 
       if ((flags & OPTION_MASK_POWER10) != 0)
 	rs6000_define_or_undefine_macro (define_p, "__BFLOAT16_HW__");
+
+      if ((flags & OPTION_MASK_FLOAT16_GPR_CONVERT) != 0)
+	rs6000_define_or_undefine_macro (define_p, "__FLOAT16_GPR_CONVERT__");
     }
   /* Tell the user if we are targeting CELL.  */
   if (rs6000_cpu == PROCESSOR_CELL)

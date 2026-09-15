@@ -11947,7 +11947,7 @@ rs6000_init_libfuncs (void)
     }
 
   /* 16-bit float support functions.  */
-  if (TARGET_FLOAT16 && TARGET_FLOAT16_CONVERT_IN_GPRS)
+  if (TARGET_FLOAT16 && TARGET_FLOAT16_GPR_CONVERT)
     init_float16 ();
 }
 
@@ -25036,6 +25036,7 @@ static struct rs6000_opt_mask const rs6000_opt_masks[] =
   { "hard-dfp",			OPTION_MASK_DFP,		false, true  },
   { "htm",			OPTION_MASK_HTM,		false, true  },
   { "float16",			OPTION_MASK_FLOAT16,		false, true  },
+  { "float16-gpr-convert",	OPTION_MASK_FLOAT16_GPR_CONVERT, false, true },
   { "isel",			OPTION_MASK_ISEL,		false, true  },
   { "mfcrf",			OPTION_MASK_MFCRF,		false, true  },
   { "mfpgpr",			0,				false, true  },
@@ -25134,9 +25135,6 @@ static struct rs6000_opt_var const rs6000_opt_vars[] =
   { "speculate-indirect-jumps",
     offsetof (struct gcc_options, x_rs6000_speculate_indirect_jumps),
     offsetof (struct cl_target_option, x_rs6000_speculate_indirect_jumps), },
-  { "float16-convert-in-gprs",
-    offsetof (struct gcc_options, x_TARGET_FLOAT16_CONVERT_IN_GPRS),
-    offsetof (struct cl_target_option, x_TARGET_FLOAT16_CONVERT_IN_GPRS), },
 };
 
 /* Inner function to handle attribute((target("..."))) and #pragma GCC target

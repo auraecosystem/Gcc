@@ -638,7 +638,7 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
   if (incoming || cum->prototype)
     cum->nargs_prototype = n_named_args;
 
-  if (TARGET_FLOAT16 && TARGET_FLOAT16_CONVERT_IN_GPRS && libname
+  if (TARGET_FLOAT16 && TARGET_FLOAT16_GPR_CONVERT && libname
       && SYMBOL_REF_P (libname))
     {
       const char *name = XSTR (libname, 0);
