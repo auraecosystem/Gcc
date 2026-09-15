@@ -1,3 +1,24 @@
+==================== Branch work263-float, patch #211 ====================
+
+Limit 16-bit floating point to power9 or later.
+
+2026-09-15  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (FP16_FLOAT_CONVERT): Rename from
+	fp16_float_convert.  Restructure code.
+	(extend<FP16_HW:mode><FP16_FLOAT_CONVERT:mode>2): Likewise.
+	(trunc<fp16_float_convert:mode><FP16_HW:mode>2): Likewise.
+	(float<GPR:mode><FP16_HW:mode>2): Restructure code.
+	(floatuns<GPR:mode><FP16_HW:mode>2): Likewise.
+	(fix_trunc<FP16_HW:mode><GPR:mode>2): Likewise.
+	(fixuns_trunc<FP16_HW:mode><GPR:mode>2): Likewise.
+	* config/rs6000/rs6000.cc (rs6000_option_override_internal): Limit
+	16-bit floating point to power9 or later.
+	(rs6000_scalar_mode_supported_p): Limit 16-bit floating point to
+	-mfloat16.
+
 ==================== Branch work263-float, patch #210 ====================
 
 Add -mfloat16-convert-in-gprs.
