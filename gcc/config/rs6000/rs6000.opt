@@ -646,6 +646,14 @@ mfloat16
 Target Mask(FLOAT16) Var(rs6000_isa_flags)
 Enable or disable 16-bit floating point.
 
+mbfloat16-convert
+Target Undocumented Var(TARGET_BFLOAT16_CONVERT) Init(1) Save
+Generate (do not generate) __bf16 to float/double conversions.
+
+mbfloat16-p10-convert
+Target Undocumented Var(TARGET_BFLOAT16_P10_CONVERT) Init(1) Save
+Generate (do not generate) xvcvbf16spn to do __bf16 to float/double conversions.
+
 mfloat16-convert-in-gprs
 Target Undocumented Var(TARGET_FLOAT16_CONVERT_IN_GPRS) Init(0) Save
 Pass/return (do not pass/return) 16-it float conversions in GPR registers.
