@@ -11828,6 +11828,86 @@ init_float128_ieee (machine_mode mode)
     }
 }
 
+/* For 16-bit floating point, mark the identifier of the conversion functions
+   so they pass/register the HFmode and BFmode in a GPR register rather than a
+   floating point register.  Thus if HFmode/BFmode are converted to DFmode for
+   passing and returning values, we can do the conversion on machines that
+   don't have the conversions.  */
+
+static void
+init_float16 (void)
+{
+  char fname[80];
+
+  /* Map mode to a string.  */
+  struct mode_string  {
+    const enum machine_mode mode;
+    const char *const name;
+  };
+
+  const static struct mode_string fp16_modes[] = {
+    { E_BFmode, "bf" },
+    { E_HFmode, "hf" },
+  };
+
+  const static struct mode_string fp_modes[] = {
+    { E_SFmode, "sf" },
+    { E_DFmode, "df" },
+  };
+
+  const static struct mode_string int_modes[] = {
+    { E_SImode, "si" },
+    { E_DImode, "di" },
+  };
+
+  for (size_t i = 0; i < ARRAY_SIZE (fp16_modes); i++)
+    {
+      enum machine_mode fp16_mode = fp16_modes[i].mode;
+      const char *fp16_name = fp16_modes[i].name;
+
+      /* Conversions between {SFmode,DFmode} <=> {BFmode,HFmode}.  */
+      for (size_t j = 0; j < ARRAY_SIZE (fp_modes); j++)
+	{
+	  enum machine_mode fp_mode = fp_modes[j].mode;
+	  const char *fp_name = fp_modes[j].name;
+
+	  sprintf (fname, "__extend%s%s2_gpr", fp16_name, fp_name);
+	  set_conv_libfunc (sext_optab, fp_mode, fp16_mode, fname);
+	  mark_float16_convert_function (fname);
+
+	  sprintf (fname, "__trunc%s%s2_gpr", fp_name, fp16_name);
+	  set_conv_libfunc (trunc_optab, fp16_mode, fp_mode, fname);
+	  mark_float16_convert_function (fname);
+	}
+
+      /* Conversions between {SImode,DImode} <=> {BFmode,HFmode}.  */
+      for (size_t j = 0; j < ARRAY_SIZE (int_modes); j++)
+	{
+	  enum machine_mode int_mode = int_modes[j].mode;
+	  const char *int_name = int_modes[j].name;
+
+	  if (int_mode == SImode || TARGET_POWERPC64)
+	    {
+	      sprintf (fname, "__float%s%s2_gpr", int_name, fp16_name);
+	      set_conv_libfunc (sfloat_optab, fp16_mode, int_mode, fname);
+	      mark_float16_convert_function (fname);
+
+	      sprintf (fname, "__floatuns%s%s2_gpr", int_name, fp16_name);
+	      set_conv_libfunc (ufloat_optab, fp16_mode, int_mode, fname);
+	      mark_float16_convert_function (fname);
+
+	      sprintf (fname, "__fix_trunc%s%s2_gpr", fp16_name, int_name);
+	      set_conv_libfunc (sfix_optab, int_mode, fp16_mode, fname);
+	      mark_float16_convert_function (fname);
+
+	      sprintf (fname, "__fixuns_trunc%s%s2_gpr", fp16_name, int_name);
+	      set_conv_libfunc (ufix_optab, int_mode, fp16_mode, fname);
+	      mark_float16_convert_function (fname);
+	    }
+	}
+    }
+}
+
 static void
 rs6000_init_libfuncs (void)
 {
@@ -11848,6 +11928,10 @@ rs6000_init_libfuncs (void)
       else
 	init_float128_ieee (TFmode);
     }
+
+  /* 16-bit float support functions.  */
+  if (TARGET_FLOAT16 && TARGET_FLOAT16_CONVERT_IN_GPRS)
+    init_float16 ();
 }
 
 /* Emit a potentially record-form instruction, setting DST from SRC.

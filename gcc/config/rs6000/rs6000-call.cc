@@ -81,10 +81,12 @@
 #define TARGET_NO_PROTOTYPE 0
 #endif
 
-/* Nonzero if we can use a floating-point register to pass this arg.  */
-#define USE_FP_FOR_ARG_P(CUM,MODE)		\
-  (SCALAR_FLOAT_MODE_NOT_VECTOR_P (MODE)		\
-   && (CUM)->fregno <= FP_ARG_MAX_REG		\
+/* Nonzero if we can use a floating-point register to pass this arg.  16-bit
+   floating point arguments to library functions are passed as ints.  */
+#define USE_FP_FOR_ARG_P(CUM,MODE)					\
+  (SCALAR_FLOAT_MODE_NOT_VECTOR_P (MODE)				\
+   && !(CUM)->float16_convert						\
+   && (CUM)->fregno <= FP_ARG_MAX_REG					\
    && TARGET_HARD_FLOAT)
 
 /* Nonzero if we can use an AltiVec register to pass this arg.  */
@@ -558,6 +560,30 @@ call_ABI_of_interest (tree fndecl)
 }
 #endif
 
+/* For 16-bit floating point, mark the identifier of the conversion functions
+   so they pass the HFmode and BFmode in an integer register rather than a
+   floating point register.  Thus if HFmode/BFmode are converted to DFmode for
+   passing and returning values, we can do the conversion on machines that
+   don't have the conversions.  */
+
+bool
+is_float16_convert_function (const char *name)
+{
+  if (!name)
+    return false;
+
+  tree id = get_identifier (name);
+  return id->base.default_def_flag;
+}
+
+void
+mark_float16_convert_function (char *name)
+{
+  tree id = get_identifier (name);
+  id->base.default_def_flag = 1;
+  fprintf (stderr, "=== %s ===\n", name);
+}
+
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
    for a call to a function whose data type is FNTYPE.
    For a library call, FNTYPE is 0 and RETURN_MODE the return value mode.
@@ -567,7 +593,7 @@ call_ABI_of_interest (tree fndecl)
 
 void
 init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
-		      rtx libname ATTRIBUTE_UNUSED, int incoming,
+		      rtx libname, int incoming,
 		      int libcall, int n_named_args,
 		      tree fndecl,
 		      machine_mode return_mode ATTRIBUTE_UNUSED)
@@ -588,6 +614,14 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
   cum->nargs_prototype = 0;
   if (incoming || cum->prototype)
     cum->nargs_prototype = n_named_args;
+
+  if (TARGET_FLOAT16 && TARGET_FLOAT16_CONVERT_IN_GPRS && libname
+      && SYMBOL_REF_P (libname))
+    {
+      const char *name = XSTR (libname, 0);
+      if (name)
+	cum->float16_convert = is_float16_convert_function (name);
+    }
 
   /* Check for a longcall attribute.  */
   if ((!fntype && rs6000_default_long_calls)
@@ -629,6 +663,12 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
 
       if (cum->call_cookie & CALL_LONG)
 	fprintf (stderr, " longcall,");
+
+      if (cum->float16_convert)
+	fprintf (stderr, " fp16-cvt,");
+
+      if (libname)
+	fprintf (stderr, " name=%s,", XSTR (libname, 0));
 
       fprintf (stderr, " proto = %d, nargs = %d\n",
 	       cum->prototype, cum->nargs_prototype);

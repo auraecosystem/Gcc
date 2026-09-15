@@ -34,6 +34,12 @@
 (define_mode_iterator VFP16_HW [(V8BF "TARGET_BFLOAT16_HW")
 				(V8HF "TARGET_FLOAT16_HW")])
 
+;; Mode iterator for conversions from 16-bit floating point.
+;; Unlike FP16_HW, this specifically allows converting from
+;; BFmode even if we don't have the bfloat16 conversion.
+(define_mode_iterator FP16_CVT [(BF "TARGET_BFLOAT16_CVT")
+			        (HF "TARGET_FLOAT16_HW")])
+
 ;; Mode iterator for floating point modes other than SF/DFmode that we
 ;; convert to/from _Float16 (HFmode) via DFmode.
 (define_mode_iterator fp16_float_convert [TF KF IF SD DD TD])
@@ -250,7 +256,7 @@
   [(set (match_operand:SFDF 0 "vsx_register_operand")
 	(float_extend:SFDF
 	 (match_operand:BF 1 "gpc_reg_operand")))]
-  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT"
+  "TARGET_BFLOAT16_CVT"
 {
   if (TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT)
     emit_insn (gen_extendbf<mode>2_p10 (operands[0], operands[1]));
@@ -303,7 +309,7 @@
 	 (match_operand:BF 1 "int_reg_operand" "r")))
    (clobber (match_scratch:V4SF 2 "=wa"))
    (clobber (match_scratch:DI 3 "=r"))]
-  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT
+  "TARGET_BFLOAT16_CVT
    && (!TARGET_BFLOAT16_HW || !TARGET_BFLOAT16_P10_CONVERT)"
   "#"
   "&& reload_completed"
@@ -705,54 +711,30 @@
   DONE;
 })
 
-;; Convert 16-bit floating point modes to integers
-(define_expand "fix_trunchf<mode>2"
+(define_expand "fix_trunc<FP16_HW:mode><GPR:mode>2"
   [(set (match_operand:GPR 0 "vsx_register_operand")
 	(fix:GPR
-	 (match_operand:HF 1 "vsx_register_operand")))]
-  "TARGET_FLOAT16_HW"
+	 (match_operand:FP16_HW 1 "vsx_register_operand")))]
+  ""
 {
   rtx df_tmp = gen_reg_rtx (DFmode);
-  emit_insn (gen_extendhfdf2 (df_tmp, operands[1]));
-  emit_insn (gen_fix_truncdf<mode>2 (operands[0], df_tmp));
+  emit_insn (gen_extend<FP16_HW:mode>df2 (df_tmp, operands[1]));
+  emit_insn (gen_fix_truncdf<GPR:mode>2 (operands[0], df_tmp));
   DONE;
 })
 
-(define_expand "fixuns_trunchf<mode>2"
+(define_expand "fixuns_trunc<FP16_HW:mode><GPR:mode>2"
   [(set (match_operand:GPR 0 "vsx_register_operand")
 	(unsigned_fix:GPR
-	 (match_operand:HF 1 "vsx_register_operand")))]
-  "TARGET_FLOAT16_HW"
+	 (match_operand:FP16_HW 1 "vsx_register_operand")))]
+  ""
 {
   rtx df_tmp = gen_reg_rtx (DFmode);
-  emit_insn (gen_extendhfdf2 (df_tmp, operands[1]));
-  emit_insn (gen_fixuns_truncdf<mode>2 (operands[0], df_tmp));
+  emit_insn (gen_extend<FP16_HW:mode>df2 (df_tmp, operands[1]));
+  emit_insn (gen_fixuns_truncdf<GPR:mode>2 (operands[0], df_tmp));
   DONE;
 })
 
-(define_expand "fix_truncbf<mode>2"
-  [(set (match_operand:GPR 0 "vsx_register_operand")
-	(fix:GPR
-	 (match_operand:BF 1 "vsx_register_operand")))]
-  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT"
-{
-  rtx df_tmp = gen_reg_rtx (DFmode);
-  emit_insn (gen_extendbfdf2 (df_tmp, operands[1]));
-  emit_insn (gen_fix_truncdf<mode>2 (operands[0], df_tmp));
-  DONE;
-})
-
-(define_expand "fixuns_truncbf<GPR:mode>2"
-  [(set (match_operand:GPR 0 "vsx_register_operand")
-	(unsigned_fix:GPR
-	 (match_operand:BF 1 "vsx_register_operand")))]
-  "TARGET_FLOAT16 && TARGET_DIRECT_MOVE_64BIT && TARGET_BFLOAT16_CONVERT"
-{
-  rtx df_tmp = gen_reg_rtx (DFmode);
-  emit_insn (gen_extendbfdf2 (df_tmp, operands[1]));
-  emit_insn (gen_fixuns_truncdf<mode>2 (operands[0], df_tmp));
-  DONE;
-})
 
 ;; Negate 16-bit floating point by XOR with -0.0.
 

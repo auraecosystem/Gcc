@@ -355,6 +355,12 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define TARGET_BFLOAT16_HW	(TARGET_FLOAT16 && TARGET_POWER10)
 #define TARGET_FLOAT16_HW	(TARGET_FLOAT16 && TARGET_P9_VECTOR)
 
+/* Mode iterator for conversions from 16-bit floating point.  Unlike
+   TARGET_BFLOAT16_HW, this specifically allows converting from BFmode even if
+   we don't have the bfloat16 conversion.  We do this conversion  */
+#define TARGET_BFLOAT16_CVT						\
+  (TARGET_FLOAT16 && TARGET_BFLOAT16_CONVERT && TARGET_P9_VECTOR)
+
 /* Do we have conversion support in hardware for the 16-bit floating point and
    also enable the 16-bit floating point vector optimizations?  */
 #define TARGET_BFLOAT16_HW_VECTOR					\
@@ -1515,6 +1521,7 @@ typedef struct rs6000_args
   int named;			/* false for varargs params */
   int escapes;			/* if function visible outside tu */
   int libcall;			/* If this is a compiler generated call.  */
+  int float16_convert;		/* 16-bit float conversion function.  */
 } CUMULATIVE_ARGS;
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
