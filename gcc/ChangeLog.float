@@ -1,3 +1,24 @@
+==================== Branch work263-float, patch #212 ====================
+
+Do BF to SF converts on p9; Remove int conversions; Add BF debug switches.
+
+2026-09-15  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (extendbf<mode>2): On power9, convert BFmode
+	to SFmode or DFmode by shifting.
+	(extendbf<mode>2_p1): Likewise.
+	(extendbf<mode>2_not_p10): Likewise.
+	(extendbfsf2_memory): Rename from convert_bf_to_sf_store.
+	(float<GPR:mode><FP16_HW:mode>2): Delete integer conversion insns.
+	(floatuns<GPR:mode><FP16_HW:mode>2): Likewise.
+	(fix_trunc<FP16_HW:mode><GPR:mode): Likewise.
+	(fixuns_trunc<FP16_HW:mode><GPR:mode>2): Likewise.
+	* config/rs6000/rs6000.h (TARGET_BFLOAT16_CVT): New macro.
+	* config/rs6000/rs6000.opt (-mbfloat16-convert): New debug switch.
+	(mbfloat16-p10-convert): Likewise.
+
 ==================== Branch work263-float, patch #211 ====================
 
 Limit 16-bit floating point to power9 or later.
