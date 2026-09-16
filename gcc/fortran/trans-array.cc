@@ -8658,10 +8658,15 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	    tmp2 = build_fold_indirect_ref_loc (input_location, tmp2);
 	  dtype = gfc_conv_descriptor_dtype_get (tmp2);
 	}
+      else if (se->direct_byref
+	       && (se->class_container || se->class_vptr))
+	/* If the lhs is polymorphic, take the dtype from the rhs.  */
+	dtype = gfc_get_dtype (type);
       else
 	dtype = gfc_get_dtype (parmtype);
       gfc_conv_descriptor_dtype_set (&loop.pre, parm, dtype);
 
+#if 0
       /* The element length has just been set from the declaration type.
 	 Overwrite it with the runtime value for classes.  */
       if (expr->ts.type == BT_CLASS)
@@ -8669,6 +8674,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	  tree elen = gfc_conv_descriptor_elem_len_get (desc);
 	  gfc_conv_descriptor_elem_len_set(&loop.pre, parm, elen);
 	}
+#endif
 
       /* The 1st element in the section.  */
       base = gfc_index_zero_node;
