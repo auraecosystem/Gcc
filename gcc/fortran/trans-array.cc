@@ -2769,10 +2769,6 @@ trans_array_constructor (gfc_ss * ss, locus * where)
       mpz_clear (size);
     }
 
-  bool unlimited_polymorphic = false;
-  if (!se->direct_byref)
-    unlimited_polymorphic = UNLIMITED_POLY (expr);
-
   /* Special case constant array constructors.  */
   if (!dynamic)
     {
@@ -8176,6 +8172,10 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
       gcc_assert (expr->value.function.isym->id == GFC_ISYM_TRANSPOSE);
       expr = expr->value.function.actual->expr;
     }
+
+  bool unlimited_polymorphic = false;
+  if (!se->direct_byref)
+    unlimited_polymorphic = UNLIMITED_POLY (expr);
 
   /* Special case things we know we can pass easily.  */
   switch (expr->expr_type)
