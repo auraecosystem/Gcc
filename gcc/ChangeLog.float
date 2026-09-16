@@ -1,3 +1,36 @@
+==================== Branch work263-float, patch #214 ====================
+
+Drop power8 bfloat16 test.
+
+2026-09-15  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/bf16-2.c: Drop power8 support.
+
+==================== Branch work263-float, patch #213 ====================
+
+Do BF to SF converts on p9; Remove int conversions; Add BF debug switches.
+
+2026-09-15  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-c.cc (rs6000_target_modify_macros): Don't define
+	__BF16__.  If -mfloat16-gpr-convert, define __FLOAT16_GPR_CONVERT__.
+	* config/rs6000/rs6000-call.cc (POWERPC_MASKS): Add
+	OPTION_MASK_FLOAT16_GPR_CONVERT.
+	* config/rs6000/rs6000.cc (rs6000_init_libfuncs): Change
+	TARGET_FLOAT16_CONVERT_IN_GPRS to TARGET_FLOAT16_GPR_CONVERT.
+	(rs6000_opt_masks): Add -mfloat16-gpr-convert.
+	(rs6000_opt_vars): Drop TARGET_FLOAT16_CONVERT_IN_GPRS.
+	* config/rs6000/rs6000.opt (-mfloat16-gpr-convert): Rename from
+	-mfloat16-convert-in-gprs.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/float16-2.c: Drop power8 support.
+
 ==================== Branch work263-float, patch #212 ====================
 
 Do BF to SF converts on p9; Remove int conversions; Add BF debug switches.
