@@ -11926,8 +11926,9 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 	  gcc_assert (remap->u.ar.dimen == expr1->rank);
 
 	  /* Always set dtype.  */
-	  gfc_conv_descriptor_dtype_set (&block, desc,
-					 gfc_get_dtype (TREE_TYPE (desc)));
+	  if (expr1->ts.type != BT_CLASS)
+	    gfc_conv_descriptor_dtype_set (&block, desc,
+					   gfc_get_dtype (TREE_TYPE (desc)));
 
 	  /* For unlimited polymorphic LHS use elem_len from RHS.  */
 	  if (UNLIMITED_POLY (expr1) && expr2->ts.type != BT_CLASS)
