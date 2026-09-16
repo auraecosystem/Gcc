@@ -8647,9 +8647,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
          the offsets because all elements are within the array data.  */
 
       /* Set the dtype.  */
-      if (se->unlimited_polymorphic
-	  || (se->direct_byref
-	      && (se->class_container || se->class_vptr)))
+      if (se->unlimited_polymorphic)
 	dtype = gfc_get_dtype (TREE_TYPE (desc), &loop.dimen);
       else if (expr->ts.type == BT_ASSUMED)
 	{
@@ -8659,6 +8657,19 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	  if (POINTER_TYPE_P (TREE_TYPE (tmp2)))
 	    tmp2 = build_fold_indirect_ref_loc (input_location, tmp2);
 	  dtype = gfc_conv_descriptor_dtype_get (tmp2);
+	}
+      /* If we are pointer-assigning to a polymorphic pointer, don't guess
+	 the dtype from the lhs.  */
+      else if (se->direct_byref
+	       && (se->class_container || se->class_vptr))
+	{
+	  if (info && info->ref && info->ref->next)
+	    {
+	      tree t = gfc_typenode_for_spec (&expr->ts);
+	      dtype = gfc_get_dtype_rank_type (loop.dimen, t);
+	    }
+	  else
+	    dtype = gfc_get_dtype (TREE_TYPE (desc), &loop.dimen);
 	}
       else
 	dtype = gfc_get_dtype (parmtype);

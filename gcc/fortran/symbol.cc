@@ -5720,7 +5720,6 @@ gfc_dummy_requires_direct_arg (gfc_symbol *sym)
 	 && !sym->attr.pointer
 	 && !sym->attr.allocatable
 	 && sym->ts.type != BT_CLASS
-	 && sym->ts.type != BT_ASSUMED
 	 && sym->as
 	 && (sym->as->type == AS_ASSUMED_SHAPE
 	     || sym->as->type == AS_ASSUMED_RANK);
