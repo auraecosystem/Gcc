@@ -4000,11 +4000,11 @@ rs6000_option_override_internal (bool global_init_p)
      systems at the current time.  */
   if (TARGET_FLOAT16)
     {
-      if (!TARGET_P9_VECTOR)
+      if (!TARGET_P8_VECTOR)
 	{
 	  rs6000_isa_flags &= ~OPTION_MASK_FLOAT16;
 	  if (rs6000_isa_flags_explicit & OPTION_MASK_FLOAT16)
-	    error ("%qs needs at least %qs", "-mfloat16", "-mcpu=power9");
+	    error ("%qs needs at least %qs", "-mfloat16", "-mcpu=power8");
 	}
       else if (BYTES_BIG_ENDIAN || !TARGET_POWERPC64)
 	{

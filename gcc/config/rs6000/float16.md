@@ -598,7 +598,7 @@
 ;;	XVCVBF16SP  tmp1,tmp1
 ;;	XVCVSPBF16N r0,tmp1
 
-(define_insn_and_split "expandbfhf2"
+(define_insn_and_split "extendbfhf2"
   [(set (match_operand:HF 0 "vsx_register_operand" "=wa")
 	(float_extend:HF
 	 (match_operand:BF 1 "vsx_register_operand" "wa")))
@@ -678,6 +678,59 @@
   convert_move (operands[0], df_tmp, 0);
   DONE;
 })
+
+;; Convert 16-bit floating point to integers
+(define_expand "fix_trunc<FP16:mode><GPR:mode>2"
+  [(use (match_operand:GPR 0 "vsx_register_operand"))
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  emit_insn (gen_fix_truncdf<GPR:mode>2 (operands[0], df_tmp));
+
+  DONE;
+})
+
+(define_expand "fixuns_trunc<FP16:mode><GPR:mode>2"
+  [(use (match_operand:GPR 0 "vsx_register_operand"))
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  emit_insn (gen_fixuns_truncdf<GPR:mode>2 (operands[0], df_tmp));
+
+  DONE;
+})
+
+;; Convert integers to 16-bit floating point
+(define_expand "float<GPR:mode><FP16:mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
+   (use (match_operand:GPR 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  emit_insn (gen_float<GPR:mode>df2 (df_tmp, operands[1]));
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
+
+(define_expand "floatuns<GPR:mode><FP16:mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
+   (use (match_operand:GPR 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  emit_insn (gen_floatuns<GPR:mode>df2 (df_tmp, operands[1]));
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
+
 
 ;; Negate 16-bit floating point by XOR with -0.0.
 

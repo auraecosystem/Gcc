@@ -1,6 +1,6 @@
-/* { dg-do run } */
+/* { dg-do run { target { power10_hw } } } */
 /* { dg-require-effective-target ppc_float16_hw } */
-/* { dg-options "-mfloat16 -O2" } */
+/* { dg-options "-mfloat16 -O2 -mdejagnu-cpu=power10" } */
 
 #include <stdlib.h>
 
@@ -12,12 +12,24 @@
    Power9 supports the XSCVHPDP and XSCVDPHP instructions that convert between
    a scalar _Float16 and a scalar double. */
 
-extern void do_power9 (void) __attribute__ ((noinline,target("cpu=power9")));
+extern void do_power8  (void) __attribute__ ((noinline,target("cpu=power8")));
+extern void do_power9  (void) __attribute__ ((noinline,target("cpu=power9")));
+extern void do_power10 (void) __attribute__ ((noinline,target("cpu=power10")));
 
-volatile _Float16 two = 2.0;
+volatile _Float16 two   = 2.0;
 volatile _Float16 three = 3.0;
-volatile _Float16 p9_add, p9_sub, p9_mul, p9_div;
+volatile _Float16 p8_add,  p8_sub,  p8_mul,  p8_div;
+volatile _Float16 p9_add,  p9_sub,  p9_mul,  p9_div;
 volatile _Float16 p10_add, p10_sub, p10_mul, p10_div;
+
+void
+do_power8 (void)
+{
+  p8_add = three + two;
+  p8_sub = three - two;
+  p8_mul = three * two;
+  p8_div = three / two;
+}
 
 void
 do_power9 (void)
@@ -40,6 +52,20 @@ do_power10 (void)
 int
 main (int argc, char *argv[])
 {
+  do_power8 ();
+
+  if (((double)p8_add) != 5.0)
+    abort ();
+
+  if (((double)p8_sub) != 1.0)
+    abort ();
+
+  if (((double)p8_mul) != 6.0)
+    abort ();
+
+  if (((double)p8_div) != 1.5)
+    abort ();
+
   do_power9 ();
 
   if (((double)p9_add) != 5.0)
