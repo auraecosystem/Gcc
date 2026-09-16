@@ -8662,6 +8662,14 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	dtype = gfc_get_dtype (parmtype);
       gfc_conv_descriptor_dtype_set (&loop.pre, parm, dtype);
 
+      /* The element length has just been set from the declaration type.
+	 Overwrite it with the runtime value for classes.  */
+      if (expr->ts.type == BT_CLASS)
+	{
+	  tree elen = gfc_conv_descriptor_elem_len_get (desc);
+	  gfc_conv_descriptor_elem_len_set(&loop.pre, parm, elen);
+	}
+
       /* The 1st element in the section.  */
       base = gfc_index_zero_node;
       if (expr->ts.type == BT_CHARACTER && expr->rank == 0 && codim)
