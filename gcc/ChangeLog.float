@@ -1,3 +1,26 @@
+==================== Branch work263-float, patch #215 ====================
+
+Re-enable power8 support; Add conversions to/from integers; Fix typo.
+
+2026-09-16  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (extendbfhf2): Correct insn spelling.
+	(fix_trunc<FP16:mode><GPR:mode>2): Add support for converting integers
+	to/from 16-bit floating point.
+	(fixuns_trunc<FP16:mode><GPR:mode>2): Likewise.
+	(float<GPR:mode><FP16:mode>2): Likewise.
+	(floatuns<GPR:mode><FP16:mode>2): Likewise.
+	* config/rs6000/rs6000.cc (rs6000_option_override_internal): Reallow
+	power8 to run 16-bit floating point.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/bf16-2.c: Add power8 test again.  Only run test on
+	power10.  Force power10 code to use power10 instructions.
+	(gcc.target/powerpc/float16-2.c): Likewise.
+
 ==================== Branch work263-float, patch #214 ====================
 
 Drop power8 bfloat16 test.
