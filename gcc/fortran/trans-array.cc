@@ -8244,6 +8244,8 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	  /* Create a new descriptor if the array doesn't have one.  */
 	  full = 0;
 	}
+      else if (info->ref->next != nullptr)
+	full = 0;
       else if (info->ref->u.ar.type == AR_FULL || se->descriptor_only)
 	full = 1;
       else if (se->direct_byref)
