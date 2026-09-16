@@ -8647,7 +8647,9 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
          the offsets because all elements are within the array data.  */
 
       /* Set the dtype.  */
-      if (se->unlimited_polymorphic)
+      if (se->unlimited_polymorphic
+	  || (se->direct_byref
+	      && (se->class_container || se->class_vptr)))
 	dtype = gfc_get_dtype (TREE_TYPE (desc), &loop.dimen);
       else if (expr->ts.type == BT_ASSUMED)
 	{
@@ -8658,10 +8660,6 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	    tmp2 = build_fold_indirect_ref_loc (input_location, tmp2);
 	  dtype = gfc_conv_descriptor_dtype_get (tmp2);
 	}
-      else if (se->direct_byref
-	       && (se->class_container || se->class_vptr))
-	/* If the lhs is polymorphic, take the dtype from the rhs.  */
-	dtype = gfc_get_dtype (type);
       else
 	dtype = gfc_get_dtype (parmtype);
       gfc_conv_descriptor_dtype_set (&loop.pre, parm, dtype);
