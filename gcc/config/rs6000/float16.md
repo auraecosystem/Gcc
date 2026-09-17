@@ -250,9 +250,9 @@
   [(set (match_operand:SFDF 0 "vsx_register_operand")
 	(float_extend:SFDF
 	 (match_operand:BF 1 "gpc_reg_operand")))]
-  "TARGET_BFLOAT16_CVT"
+  "TARGET_FLOAT16"
 {
-  if (TARGET_BFLOAT16_HW && TARGET_BFLOAT16_P10_CONVERT)
+  if (TARGET_BFLOAT16_HW)
     emit_insn (gen_extendbf<mode>2_p10 (operands[0], operands[1]));
   else
     emit_insn (gen_extendbf<mode>2_not_p10 (operands[0], operands[1]));
@@ -265,8 +265,7 @@
 	(float_extend:SFDF
 	 (match_operand:BF 1 "vsx_register_operand" "wa")))
    (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW && TARGET_BFLOAT16_CONVERT
-   && TARGET_BFLOAT16_P10_CONVERT"
+  "TARGET_BFLOAT16_HW"
   "#"
   "&& 1"
   [(pc)]
@@ -303,8 +302,7 @@
 	 (match_operand:BF 1 "int_reg_operand" "r")))
    (clobber (match_scratch:V4SF 2 "=wa"))
    (clobber (match_scratch:DI 3 "=r"))]
-  "TARGET_BFLOAT16_CVT
-   && (!TARGET_BFLOAT16_HW || !TARGET_BFLOAT16_P10_CONVERT)"
+  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW"
   "#"
   "&& reload_completed"
   [(pc)]
