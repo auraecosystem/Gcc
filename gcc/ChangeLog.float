@@ -1,3 +1,19 @@
+==================== Branch work263-float, patch #216 ====================
+
+Remove debug switches.
+
+2026-09-17  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.md (extendbf<mode>2): Remove BFmode debug
+	switches.
+	(extendbf<mode>2_not_p10): Likewise.
+	(extendbf<mode>2_p10): Likewise.
+	* config/rs6000/rs6000.h (TARGET_BFLOAT16_CVT): Likewise.
+	* config/rs6000/rs6000.opt (-mbfloat16-convert): Likewise.
+	(-mbfloat16-p10-convert): Likewise.
+
 ==================== Branch work263-float, patch #215 ====================
 
 Re-enable power8 support; Add conversions to/from integers; Fix typo.
