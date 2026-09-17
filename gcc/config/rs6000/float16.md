@@ -1450,3 +1450,82 @@
 			      operands[3], FP16_NFMS);
   DONE;
 })
+
+;; Eliminate converts from SF to DF and back to SF done within V4SF
+;; that shows up in optimizing BFmode to use V4SFmode.
+;;
+;; For example:
+;;	__bf16 a, b, c, d;
+;;	// ...
+;;	a = b + c + d;
+;;
+;; would generate:
+;;	(set (reg:SF temp1)
+;;	     (plus:SF (float_extend:SF (reg:BF b))
+;;	              (float_extend:SF (reg:BF c))))
+;;
+;;	(set (reg:SF temp2)
+;;	     (plus:SF (reg:SF temp1)
+;;	              (float_extend:SF (reg:BF d))))
+;;
+;;	(set (reg:BF a)
+;;	     (float_truncte:BF
+;;	      (reg:SF temp2)))
+;;
+;; After split1 this would become:
+;;	(set (reg:V4SF temp3)
+;;	     (unspec:V4SF [(reg:BF b)] UNSPEC_XXSPLTW_FP16))
+;;
+;;	(set (reg:V4SF temp4)
+;;	     (unspec:V4SF [(reg:V4SF temp3)] UNSPEC_XXSPLTW_FP16))
+;;
+;;	(set (reg:V4SF temp5)
+;;	     (unspec:V4SF [(reg:BF c)] UNSPEC_XXSPLTW_FP16))
+;;
+;;	(set (reg:V4SF temp6)
+;;	     (unspec:V4SF [(reg:V4SF temp5)] UNSPEC_XXSPLTW_FP16))
+;;
+;;	(set (reg:V4SF temp7)
+;;	     (unspec:V4SF [(reg:BF d)] UNSPEC_XXSPLTW_FP16))
+;;
+;;	(set (reg:V4SF temp8)
+;;	     (unspec:V4SF [(reg:V4SF temp7)] UNSPEC_XXSPLTW_FP16))
+;;
+;;	(set (reg:V4SF temp9)
+;;	     (plus:V4SF (reg:V4SF temp4)
+;;	                (reg:V4SF temp6)))
+;;
+;;	(set (reg:SF temp10)
+;;	     (unspec:SF [(reg:V4SF temp9)] UNSPEC_VSX_CVSPDP))
+;;
+;;	(set (reg:V4SF temp11)
+;;	     (unspec:V4SF [(reg:SF temp10)] UNSPEC_VSX_CVDPSPN))
+;;
+;;	(set (reg:V4SF temp12)
+;;	     (unspec:V4SF [(reg:V4SF temp1)
+;;	                   (const_int 0)] UNSPEC_VSX_XXSPLTW))
+;;
+;;	(set (reg:V4SF temp13)
+;;	     (plus:V4SF (reg:V4SF temp8)
+;;	                (reg:V4SF temp12)))
+;;
+;;	(set (reg:BF a)
+;;	     (unspec:BF [(reg:V4SF temp13)] UNSPEC_XVCVSPBF16_BF))
+
+(define_peephole2
+  [(set (match_operand:SF 0 "vsx_register_operand")
+	(unspec:SF [(match_operand:V4SF 1 "vsx_register_operand")]
+		   UNSPEC_VSX_CVSPDP))
+   (set (match_operand:V4SF 2 "vsx_register_operand")
+	(unspec:V4SF [(match_dup 0)]
+		     UNSPEC_VSX_CVDPSPN))
+   (set (match_operand:V4SF 3 "vsx_register_operand")
+	(unspec:V4SF [(match_dup 2)
+		      (const_int 0)] UNSPEC_VSX_XXSPLTW))]
+  "((REGNO (operands[0]) == REGNO (operands[2]))
+    || peep2_reg_dead_p (2, operands[0]))
+   && (REGNO (operands[2]) == REGNO (operands[3])
+    || peep2_reg_dead_p (3, operands[2]))"
+  [(set (match_dup 3) (match_dup 1))]
+{
+})
