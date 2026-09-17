@@ -3168,8 +3168,8 @@ gfc_get_derived_type (gfc_symbol * derived, int codimen)
 	c->backend_decl = field;
 
       if ((c->attr.dimension || c->attr.codimension)
-	  && ((c->ts.type == BT_CLASS && c->attr.class_pointer)
-	      || (c->ts.type != BT_CLASS && c->attr.pointer)))
+	  && ((derived->attr.is_class && c->attr.class_pointer)
+	      || (!derived->attr.is_class && c->attr.pointer)))
 	GFC_DECL_PTR_ARRAY_P (c->backend_decl) = 1;
     }
 
