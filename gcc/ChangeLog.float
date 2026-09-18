@@ -1,3 +1,27 @@
+==================== Branch work263-float, patch #218 ====================
+
+Rework optimizing bfloat16 a + b + c
+
+2026-09-18  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/float16.cc (bfloat16_operation_as_v4sf_inner):  Split
+	inner part from bfloat16_operation_as_v4sf to do the operation in
+	V4SFmode.  Add support for chained binary operations.
+	(bfloat16_operation_as_v4sf): Call bfloat16_operation_as_v4sf_inner and
+	then convert the result to SFmode or BFmode.
+	* config/rs6000/float16.md (bfloat16 peephole2): Delete peephole2 that
+	tried to allow chained operations.
+	* config/rs6000/predicates.md (bfloat16_v4sf_operand): Allow chained
+	operations of plus, subtract, and multiply.
+	(bfloat16_bf_operand): Allow SFmode CONST_DOUBLE.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/bf16-3.c: New test.
+	* gcc.target/powerpc/bf16-4.c: Likewise.
+
 ==================== Branch work263-float, patch #217 ====================
 
 Optimize bfloat16 a + b + c
