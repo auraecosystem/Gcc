@@ -7887,13 +7887,7 @@ gfc_get_dataptr_offset (stmtblock_t *block, tree parm, tree desc, tree offset,
     }
 
   /* Set the target data pointer.  */
-  if (POINTER_TYPE_P (TREE_TYPE (tmp))
-      && (TREE_CODE (TREE_TYPE (TREE_TYPE (tmp))) == ARRAY_TYPE
-	  || TREE_CODE (TREE_TYPE (TREE_TYPE (tmp))) == INTEGER_TYPE)
-      && TYPE_STRING_FLAG (TREE_TYPE (TREE_TYPE (tmp))))
-    offset = tmp;
-  else
-    offset = gfc_build_addr_expr (gfc_array_dataptr_type (desc), tmp);
+  offset = gfc_build_addr_expr (gfc_array_dataptr_type (desc), tmp);
 
   /* Check for optional dummy argument being present.  Arguments of BIND(C)
      procedures are excepted here since they are handled differently.  */
