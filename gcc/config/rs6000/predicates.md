@@ -2318,7 +2318,7 @@
 ;; Match bfloat16/float operands that can be optimized to do the
 ;; operation in V4SFmode.
 (define_predicate "bfloat16_v4sf_operand"
-  (match_code "reg,subreg,const_double,float_extend,float_truncate")
+  (match_code "reg,subreg,const_double,float_extend,float_truncate,plus,minus,mult")
 {
   if (mode != BFmode && mode != SFmode)
     return false;
@@ -2329,7 +2329,8 @@
   if (CONST_DOUBLE_P (op))
     return true;
 
-  if (GET_CODE (op) == FLOAT_EXTEND)
+  enum rtx_code icode = GET_CODE (op);
+  if (icode == FLOAT_EXTEND)
     {
       rtx op_arg = XEXP (op, 0);
       return (mode == SFmode
@@ -2337,7 +2338,7 @@
 	      && (REG_P (op_arg) || SUBREG_P (op_arg)));
     }
 
-  if (GET_CODE (op) == FLOAT_TRUNCATE)
+  if (icode == FLOAT_TRUNCATE)
     {
       rtx op_arg = XEXP (op, 0);
       return (mode == BFmode
@@ -2345,6 +2346,18 @@
 	      && (REG_P (op_arg) || SUBREG_P (op_arg)));
     }
 
+  /* Allow for chained operations.  */
+  if (icode == PLUS || icode == MINUS || icode == MULT)
+    {
+      rtx op0 = XEXP (op, 0);
+      rtx op1 = XEXP (op, 1);
+
+      return (GET_MODE (op0) == mode
+	      && GET_MODE (op1) == mode
+	      && bfloat16_v4sf_operand (op0, mode)
+	      && bfloat16_v4sf_operand (op1, mode));
+    }
+    
   return false;
 })
 
@@ -2363,6 +2376,9 @@
   if (GET_MODE (op) == SFmode
       && GET_CODE (op) == FLOAT_EXTEND
       && GET_MODE (XEXP (op, 0)) == BFmode)
+    return true;
+
+  if (CONST_DOUBLE_P (op))
     return true;
 
   return false;

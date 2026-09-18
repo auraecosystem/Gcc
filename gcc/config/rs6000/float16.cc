@@ -187,7 +187,6 @@ fp16_vectorization (enum rtx_code icode,
 /* Expand a bfloat16 scalar floating point operation:
 
    ICODE:   Operation to perform.
-   RESULT:  Result of the operation.
    OP1:     Input operand1.
    OP2:     Input operand2.
    OP3:     Input operand3 or NULL_RTX.
@@ -198,15 +197,17 @@ fp16_vectorization (enum rtx_code icode,
    back again takes quite a bit of time.  GCC will only generate the native
    operation if -Ofast is used.  The float16.md code that calls this function
    adds various combine operations to do the operation in V4SFmode instead of
-   SFmode.  */
-	
-void
-bfloat16_operation_as_v4sf (enum rtx_code icode,
-			    rtx result,
-			    rtx op1,
-			    rtx op2,
-			    rtx op3,
-			    enum fp16_operation subtype)
+   SFmode.
+
+   Inner part that does the operation in V4SFmode, and returns the pseudo
+   with the results.  */
+
+static rtx
+bfloat16_operation_as_v4sf_inner (enum rtx_code icode,
+				  rtx op1,
+				  rtx op2,
+				  rtx op3,
+				  enum fp16_operation subtype)
 {
   gcc_assert (can_create_pseudo_p ());
 
@@ -237,13 +238,31 @@ bfloat16_operation_as_v4sf (enum rtx_code icode,
   for (size_t i = 0; i < n_opts; i++)
     {
       rtx op = ops_orig[i];
-      rtx tmp = ops_v4sf[i] = gen_reg_rtx (V4SFmode);
 
       gcc_assert (op != NULL_RTX);
 
-      /* Remove truncation/extend added.  */
-      if (GET_CODE (op) == FLOAT_EXTEND || GET_CODE (op) == FLOAT_TRUNCATE)
-	op = XEXP (op, 0);
+      switch (GET_CODE (op))
+	{
+	  /* Handle chained operations.  */
+	case PLUS:
+	case MINUS:
+	case MULT:
+	  ops_v4sf[i] = bfloat16_operation_as_v4sf_inner (GET_CODE (op),
+							  XEXP (op, 0),
+							  XEXP (op, 1),
+							  NULL_RTX,
+							  FP16_BINARY);
+	  continue;
+
+	  /* Remove truncation/extend added.  */
+	case FLOAT_EXTEND:
+	case FLOAT_TRUNCATE:
+	  op = XEXP (op, 0);
+	  break;
+
+	default:
+	  break;
+	}
 
       /* Convert operands to V4SFmode format.  We use SPLAT for registers to
 	 get the value into the upper 32-bits.  We can use XXSPLTW to splat
@@ -254,6 +273,7 @@ bfloat16_operation_as_v4sf (enum rtx_code icode,
 	 XXSPLTIW or XXSPLTIB to load the constant the other bits are
 	 duplicated.  */
 
+      rtx tmp = ops_v4sf[i] = gen_reg_rtx (V4SFmode);
       if (op == CONST0_RTX (SFmode) || op == CONST0_RTX (BFmode))
 	emit_move_insn (tmp, CONST0_RTX (V4SFmode));
 
@@ -319,6 +339,40 @@ bfloat16_operation_as_v4sf (enum rtx_code icode,
     default:
       gcc_unreachable ();
     }
+
+  return result_v4sf;
+}
+
+/* Expand a bfloat16 scalar floating point operation:
+
+   ICODE:   Operation to perform.
+   RESULT:  Result of the operation.
+   OP1:     Input operand1.
+   OP2:     Input operand2.
+   OP3:     Input operand3 or NULL_RTX.
+   SUBTYPE: Describe the operation.
+
+   The operation is done as a V4SFmode vector operation.  This is because
+   converting BFmode from a scalar BFmode to SFmode to do the operation and
+   back again takes quite a bit of time.  GCC will only generate the native
+   operation if -Ofast is used.  The float16.md code that calls this function
+   adds various combine operations to do the operation in V4SFmode instead of
+   SFmode.
+
+   External part that calls bfloat16_operation_as_v4sf_inner to do the
+   calculation in V4SFmode, and then converts the result to SFmode or
+   BFmode.  */
+
+void
+bfloat16_operation_as_v4sf (enum rtx_code icode,
+			    rtx result,
+			    rtx op1,
+			    rtx op2,
+			    rtx op3,
+			    enum fp16_operation subtype)
+{
+  rtx result_v4sf
+    = bfloat16_operation_as_v4sf_inner (icode, op1, op2, op3, subtype);
 
   /* Convert V4SF result back to scalar mode.  */
   if (GET_MODE (result) == BFmode)
