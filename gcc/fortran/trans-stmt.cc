@@ -6796,7 +6796,10 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 				     code->expr3->ts,
 				     false, true,
 				     false, false);
-	  temp_obj_created = temp_var_needed = !VAR_P (se.expr);
+	  temp_var_needed = !(VAR_P (se.expr)
+			      || (TREE_CODE (se.expr) == ADDR_EXPR
+				  && VAR_P (TREE_OPERAND (se.expr, 0))));
+	  temp_obj_created = temp_var_needed;
 	}
       gfc_add_block_to_block (&block, &se.pre);
       if (code->expr3->must_finalize)
