@@ -6765,6 +6765,17 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 			  || is_coarray))
 		    se.expr = TREE_OPERAND (se.expr, 0);
 		}
+
+	      if (se.class_container)
+		source_class = se.class_container;
+	      if (GFC_CLASS_TYPE_P (TREE_TYPE (se.expr)))
+		{
+		  if (source_class == NULL_TREE)
+		    source_class = se.expr;
+		  tree data = gfc_class_data_get (se.expr);
+		  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (data)))
+		    se.expr = data;
+		}
 	      /* Create a temp variable only for component refs to prevent
 		 having to go through the full deref-chain each time and to
 		 simplify computation of array properties.  */
@@ -6801,6 +6812,16 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	      && POINTER_TYPE_P (TREE_TYPE (se.expr))
 	      && TREE_CODE (TREE_TYPE (TREE_TYPE (se.expr))) != ARRAY_TYPE)
 	    se.expr = build_fold_indirect_ref_loc (input_location, se.expr);
+	  if (se.class_container)
+	    source_class = se.class_container;
+	  if (GFC_CLASS_TYPE_P (TREE_TYPE (se.expr)))
+	    {
+	      if (source_class == NULL_TREE)
+		source_class = se.expr;
+	      tree data = gfc_class_data_get (se.expr);
+	      if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (data)))
+		se.expr = data;
+	    }
 	  temp_obj_created = temp_var_needed = !VAR_P (se.expr);
 	}
       gfc_add_block_to_block (&block, &se.pre);
@@ -6811,15 +6832,6 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	}
       else
 	gfc_add_block_to_block (&post, &se.post);
-
-      if (se.class_container)
-	source_class = se.class_container;
-      if (GFC_CLASS_TYPE_P (TREE_TYPE (se.expr)))
-	{
-	  if (source_class == NULL_TREE)
-	    source_class = se.expr;
-	  se.expr = gfc_class_data_get (se.expr);
-	}
 
       /* Special case when string in expr3 is scalar and has length zero.  */
       if (code->expr3->ts.type == BT_CHARACTER
