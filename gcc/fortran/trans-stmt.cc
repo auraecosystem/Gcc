@@ -6797,6 +6797,8 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 				     code->expr3->ts,
 				     false, true,
 				     false, false);
+	  if (POINTER_TYPE_P (TREE_TYPE (se.expr)))
+	    se.expr = build_fold_indirect_ref_loc (input_location, se.expr);
 	  temp_obj_created = temp_var_needed = !VAR_P (se.expr);
 	}
       gfc_add_block_to_block (&block, &se.pre);
@@ -6810,6 +6812,12 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 
       if (se.class_container)
 	source_class = se.class_container;
+      if (GFC_CLASS_TYPE_P (TREE_TYPE (se.expr)))
+	{
+	  if (source_class == NULL_TREE)
+	    source_class = se.expr;
+	  se.expr = gfc_class_data_get (se.expr);
+	}
 
       /* Special case when string in expr3 is scalar and has length zero.  */
       if (code->expr3->ts.type == BT_CHARACTER
