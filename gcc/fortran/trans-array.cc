@@ -8823,28 +8823,35 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
       desc = parm;
     }
 
-  /* For class arrays add the class tree into the saved descriptor to
-     enable getting of _vptr and the like.  */
-  if (expr->expr_type == EXPR_VARIABLE && VAR_P (desc)
-      && IS_CLASS_ARRAY (expr->symtree->n.sym))
+  /* For class arrays set a reference to the class container to enable getting
+     of _vptr and the like.  */
+  if (IS_CLASS_ARRAY (expr))
     {
-      gfc_allocate_lang_decl (desc);
-      GFC_DECL_SAVED_DESCRIPTOR (desc) =
-	  DECL_LANG_SPECIFIC (expr->symtree->n.sym->backend_decl) ?
-	    GFC_DECL_SAVED_DESCRIPTOR (expr->symtree->n.sym->backend_decl)
-	  : expr->symtree->n.sym->backend_decl;
-    }
-  else if (expr->expr_type == EXPR_ARRAY && VAR_P (desc)
-	   && IS_CLASS_ARRAY (expr))
-    {
-      tree vtype;
-      gfc_allocate_lang_decl (desc);
-      tmp = gfc_create_var (expr->ts.u.derived->backend_decl, "class");
-      GFC_DECL_SAVED_DESCRIPTOR (desc) = tmp;
-      vtype = gfc_class_vptr_get (tmp);
-      gfc_add_modify (&se->pre, vtype,
-		      gfc_build_addr_expr (TREE_TYPE (vtype),
-				      gfc_find_vtab (&expr->ts)->backend_decl));
+      tree class_ref = NULL_TREE;
+      if (info && info->descriptor
+	  && TREE_CODE (info->descriptor) == COMPONENT_REF)
+	class_ref = TREE_OPERAND (info->descriptor, 0);
+      else if (expr->expr_type == EXPR_VARIABLE
+	       && IS_CLASS_ARRAY (expr->symtree->n.sym))
+	{
+	  if (DECL_P (expr->symtree->n.sym->backend_decl)
+	      && GFC_DECL_SAVED_DESCRIPTOR (expr->symtree->n.sym->backend_decl))
+	    class_ref = GFC_DECL_SAVED_DESCRIPTOR (expr->symtree->n.sym->backend_decl);
+	  else
+	    class_ref = expr->symtree->n.sym->backend_decl;
+	}
+      else if (expr->expr_type == EXPR_ARRAY)
+	{
+	  tree vtype;
+	  tmp = gfc_create_var (expr->ts.u.derived->backend_decl, "class");
+	  class_ref = tmp;
+	  vtype = gfc_class_vptr_get (tmp);
+	  gfc_add_modify (&se->pre, vtype,
+			  gfc_build_addr_expr (TREE_TYPE (vtype),
+					  gfc_find_vtab (&expr->ts)->backend_decl));
+	}
+      if (class_ref)
+	se->class_container = class_ref;
     }
   if (!se->direct_byref || se->byref_noassign)
     {
