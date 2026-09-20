@@ -1513,6 +1513,23 @@ static enum
 { CONS_START, CONS_GOOD, CONS_BAD }
 cons_state;
 
+static void
+guess_constructor_ts_from (gfc_typespec &ts)
+{
+  /* The dynamic type of an array constructor is the same as its declared type
+     so it is never polymorphic.  */
+  if (ts.type == BT_CLASS
+      && ts.u.derived
+      && ts.u.derived->attr.is_class)
+    constructor_ts = ts.u.derived->components->ts;
+  else
+    {
+      constructor_ts = ts;
+      if (ts.type == BT_CLASS)
+	constructor_ts.type = BT_DERIVED;
+    }
+}
+
 static int
 check_element_type (gfc_expr *expr, bool convert)
 {
@@ -1526,9 +1543,7 @@ check_element_type (gfc_expr *expr, bool convert)
       else
 	{
 	  cons_state = CONS_GOOD;
-	  constructor_ts = expr->ts;
-	  if (constructor_ts.type == BT_CLASS)
-	    constructor_ts.type = BT_DERIVED;
+	  guess_constructor_ts_from (expr->ts);
 	}
 
       return 0;
@@ -1615,9 +1630,7 @@ gfc_check_constructor_type (gfc_expr *e)
   if (e->ts.type != BT_UNKNOWN)
     {
       cons_state = CONS_GOOD;
-      constructor_ts = e->ts;
-      if (constructor_ts.type == BT_CLASS)
-	constructor_ts.type = BT_DERIVED;
+      guess_constructor_ts_from (e->ts);
     }
   else
     {
