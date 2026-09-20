@@ -6797,7 +6797,8 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 				     code->expr3->ts,
 				     false, true,
 				     false, false);
-	  if (POINTER_TYPE_P (TREE_TYPE (se.expr)))
+	  if (POINTER_TYPE_P (TREE_TYPE (se.expr))
+	      && TREE_CODE (TREE_TYPE (TREE_TYPE (se.expr))) != ARRAY_TYPE)
 	    se.expr = build_fold_indirect_ref_loc (input_location, se.expr);
 	  temp_obj_created = temp_var_needed = !VAR_P (se.expr);
 	}
