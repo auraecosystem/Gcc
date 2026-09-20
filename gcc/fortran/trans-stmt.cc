@@ -6726,6 +6726,7 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	   al = al->next)
 	vtab_needed = (al->expr->ts.type == BT_CLASS);
 
+      tree source_class = NULL_TREE;
       gfc_init_se (&se, NULL);
       /* When expr3 is a variable, i.e., a very simple expression, then
 	 convert it once here.  If one has a source expression that has
@@ -6807,6 +6808,9 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
       else
 	gfc_add_block_to_block (&post, &se.post);
 
+      if (se.class_container)
+	source_class = se.class_container;
+
       /* Special case when string in expr3 is scalar and has length zero.  */
       if (code->expr3->ts.type == BT_CHARACTER
 	  && code->expr3->rank == 0
@@ -6856,12 +6860,9 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	  /* We need a regular (non-UID) symbol here, therefore give a
 	     prefix.  */
 	  var = gfc_create_var (TREE_TYPE (tmp), "source");
-	  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (tmp)) || is_coarray)
-	    {
-	      gfc_allocate_lang_decl (var);
-	      GFC_DECL_SAVED_DESCRIPTOR (var) = desc;
-	    }
 	  gfc_add_modify_loc (input_location, &block, var, tmp);
+	  if (source_class == NULL_TREE)
+	    source_class = desc;
 
 	  expr3 = var;
 	  if (se.string_length)
@@ -6914,11 +6915,13 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	  /* Polymorphic SOURCE: VPTR must be determined at run time.
 	     expr3 may be a temporary array declaration, therefore check for
 	     GFC_CLASS_TYPE_P before trying to get the _vptr component.  */
-	  if (tmp != NULL_TREE
-	      && (e3_is == E3_DESC
-		  || (GFC_CLASS_TYPE_P (TREE_TYPE (tmp))
-		      && (VAR_P (tmp) || !code->expr3->ref))
-		  || (VAR_P (tmp) && DECL_LANG_SPECIFIC (tmp))))
+	  if (source_class)
+	    tmp = gfc_class_vptr_get (source_class);
+	  else if (tmp != NULL_TREE
+		   && (e3_is == E3_DESC
+		       || (GFC_CLASS_TYPE_P (TREE_TYPE (tmp))
+			   && (VAR_P (tmp) || !code->expr3->ref))
+		       || (VAR_P (tmp) && DECL_LANG_SPECIFIC (tmp))))
 	    tmp = gfc_class_vptr_get (expr3);
 	  else
 	    {
@@ -6938,7 +6941,9 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	  if (expr3_len == NULL_TREE && UNLIMITED_POLY (code->expr3))
 	    {
 	      /* Same like for retrieving the _vptr.  */
-	      if (expr3 != NULL_TREE && !code->expr3->ref)
+	      if (source_class)
+		expr3_len = gfc_class_len_get (source_class);
+	      else if (expr3 != NULL_TREE && !code->expr3->ref)
 		expr3_len = gfc_class_len_get (expr3);
 	      else
 		{
