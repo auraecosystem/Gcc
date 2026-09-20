@@ -6859,12 +6859,14 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 			       : TREE_OPERAND (TREE_OPERAND (se.expr, 0), 0);
 	  /* We need a regular (non-UID) symbol here, therefore give a
 	     prefix.  */
-	  var = gfc_create_var (TREE_TYPE (tmp), "source");
-	  gfc_add_modify_loc (input_location, &block, var, tmp);
 	  if (source_class == NULL_TREE)
 	    source_class = desc;
-
-	  expr3 = var;
+	  if (!VAR_P (tmp))
+	    {
+	      var = gfc_create_var (TREE_TYPE (tmp), "source");
+	      gfc_add_modify_loc (input_location, &block, var, tmp);
+	      expr3 = var;
+	    }
 	  if (se.string_length)
 	    /* Evaluate it assuming that it also is complicated like expr3.  */
 	    expr3_len = gfc_evaluate_now (se.string_length, &block);
