@@ -8615,8 +8615,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 
 		  gcc_assert (classse.pre.head == NULL_TREE
 			      && classse.post.head == NULL_TREE);
-		  gfc_allocate_lang_decl (parm);
-		  GFC_DECL_SAVED_DESCRIPTOR (parm) = classse.expr;
+		  se->class_container = classse.expr;
 		}
 	    }
 	}
