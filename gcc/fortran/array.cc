@@ -1527,6 +1527,8 @@ check_element_type (gfc_expr *expr, bool convert)
 	{
 	  cons_state = CONS_GOOD;
 	  constructor_ts = expr->ts;
+	  if (constructor_ts.type == BT_CLASS)
+	    constructor_ts.type = BT_DERIVED;
 	}
 
       return 0;
@@ -1614,6 +1616,8 @@ gfc_check_constructor_type (gfc_expr *e)
     {
       cons_state = CONS_GOOD;
       constructor_ts = e->ts;
+      if (constructor_ts.type == BT_CLASS)
+	constructor_ts.type = BT_DERIVED;
     }
   else
     {
