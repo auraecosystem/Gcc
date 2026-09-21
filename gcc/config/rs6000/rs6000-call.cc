@@ -604,7 +604,8 @@ mark_float16_convert_function (char *name)
 {
   tree id = get_identifier (name);
   id->base.default_def_flag = 1;
-  fprintf (stderr, "=== %s ===\n", name);
+  if (TARGET_DEBUG_ARG)
+    fprintf (stderr, "Pass _Float16/__bf16 via GPRs: %s\n", name);
 }
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
