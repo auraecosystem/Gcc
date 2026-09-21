@@ -2323,39 +2323,55 @@
   if (mode != BFmode && mode != SFmode)
     return false;
 
-  if (REG_P (op) || SUBREG_P (op))
-    return register_operand (op, mode);
+  if (mode != GET_MODE (op))
+    return false;
 
-  if (CONST_DOUBLE_P (op))
-    return true;
-
-  enum rtx_code icode = GET_CODE (op);
-  if (icode == FLOAT_EXTEND)
+  switch (GET_CODE (op))
     {
-      rtx op_arg = XEXP (op, 0);
-      return (mode == SFmode
-	      && GET_MODE (op_arg) == BFmode
-	      && (REG_P (op_arg) || SUBREG_P (op_arg)));
-    }
+      case REG:
+      case SUBREG:
+	return register_operand (op, mode);
 
-  if (icode == FLOAT_TRUNCATE)
-    {
-      rtx op_arg = XEXP (op, 0);
-      return (mode == BFmode
-	      && GET_MODE (op_arg) == SFmode
-	      && (REG_P (op_arg) || SUBREG_P (op_arg)));
-    }
+      case CONST_DOUBLE:
+	return true;
 
-  /* Allow for chained operations.  */
-  if (icode == PLUS || icode == MINUS || icode == MULT)
-    {
-      rtx op0 = XEXP (op, 0);
-      rtx op1 = XEXP (op, 1);
+      case FLOAT_EXTEND:
+	{
+	  if (mode != SFmode)
+	    return false;
 
-      return (GET_MODE (op0) == mode
-	      && GET_MODE (op1) == mode
-	      && bfloat16_v4sf_operand (op0, mode)
-	      && bfloat16_v4sf_operand (op1, mode));
+	  rtx arg = XEXP (op, 0);
+	  machine_mode arg_mode = GET_MODE (arg);
+
+	  if (arg_mode != BFmode)
+	    return false;
+
+	  if (MEM_P (arg))
+	    return true;
+
+	  return register_operand (arg, arg_mode);
+	}
+
+      case FLOAT_TRUNCATE:
+	{
+          if (mode != BFmode)
+	    return false;
+
+	  rtx arg = XEXP (op, 0);
+	  return (GET_MODE (arg) == SFmode
+		  && GET_CODE (arg) == FLOAT_EXTEND
+		  && GET_MODE (XEXP (arg, 0)) == BFmode);
+	}
+
+        /* Allow for chained operations.  */
+      case PLUS:
+      case MINUS:
+      case MULT:
+        return (bfloat16_v4sf_operand (XEXP (op, 0), mode)
+		&& bfloat16_v4sf_operand (XEXP (op, 1), mode));
+
+      default:
+	break;
     }
     
   return false;
