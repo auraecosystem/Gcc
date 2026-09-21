@@ -1,3 +1,13 @@
+==================== Branch work263-float, patch #219 ====================
+
+Rework bfloat16_v4sf_operand
+
+2026-09-21  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/predicates.md (bfloat16_v4sf_operand): Rework.
+
 ==================== Branch work263-float, patch #218 ====================
 
 Rework optimizing bfloat16 a + b + c
