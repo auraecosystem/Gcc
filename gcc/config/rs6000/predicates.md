@@ -2291,3 +2291,111 @@
 
   return constant_generates_xxspltiw (&vsx_const);
 })
+
+;; Return 1 if this is a 16-bit floating point operand that can be used
+;; in an add, subtract, or multiply operation that uses the vector
+;; conversion function.
+(define_predicate "fp16_reg_or_constant_operand"
+  (match_code "reg,subreg,const_double")
+{
+  if (REG_P (op) || SUBREG_P (op))
+    return vsx_register_operand (op, mode);
+
+  if (CONST_DOUBLE_P (op))
+    return fp16_xxspltiw_constant (op, mode);
+
+  return false;
+})
+
+;; Match binary operators where we convert a BFmode operand into a
+;; SFmode operand so that we can optimize the BFmode operation to do
+;; the operation in vector mode rather than convverting the BFmode to a
+;; V8BFmode vector, converting that V8BFmode vector to V4SFmode, and
+;; then converting the V4SFmode element to SFmode scalar.
+(define_predicate "fp16_binary_operator"
+  (match_code "plus,minus,mult,smax,smin"))
+
+;; Match bfloat16/float operands that can be optimized to do the
+;; operation in V4SFmode.
+(define_predicate "bfloat16_v4sf_operand"
+  (match_code "reg,subreg,const_double,float_extend,float_truncate,plus,minus,mult")
+{
+  if (mode != BFmode && mode != SFmode)
+    return false;
+
+  if (mode != GET_MODE (op))
+    return false;
+
+  switch (GET_CODE (op))
+    {
+      case REG:
+      case SUBREG:
+	return register_operand (op, mode);
+
+      case CONST_DOUBLE:
+	return true;
+
+      case FLOAT_EXTEND:
+	{
+	  if (mode != SFmode)
+	    return false;
+
+	  rtx arg = XEXP (op, 0);
+	  machine_mode arg_mode = GET_MODE (arg);
+
+	  if (arg_mode != BFmode)
+	    return false;
+
+	  if (MEM_P (arg))
+	    return true;
+
+	  return register_operand (arg, arg_mode);
+	}
+
+      case FLOAT_TRUNCATE:
+	{
+          if (mode != BFmode)
+	    return false;
+
+	  rtx arg = XEXP (op, 0);
+	  return (GET_MODE (arg) == SFmode
+		  && GET_CODE (arg) == FLOAT_EXTEND
+		  && GET_MODE (XEXP (arg, 0)) == BFmode);
+	}
+
+        /* Allow for chained operations.  */
+      case PLUS:
+      case MINUS:
+      case MULT:
+        return (bfloat16_v4sf_operand (XEXP (op, 0), mode)
+		&& bfloat16_v4sf_operand (XEXP (op, 1), mode));
+
+      default:
+	break;
+    }
+    
+  return false;
+})
+
+;; Match an operand that originally was an BFmode value to prevent
+;; operations involing only SFmode values from being converted to
+;; BFmode.
+(define_predicate "bfloat16_bf_operand"
+  (match_code "reg,subreg,const_double,float_extend")
+{
+  if (mode == BFmode || GET_MODE (op) == BFmode)
+    return true;
+
+  if (mode != SFmode)
+    return false;
+
+  if (GET_MODE (op) == SFmode
+      && GET_CODE (op) == FLOAT_EXTEND
+      && GET_MODE (XEXP (op, 0)) == BFmode)
+    return true;
+
+  if (CONST_DOUBLE_P (op))
+    return true;
+
+  return false;
+})
