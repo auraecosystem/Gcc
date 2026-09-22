@@ -34,6 +34,10 @@
 (define_mode_iterator VFP16_HW [(V8BF "TARGET_BFLOAT16_HW")
 				(V8HF "TARGET_FLOAT16_HW")])
 
+;; Mode iterator for floating point modes other than SF/DFmode that we
+;; convert to/from _Float16 (HFmode) via DFmode.
+(define_mode_iterator FP16_FLOAT_CONVERT [TF KF IF SD DD TD])
+
 ;; Mode attribute giving the instruction to convert the even
 ;; V8HFmode or V8BFmode elements to V4SFmode
 (define_mode_attr cvt_fp16_to_v4sf [(BF   "xvcvbf16spn")
@@ -627,3 +631,83 @@
 }
   [(set_attr "length" "12")
    (set_attr "type" "vecfloat")])
+
+;; Convert between HFmode/BFmode and 128-bit binary floating point and
+;; decimal floating point types.  We use convert_move since some of the
+;; types might not have valid RTX expanders.  We use DFmode as the
+;; intermediate conversion destination.
+
+(define_expand "extend<FP16_HW:mode><FP16_FLOAT_CONVERT:mode>2"
+  [(use (match_operand:FP16_FLOAT_CONVERT 0 "vsx_register_operand"))
+   (use (match_operand:FP16_HW 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
+
+(define_expand "trunc<FP16_FLOAT_CONVERT:mode><FP16_HW:mode>2"
+  [(use (match_operand:FP16_HW 0 "vsx_register_operand"))
+   (use (match_operand:FP16_FLOAT_CONVERT 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
+
+;; Convert 16-bit floating point to integers
+(define_expand "fix_trunc<FP16:mode><GPR:mode>2"
+  [(use (match_operand:GPR 0 "vsx_register_operand"))
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  emit_insn (gen_fix_truncdf<GPR:mode>2 (operands[0], df_tmp));
+
+  DONE;
+})
+
+(define_expand "fixuns_trunc<FP16:mode><GPR:mode>2"
+  [(use (match_operand:GPR 0 "vsx_register_operand"))
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  emit_insn (gen_fixuns_truncdf<GPR:mode>2 (operands[0], df_tmp));
+
+  DONE;
+})
+
+;; Convert integers to 16-bit floating point
+(define_expand "float<GPR:mode><FP16:mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
+   (use (match_operand:GPR 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  emit_insn (gen_float<GPR:mode>df2 (df_tmp, operands[1]));
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
+
+(define_expand "floatuns<GPR:mode><FP16:mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
+   (use (match_operand:GPR 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+  emit_insn (gen_floatuns<GPR:mode>df2 (df_tmp, operands[1]));
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
