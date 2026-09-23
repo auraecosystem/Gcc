@@ -3928,7 +3928,7 @@ conv_array_index_offset (gfc_se * se, gfc_ss * ss, int dim, int i,
 
 
 static tree
-get_descriptor (tree base, tree decl)
+get_array_descriptor_ref (tree base, tree decl)
 {
   if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base)))
     return base;
@@ -4016,7 +4016,7 @@ build_class_array_ref (gfc_se *se, tree base, tree index)
 	return false;
     }
 
-  tree descriptor = get_descriptor (base, decl);
+  tree descriptor = get_array_descriptor_ref (base, decl);
   tree span;
   if (descriptor && is_span_addressed_array (descriptor))
     span = gfc_conv_descriptor_span_get (descriptor);
