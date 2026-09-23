@@ -3927,6 +3927,30 @@ conv_array_index_offset (gfc_se * se, gfc_ss * ss, int dim, int i,
 }
 
 
+tree
+get_descriptor (tree base, tree decl)
+{
+  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base)))
+    return base;
+
+  if (TREE_CODE (base) == COMPONENT_REF)
+    {
+      tree comp_base = TREE_OPERAND (base, 0);
+      if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (comp_base)))
+	return comp_base;
+    }
+
+  if (!(decl && GFC_CLASS_TYPE_P (TREE_TYPE (decl))))
+    return NULL_TREE;
+
+  tree class_data = gfc_class_data_get (decl);
+  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (class_data)))
+    return class_data;
+
+  return NULL_TREE;
+}
+
+
 /* Build a scalarized array reference using the vptr 'size'.  */
 
 static bool
@@ -3989,16 +4013,23 @@ build_class_array_ref (gfc_se *se, tree base, tree index)
 	return false;
     }
 
-  se->class_vptr = gfc_evaluate_now (gfc_class_vptr_get (decl), &se->pre);
+  tree descriptor = get_descriptor (base, decl);
+  tree span;
+  if (descriptor && is_span_addressed_array (descriptor))
+    span = gfc_conv_descriptor_span_get (descriptor);
+  else
+    {
+      se->class_vptr = gfc_evaluate_now (gfc_class_vptr_get (decl), &se->pre);
 
-  size = gfc_class_vtab_size_get (decl);
-  /* For unlimited polymorphic entities then _len component needs to be
-     multiplied with the size.  */
-  size = gfc_resize_class_size_with_len (&se->pre, decl, size);
-  size = fold_convert (TREE_TYPE (index), size);
+      size = gfc_class_vtab_size_get (decl);
+      /* For unlimited polymorphic entities then _len component needs to be
+	 multiplied with the size.  */
+      size = gfc_resize_class_size_with_len (&se->pre, decl, size);
+      span = fold_convert (TREE_TYPE (index), size);
+    }
 
   /* Return the element in the se expression.  */
-  se->expr = gfc_build_spanned_array_ref (base, index, size);
+  se->expr = gfc_build_spanned_array_ref (base, index, span);
   return true;
 }
 
