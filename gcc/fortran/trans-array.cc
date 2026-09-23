@@ -3933,6 +3933,9 @@ get_descriptor (tree base, tree decl)
   if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base)))
     return base;
 
+  if (TREE_CODE (base) == INDIRECT_REF)
+    base = TREE_OPERAND (base, 0);
+
   if (TREE_CODE (base) == COMPONENT_REF)
     {
       tree comp_base = TREE_OPERAND (base, 0);
