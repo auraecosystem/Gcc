@@ -3927,7 +3927,7 @@ conv_array_index_offset (gfc_se * se, gfc_ss * ss, int dim, int i,
 }
 
 
-tree
+static tree
 get_descriptor (tree base, tree decl)
 {
   if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base)))
