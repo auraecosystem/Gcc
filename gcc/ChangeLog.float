@@ -1,3 +1,17 @@
+==================== Branch work264-float, patch #210 ====================
+
+Add conversions between 128-bit integers and 16-bit floating point
+
+This patch adds various 16-bit floating point tests.
+
+2026-09-24  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.md (floatti<mode>2): New insn to convert between
+	128-bit integers and 16-bit floating point.
+	(floatunsti<mode>2): Likewise.
+	(fix_trunc<mode>ti2): Likewise.
+	(fixuns_trunc<mode>ti2): Likewise.
+
 ==================== Branch work264-float, patch #209 ====================
 
 Add _Float16 and __bf16 tests.
