@@ -646,6 +646,10 @@ mfloat16
 Target Mask(FLOAT16) Var(rs6000_isa_flags)
 Enable or disable 16-bit floating point.
 
+mfloat16-gpr-convert
+Target Undocumented Mask(FLOAT16_GPR_CONVERT) Var(rs6000_isa_flags)
+Pass/return (do not pass/return) 16-it float conversions in GPR registers.
+
 ; Documented parameters
 
 -param=rs6000-vect-unroll-limit=

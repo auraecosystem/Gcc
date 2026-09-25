@@ -297,6 +297,8 @@ extern void rs6000_xcoff_asm_output_aligned_decl_common (FILE *, tree,
 							 unsigned int);
 extern void rs6000_elf_declare_function_name (FILE *, const char *, tree);
 extern bool rs6000_elf_in_small_data_p (const_tree);
+extern bool is_float16_convert_function (const char *);
+extern void mark_float16_convert_function (char *);
 
 #endif /* TREE_CODE */
 

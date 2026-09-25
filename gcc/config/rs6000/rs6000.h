@@ -1515,6 +1515,7 @@ typedef struct rs6000_args
   int named;			/* false for varargs params */
   int escapes;			/* if function visible outside tu */
   int libcall;			/* If this is a compiler generated call.  */
+  int float16_convert;		/* 16-bit float conversion function.  */
 } CUMULATIVE_ARGS;
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
