@@ -26,9 +26,7 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-/* This is a clone of soft-fp/extendhfsf2.c for the PowerPC.  It
-   provides both __extendhfsf2 and __extendhfdf2, since both types
-   return 64-bit floating point formats.
+/* This is a clone of soft-fp/extendhfsf2.c for the PowerPC.
 
    We provide power8, and power9 versiosns of the conversion function and we
    use an ifunc resolver to select the appropriate conversion to use.
@@ -55,17 +53,8 @@ typedef SFtype hf_gpr_to_sf_function_t (unsigned short a);
 typedef hf_fpr_to_sf_function_t *hf_fpr_to_sf_ptr_function_t;
 typedef hf_gpr_to_sf_function_t *hf_gpr_to_sf_ptr_function_t;
 
-typedef DFtype hf_fpr_to_df_function_t (HFtype a);
-typedef DFtype hf_gpr_to_df_function_t (unsigned short a);
-
-typedef hf_fpr_to_df_function_t *hf_fpr_to_df_ptr_function_t;
-typedef hf_gpr_to_df_function_t *hf_gpr_to_df_ptr_function_t;
-
 static hf_fpr_to_sf_ptr_function_t __extendhfsf2_ifunc (void);
 static hf_gpr_to_sf_ptr_function_t __extendhfsf2_gpr_ifunc (void);
-
-static hf_fpr_to_df_ptr_function_t __extendhfdf2_ifunc (void);
-static hf_gpr_to_df_ptr_function_t __extendhfdf2_gpr_ifunc (void);
 
 static hf_fpr_to_sf_function_t __extendhfsf2_p8
   __attribute__ ((__target__("cpu=power8")));
@@ -162,19 +151,10 @@ __extendhfsf2_gpr_ifunc (void)
 	  : __extendhfsf2_gpr_p8);
 }
 
-/* DFtype functions.  */
-static hf_fpr_to_df_ptr_function_t
-__extendhfdf2_ifunc (void)
-{
-  return (hf_fpr_to_df_ptr_function_t) (__builtin_cpu_supports ("arch_3_00")
-					? __extendhfsf2_p9
-					: __extendhfsf2_p8);
-}
-
-static hf_gpr_to_df_ptr_function_t
-__extendhfdf2_gpr_ifunc (void)
-{
-  return (hf_gpr_to_df_ptr_function_t) (__builtin_cpu_supports ("arch_3_00")
-					? __extendhfsf2_gpr_p9
-					: __extendhfsf2_gpr_p8);
-}
+/* On the PowerPC DFtype scalars use the same encoding as SFtype, so use the
+   same function for both.  */
+__asm__ ("\t.globl __extendhfdf2\n"
+	 "__extendhfdf2 = __extendhfsf2\n"
+	 "\n"
+	 "\t.globl __extendhfdf2_gpr\n"
+	 "__extendhfdf2_gpr = __extendhfsf2_gpr");

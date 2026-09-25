@@ -24,11 +24,9 @@
 
    You should have received a copy of the GNU Lesser General Public
    License along with the GNU C Library; if not, see
-   <http://www.gnu.org/licenses/>.  */
+   <http://www.gnu.org/licenses/>.
 
-/* This is a clone of soft-fp/extendbfsf2.c for the PowerPC.  It
-   provides both __extendbfsf2 and __extendbfdf2, since both types
-   return 64-bit floating point formats.
+   This is a clone of soft-fp/extendbfsf2.c for the PowerPC.
 
    We provide power8, power9, and power10 versiosns of the conversion function
    and we use an ifunc resolver to select the appropriate conversion to
@@ -56,12 +54,6 @@ typedef SFtype bf_gpr_to_sf_function_t (unsigned short a);
 typedef bf_fpr_to_sf_function_t *bf_fpr_to_sf_ptr_function_t;
 typedef bf_gpr_to_sf_function_t *bf_gpr_to_sf_ptr_function_t;
 
-typedef DFtype bf_fpr_to_df_function_t (BFtype a);
-typedef DFtype bf_gpr_to_df_function_t (unsigned short a);
-
-typedef bf_fpr_to_df_function_t *bf_fpr_to_df_ptr_function_t;
-typedef bf_gpr_to_df_function_t *bf_gpr_to_df_ptr_function_t;
-
 static bf_fpr_to_sf_ptr_function_t __extendbfsf2_ifunc (void);
 static bf_gpr_to_sf_ptr_function_t __extendbfsf2_gpr_ifunc (void);
 
@@ -88,16 +80,6 @@ extern bf_fpr_to_sf_function_t __extendbfsf2
 
 extern bf_gpr_to_sf_function_t __extendbfsf2_gpr
   __attribute__ ((__ifunc__ ("__extendbfsf2_gpr_ifunc")));
-
-/* Provide DF version as well, given SFtype & DFtype use the same encoding.  */
-static bf_fpr_to_df_ptr_function_t __extendbfdf2_ifunc (void);
-static bf_gpr_to_df_ptr_function_t __extendbfdf2_gpr_ifunc (void);
-
-extern bf_fpr_to_df_function_t __extendbfdf2
-  __attribute__ ((__ifunc__ ("__extendbfdf2_ifunc")));
-
-extern bf_gpr_to_sf_function_t __extendbfdf2_gpr
-  __attribute__ ((__ifunc__ ("__extendbfdf2_gpr_ifunc")));
 
 /* Power8 implementation, BFtype passed in FPR register, no hardware
    support.  */
@@ -200,23 +182,10 @@ __extendbfsf2_gpr_ifunc (void)
 	     : __extendbfsf2_gpr_p8));
 }
 
-/* DFtype functions.  */
-static bf_fpr_to_df_ptr_function_t
-__extendbfdf2_ifunc (void)
-{
-  return (bf_fpr_to_df_ptr_function_t) (__builtin_cpu_supports ("arch_3_1")
-					? __extendbfsf2_p10
-					: (__builtin_cpu_supports ("arch_3_00")
-					   ? __extendbfsf2_p9
-					   : __extendbfsf2_p8));
-}
-
-static bf_gpr_to_df_ptr_function_t
-__extendbfdf2_gpr_ifunc (void)
-{
-  return (bf_gpr_to_df_ptr_function_t) (__builtin_cpu_supports ("arch_3_1")
-					? __extendbfsf2_gpr_p10
-					: (__builtin_cpu_supports ("arch_3_00")
-					   ? __extendbfsf2_gpr_p9
-					   : __extendbfsf2_gpr_p8));
-}
+/* On the PowerPC DFtype scalars use the same encoding as SFtype, so use the
+   same function for both.  */
+__asm__ ("\t.globl __extendbfdf2\n"
+	 "__extendbfdf2 = __extendbfsf2\n"
+	 "\n"
+	 "\t.globl __extendbfdf2_gpr\n"
+	 "__extendbfdf2_gpr = __extendbfsf2_gpr");
