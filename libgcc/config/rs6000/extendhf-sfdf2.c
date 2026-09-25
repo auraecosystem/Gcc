@@ -24,12 +24,9 @@
 
    You should have received a copy of the GNU Lesser General Public
    License along with the GNU C Library; if not, see
-   <http://www.gnu.org/licenses/>.  */
+   <http://www.gnu.org/licenses/>.
 
-/* This is a clone of soft-fp/extendhfsf2.c for the PowerPC.
-
-   We provide power8, and power9 versiosns of the conversion function and we
-   use an ifunc resolver to select the appropriate conversion to use.
+   This is a clone of soft-fp/extendhfsf2.c for the PowerPC.
 
    We provide an alternative version of the conversion that takes the value in
    a GPR passed as an unsigned short.  This is to allow the calling sequence
@@ -42,42 +39,9 @@
 #include "single.h"
 #include "double.h"
 
-union ushort_hf {
-  unsigned short us;
-  HFtype hf;
-};
-
-typedef SFtype hf_fpr_to_sf_function_t (HFtype a);
-typedef SFtype hf_gpr_to_sf_function_t (unsigned short a);
-
-typedef hf_fpr_to_sf_function_t *hf_fpr_to_sf_ptr_function_t;
-typedef hf_gpr_to_sf_function_t *hf_gpr_to_sf_ptr_function_t;
-
-static hf_fpr_to_sf_ptr_function_t __extendhfsf2_ifunc (void);
-static hf_gpr_to_sf_ptr_function_t __extendhfsf2_gpr_ifunc (void);
-
-static hf_fpr_to_sf_function_t __extendhfsf2_p8
-  __attribute__ ((__target__("cpu=power8")));
-
-static hf_gpr_to_sf_function_t __extendhfsf2_gpr_p8
-  __attribute__ ((__target__("cpu=power8")));
-
-static hf_fpr_to_sf_function_t __extendhfsf2_p9
-  __attribute__ ((__target__("cpu=power9")));
-
-static hf_gpr_to_sf_function_t __extendhfsf2_gpr_p9
-  __attribute__ ((__target__("cpu=power9")));
-
-extern hf_fpr_to_sf_function_t __extendhfsf2
-  __attribute__ ((__ifunc__ ("__extendhfsf2_ifunc")));
-
-extern hf_gpr_to_sf_function_t __extendhfsf2_gpr
-  __attribute__ ((__ifunc__ ("__extendhfsf2_gpr_ifunc")));
-
-/* Power8 implementation, HFtype passed in FPR register, no hardware
-   support.  */
-static SFtype
-__extendhfsf2_p8 (HFtype a)
+/* HFtype passed in FPR register.  */
+SFtype
+__extendhfsf2 (HFtype a)
 {
   FP_DECL_EX;
   FP_DECL_H (A);
@@ -93,10 +57,9 @@ __extendhfsf2_p8 (HFtype a)
   return r;
 }
 
-/* Power8 implementation, HFtype passed in GPR register, no hardware
-   support.  */
-static SFtype
-__extendhfsf2_gpr_p8 (unsigned short us)
+/* HFtype passed in GPR register.  */
+SFtype
+__extendhfsf2_gpr (unsigned short us)
 {
   union ushort_hf u;
   HFtype a;
@@ -116,39 +79,6 @@ __extendhfsf2_gpr_p8 (unsigned short us)
   FP_HANDLE_EXCEPTIONS;
 
   return r;
-}
-
-/* Power9 implementation, HFtype passed in FPR register, use XVCVHPSP.  */
-static SFtype
-__extendhfsf2_p9 (HFtype a)
-{
-  return (SFtype) a;
-}
-
-/* Power9 implementation, HFtype passed in GPR register, use XVCVHPSP.  */
-static SFtype
-__extendhfsf2_gpr_p9 (unsigned short a)
-{
-  union ushort_hf u;
-  u.us = a;
-  return (SFtype) u.hf;
-}
-
-/* Determine if we are on power8 or power9.  */
-static hf_fpr_to_sf_ptr_function_t
-__extendhfsf2_ifunc (void)
-{
-  return (__builtin_cpu_supports ("arch_3_00")
-	  ? __extendhfsf2_p9
-	  : __extendhfsf2_p8);
-}
-
-static hf_gpr_to_sf_ptr_function_t
-__extendhfsf2_gpr_ifunc (void)
-{
-  return (__builtin_cpu_supports ("arch_3_00")
-	  ? __extendhfsf2_gpr_p9
-	  : __extendhfsf2_gpr_p8);
 }
 
 /* On the PowerPC DFtype scalars use the same encoding as SFtype, so use the

@@ -28,10 +28,6 @@
 
    This is a clone of soft-fp/extendbfsf2.c for the PowerPC.
 
-   We provide power8, power9, and power10 versiosns of the conversion function
-   and we use an ifunc resolver to select the appropriate conversion to
-   use.
-
    We provide an alternative version of the conversion that takes the value in
    a GPR passed as an unsigned short.  This is to allow the calling sequence
    where arguments are converted to the 32/64-bit scalar format.  If we don't
@@ -43,48 +39,9 @@
 #include "single.h"
 #include "double.h"
 
-union ushort_bf {
-  unsigned short us;
-  BFtype bf;
-};
-
-typedef SFtype bf_fpr_to_sf_function_t (BFtype a);
-typedef SFtype bf_gpr_to_sf_function_t (unsigned short a);
-
-typedef bf_fpr_to_sf_function_t *bf_fpr_to_sf_ptr_function_t;
-typedef bf_gpr_to_sf_function_t *bf_gpr_to_sf_ptr_function_t;
-
-static bf_fpr_to_sf_ptr_function_t __extendbfsf2_ifunc (void);
-static bf_gpr_to_sf_ptr_function_t __extendbfsf2_gpr_ifunc (void);
-
-static bf_fpr_to_sf_function_t __extendbfsf2_p8
-  __attribute__ ((__target__("cpu=power8")));
-
-static bf_gpr_to_sf_function_t __extendbfsf2_gpr_p8
-  __attribute__ ((__target__("cpu=power8")));
-
-static bf_fpr_to_sf_function_t __extendbfsf2_p9
-  __attribute__ ((__target__("cpu=power9")));
-
-static bf_gpr_to_sf_function_t __extendbfsf2_gpr_p9
-  __attribute__ ((__target__("cpu=power9")));
-
-static bf_fpr_to_sf_function_t __extendbfsf2_p10
-  __attribute__ ((__target__("cpu=power10")));
-
-static bf_gpr_to_sf_function_t __extendbfsf2_gpr_p10
-  __attribute__ ((__target__("cpu=power10")));
-
-extern bf_fpr_to_sf_function_t __extendbfsf2
-  __attribute__ ((__ifunc__ ("__extendbfsf2_ifunc")));
-
-extern bf_gpr_to_sf_function_t __extendbfsf2_gpr
-  __attribute__ ((__ifunc__ ("__extendbfsf2_gpr_ifunc")));
-
-/* Power8 implementation, BFtype passed in FPR register, no hardware
-   support.  */
-static SFtype
-__extendbfsf2_p8 (BFtype a)
+/* BFtype passed in FPR register.  */
+SFtype
+__extendbfsf2 (BFtype a)
 {
   FP_DECL_EX;
   FP_DECL_B (A);
@@ -100,10 +57,9 @@ __extendbfsf2_p8 (BFtype a)
   return r;
 }
 
-/* Power8 implementation, BFtype passed in GPR register, no hardware
-   support.  */
-static SFtype
-__extendbfsf2_gpr_p8 (unsigned short us)
+/* BFtype passed in GPR register.  */
+SFtype
+__extendbfsf2_gpr (unsigned short us)
 {
   union ushort_bf u;
   BFtype a;
@@ -125,65 +81,8 @@ __extendbfsf2_gpr_p8 (unsigned short us)
   return r;
 }
 
-/* Power9 implementation, BFtype passed in FPR register, use shift and
-   XSCVSPDPN.  */
-static SFtype
-__extendbfsf2_p9 (BFtype a)
-{
-  return (SFtype) a;
-}
-
-/* Power9 implementation, BFtype passed in GPR register, use shift and
-   XSCVSPDPN.  */
-static SFtype
-__extendbfsf2_gpr_p9 (unsigned short a)
-{
-  union ushort_bf u;
-  u.us = a;
-  return (SFtype) u.bf;
-}
-
-/* Power10 implementtion, BFtype passed in FPR register, use XXSPLTW,
-   XVCVBF16SPN, and XSCVSPDPN.  */
-static SFtype
-__extendbfsf2_p10 (BFtype a)
-{
-  return (SFtype) a;
-}
-
-/* Power10 implementtion, BFtype passed in GPR register, use XXSPLTW,
-   XVCVBF16SPN, and XSCVSPDPN.  */
-static SFtype
-__extendbfsf2_gpr_p10 (unsigned short a)
-{
-  union ushort_bf u;
-  u.us = a;
-  return (SFtype) u.bf;
-}
-
-/* Determine if we are on power8, power9, or power10.  */
-static bf_fpr_to_sf_ptr_function_t
-__extendbfsf2_ifunc (void)
-{
-  return (__builtin_cpu_supports ("arch_3_1")
-	  ? __extendbfsf2_p10
-	  : (__builtin_cpu_supports ("arch_3_00")
-	     ? __extendbfsf2_p9
-	     : __extendbfsf2_p8));
-}
-
-static bf_gpr_to_sf_ptr_function_t
-__extendbfsf2_gpr_ifunc (void)
-{
-  return (__builtin_cpu_supports ("arch_3_1")
-	  ? __extendbfsf2_gpr_p10
-	  : (__builtin_cpu_supports ("arch_3_00")
-	     ? __extendbfsf2_gpr_p9
-	     : __extendbfsf2_gpr_p8));
-}
-
-/* On the PowerPC DFtype scalars use the same encoding as SFtype, so use the
-   same function for both.  */
+/* On the PowerPC DFtype scalars use the same encoding as SFtype, so we can use
+   the same function for both.  */
 __asm__ ("\t.globl __extendbfdf2\n"
 	 "__extendbfdf2 = __extendbfsf2\n"
 	 "\n"

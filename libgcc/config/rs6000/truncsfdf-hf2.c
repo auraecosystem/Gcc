@@ -28,9 +28,6 @@
 
    This is a clone of soft-fp/truncsfhf2.c for the PowerPC.
 
-   We provide power8, and power9 versiosns of the conversion function and we
-   use an ifunc resolver to select the appropriate conversion to use.
-
    We provide an alternative version of the conversion that retunrs the HFtype
    value as unsigned short.  This is to allow the calling sequence where
    arguments are converted to the 32/64-bit scalar format.  If we don't have
@@ -41,46 +38,9 @@
 #include "single.h"
 #include "double.h"
 
-/* Union to convert between HFtype and unsigned short.  */
-union ushort_hf {
-  unsigned short us;
-  HFtype hf;
-};
-
-/* Function and pointer to function prototypes.  */
-typedef HFtype sf_to_hf_fpr_function_t (SFtype a);
-typedef unsigned short sf_to_hf_gpr_function_t (SFtype a);
-
-typedef sf_to_hf_fpr_function_t *sf_to_hf_fpr_ptr_function_t;
-typedef sf_to_hf_gpr_function_t *sf_to_hf_gpr_ptr_function_t;
-
-static sf_to_hf_fpr_ptr_function_t __truncsfhf2_ifunc (void);
-static sf_to_hf_gpr_ptr_function_t __truncsfhf2_gpr_ifunc (void);
-
-static sf_to_hf_fpr_function_t __truncsfhf2_p8
-  __attribute__ ((__target__ ("cpu=power8")));
-
-static sf_to_hf_gpr_function_t __truncsfhf2_gpr_p8
-  __attribute__ ((__target__ ("cpu=power8")));
-
-static sf_to_hf_fpr_function_t __truncsfhf2_p9
-  __attribute__ ((__target__ ("cpu=power9")));
-
-static sf_to_hf_gpr_function_t __truncsfhf2_gpr_p9
-  __attribute__ ((__target__ ("cpu=power9")));
-
-extern sf_to_hf_fpr_function_t __truncsfhf2
-  __attribute__ ((__ifunc__ ("__truncsfhf2_ifunc")));
-
-extern sf_to_hf_gpr_function_t __truncsfhf2_gpr
-  __attribute__ ((__ifunc__ ("__truncsfhf2_gpr_ifunc")));
-
-extern HFtype __truncdfhf2 (DFtype a);
-extern unsigned short __truncdfhf2_gpr (DFtype a);
-
-/* Power8, return HFtype in a FPR register, no hardware support.  */
-static HFtype
-__truncsfhf2_p8 (SFtype a)
+/* Return HFtype in a FPR register.  */
+HFtype
+__truncsfhf2 (SFtype a)
 {
   FP_DECL_EX;
   FP_DECL_S (A);
@@ -96,9 +56,9 @@ __truncsfhf2_p8 (SFtype a)
   return r;
 }
 
-/* Power8, return HFtype in a GPR register, no hardware support.  */
-static unsigned short
-__truncsfhf2_gpr_p8 (SFtype a)
+/* Return HFtype in a GPR register.  */
+unsigned short
+__truncsfhf2_gpr (SFtype a)
 {
   union ushort_hf u;
 
@@ -115,39 +75,6 @@ __truncsfhf2_gpr_p8 (SFtype a)
 
   u.hf = r;
   return u.us;
-}
-
-/* Power9, return HFtype in a FPR register, use XSCVSPDPN.  */
-static HFtype
-__truncsfhf2_p9 (SFtype a)
-{
-  return (HFtype) a;
-}
-  
-/* Power9, return HFtype in a GPR register, use XSCVSPDPN.  */
-static unsigned short
-__truncsfhf2_gpr_p9 (SFtype a)
-{
-  union ushort_hf u;
-  u.hf = a;
-  return u.us;
-}
-
-/* Resolve ifunc declarations for SFtype to HFtype.  */
-static sf_to_hf_fpr_ptr_function_t
-__truncsfhf2_ifunc (void)
-{
-  return (__builtin_cpu_supports ("arch_3_00")
-	  ? __truncsfhf2_p9
-	  : __truncsfhf2_p8);
-}
-
-static sf_to_hf_gpr_ptr_function_t
-__truncsfhf2_gpr_ifunc (void)
-{
-  return (__builtin_cpu_supports ("arch_3_00")
-	  ? __truncsfhf2_gpr_p9
-	  : __truncsfhf2_gpr_p8);
 }
 
 /* On the PowerPC DFtype scalars use the same encoding as SFtype, so use the

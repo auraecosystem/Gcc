@@ -3,8 +3,8 @@ fp16_funcs_1	= eqhf2 \
 		  fixhfsi  fixhfdi fixhfti \
 		  fixunshfsi fixunshfdi fixunshfti \
 		  floatsihf floatdihf floattihf \
-		  floatunsihf floatundihf floatuntihf
-
+		  floatunsihf floatundihf floatuntihf \
+		  floatbitinthf
 
 fp16_src_1	= $(addprefix $(srcdir)/soft-fp/,$(addsuffix .c,$(fp16_funcs_1)))
 fp16_obj_1	= $(addsuffix $(objext),$(fp16_funcs_1))
@@ -26,14 +26,18 @@ FP16_CFLAGS	= -mfloat16 -Wno-psabi \
 $(fp16_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
 
 # __bf16 library support, source files in soft-ftp
-bfp16_funcs_1	= floatsibf floatdibf floattibf \
-		  floatunsibf floatundibf floatuntibf
+bfp16_funcs_1	= floatbitintbf
 
 bfp16_src_1	= $(addprefix $(srcdir)/soft-fp/,$(addsuffix .c,$(bfp16_funcs_1)))
 bfp16_obj_1	= $(addsuffix $(objext),$(bfp16_funcs_1))
 
 # __bf16 library support, source files in config/rs6000
-bfp16_funcs_2	= extendbf-sfdf2 truncsfdf-bf2
+bfp16_funcs_2	= extendbf-sfdf2 truncsfdf-bf2 \
+		  ppc-floatsibf ppc-floatdibf ppc-floattibf \
+		  ppc-floatunsibf ppc-floatundibf ppc-floatuntibf \
+		  ppc-fixbfsi  ppc-fixbfdi ppc-fixbfti \
+		  ppc-fixunsbfsi  ppc-fixunsbfdi ppc-fixunsbfti
+
 bfp16_src_2	= $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(bfp16_funcs_2)))
 bfp16_obj_2	= $(addsuffix $(objext),$(bfp16_funcs_2))
 
