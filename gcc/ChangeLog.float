@@ -1,3 +1,40 @@
+==================== Branch work264-float, patch #212 ====================
+
+Add ifunc support to truncate 32/64-bit to 16-bit fp.
+
+This patch rewrites the __trunc{sf,df}{bf,hf}2 functions to have ifunc support
+to generate appropriate code for conversions.
+
+Also add _gpr versions to allow doing a conversion with 16-bit fp passed as an
+unsigned short.
+
+2026-09-25  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/extendbf-sfdf2.c: Update to make the df versions use the
+	same code as the sf versions.
+	* config/rs6000/extendhf-sfdf2.c: Likewise.
+	* config/rs6000/truncsfdf-bf2.c: New file.
+	* config/rs6000/truncsfdf-hf2.c: Likewise.
+	* config/rs6000/t-float16: Use truncsfdf-bf2 and truncsfdf-hf2 instead
+	of the native soft-fp version.
+
+==================== Branch work264-float, patch #211 ====================
+
+Add ifunc support to extend 16-bit fp to 32/64-bit.
+
+This patch rewrites the __extend{bf,hf}{sf,df}2 functions to have ifunc support
+to generate appropriate code for conversions.
+
+Also add _gpr versions to allow doing a conversion with 16-bit fp passed as an
+unsigned short.
+
+2026-09-24  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/extendbf-sfdf2.c: New file.
+	* config/rs6000/extendhf-sfdf2.c: Likewise.
+	* config/rs6000/t-float16: Use extendbf-sff2 and extendhf-sfhf2 instead
+	of the native soft-fp version.
+
 ==================== Branch work264-float, patch #210 ====================
 
 Add conversions between 128-bit integers and 16-bit floating point
