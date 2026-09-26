@@ -2636,6 +2636,33 @@ rs6000_debug_reg_global (void)
   if (TARGET_DIRECT_MOVE_128)
     fprintf (stderr, DEBUG_FMT_D, "VSX easy 64-bit mfvsrld element",
 	     (int)VECTOR_ELEMENT_MFVSRLD_64BIT);
+
+  if (TARGET_FLOAT16)
+    {
+      fprintf (stderr, DEBUG_FMT_S, "_Float16",
+	       (TARGET_FLOAT16_HW ? "hardware" : "software"));
+      fprintf (stderr, DEBUG_FMT_S, "__bf16",
+	       (TARGET_BFLOAT16_HW ? "hardware" : "software"));
+      fprintf (stderr, DEBUG_FMT_S, "-mfloat16-gpr-convert",
+	       (TARGET_FLOAT16_GPR_CONVERT ? "yes" : "no"));
+
+#if POWERPC_FLOAT16_DEFAULT
+      fprintf (stderr, DEBUG_FMT_S, "float16 configured", "enabled");
+#else
+      fprintf (stderr, DEBUG_FMT_S, "float16 configured", "disabled");
+#endif
+
+#if POWERPC_FLOAT16_DISABLE_WARNING
+      fprintf (stderr, DEBUG_FMT_S, "float16 call warnings", "disabled");
+#else
+      fprintf (stderr, DEBUG_FMT_S, "float16 call warnings", "enabled");
+#endif
+    }
+  else
+    {
+      fprintf (stderr, DEBUG_FMT_S, "_Float16", "disabled");
+      fprintf (stderr, DEBUG_FMT_S, "__bf16", "disabled");
+    }
 }
 
 
@@ -25038,7 +25065,6 @@ static struct rs6000_opt_mask const rs6000_opt_masks[] =
   { "hard-dfp",			OPTION_MASK_DFP,		false, true  },
   { "htm",			OPTION_MASK_HTM,		false, true  },
   { "float16",			OPTION_MASK_FLOAT16,		false, true  },
-  { "float16-gpr-convert",	OPTION_MASK_FLOAT16_GPR_CONVERT, false, true },
   { "isel",			OPTION_MASK_ISEL,		false, true  },
   { "mfcrf",			OPTION_MASK_MFCRF,		false, true  },
   { "mfpgpr",			0,				false, true  },
@@ -25137,6 +25163,9 @@ static struct rs6000_opt_var const rs6000_opt_vars[] =
   { "speculate-indirect-jumps",
     offsetof (struct gcc_options, x_rs6000_speculate_indirect_jumps),
     offsetof (struct cl_target_option, x_rs6000_speculate_indirect_jumps), },
+  { "float16-gpr-convert",
+    offsetof (struct gcc_options, x_TARGET_FLOAT16_GPR_CONVERT),
+    offsetof (struct cl_target_option, x_TARGET_FLOAT16_GPR_CONVERT), },
 };
 
 /* Inner function to handle attribute((target("..."))) and #pragma GCC target
