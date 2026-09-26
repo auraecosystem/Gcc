@@ -1,3 +1,34 @@
+==================== Branch work264-float, patch #217 ====================
+
+Rewrite -mfloat16-gpr-convert support.
+
+2026-09-26  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-call.cc (FP16_USE_GPR): New macro.
+	(USE_FP_FOR_ARG_P); Pass/return 16-bit floating values to compiler
+	generated library functions in gprs if -mfloat16-gpr-convert.
+	(is_float16_convert_function): Delete.
+	(mark_float16_convert_function): Likewise.
+	(init_cumulative_args): Don't set up the float16_convert field.  If
+	-mdebug=arg, print whether this is a library call.
+	* config/rs6000/rs6000-protos.h (is_float16_convert_function): Delete.
+	(mark_float16_convert_function): Likewise.
+	* config/rs6000/rs6000.cc (init_float16) Remove
+	mark_float16_convert_function call.  Set up __truncbfhf2_gpr and
+	__trunchfbf2_gpr.
+	* config/rs6000/rs6000h (CUMULATIVE_ARGS): Delete float16_convert field.
+
+libgcc/
+
+	* config/rs6000/pc-truncbfhf2.c: New file.
+	* config/rs6000/pc-trunchfbf2.c: Likewise.
+	* config/rs6000/spf-machine.h (__truncbfhf2_gpr): Add declaration.
+	(__trunchfbf2_gpr): Likewise.
+	* config/rs6000/t-float16 (both_fp16_*): Switch to using
+	ppc-truncbfhf2.c and ppc-trunchfbf2.c.
+
 ==================== Branch work264-float, patch #216 ====================
 
 Honor -mfloat16-gpr-convert for function returns.
