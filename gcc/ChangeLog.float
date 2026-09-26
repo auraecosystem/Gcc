@@ -1,3 +1,12 @@
+==================== Branch work264-float, patch #216 ====================
+
+Honor -mfloat16-gpr-convert for function returns.
+
+2026-09-26  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000.cc (rs6000_libcall_value): If
+	-mfloat16-gpr-convert, BFmode and HFmode return values in a GPR.
+
 ==================== Branch work264-float, patch #215 ====================
 
 Add -mfloat16-gpr-convert.
