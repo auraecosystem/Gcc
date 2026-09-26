@@ -1,3 +1,19 @@
+==================== Branch work264-float, patch #219 ====================
+
+Make -mfloat16-gpr-convert default.
+
+2026-09-26  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Print -mfloat16
+	debug information.
+	(rs6000_opt_masks): Remove -mfloat16-gpr-convert.
+	(rs6000_opt_vars): Add -mfloat16-gpr-convert.
+	* config/rs6000/rs6000.opt (-mfloat16-gpr-convert): Change from being a
+	mask to being a target variable.  Make -mfloat16-gpr-convert default to
+	on.
+
 ==================== Branch work264-float, patch #218 ====================
 
 Add ppc-eqhf2 and ppc-eqbf2
