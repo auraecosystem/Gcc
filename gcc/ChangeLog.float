@@ -1,3 +1,49 @@
+==================== Branch work264-float, patch #221 ====================
+
+Add ppc-floatbitintbf.c and ppc-floatbitinthf.c
+
+2026-09-26  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/ppc-floatbitintbf.c: New file.
+	* config/rs6000/ppc-floatbitinthf.c: Likewise.
+	* config/rs6000/t-float16: Add ppc-floatbitintbf.c and
+	ppc-floatbitinthf.c.
+
+==================== Branch work264-float, patch #220 ====================
+
+Fix typo in comment.
+
+2026-09-26  Michael Meissner  <meissner@linux.ibm.com>
+
+libgcc/
+
+	* config/rs6000/ppc-eqbf2.c: Fix typo in comment.
+	* config/rs6000/ppc-eqhf2.c: Likewise.
+	* config/rs6000/ppc-fixbfdi.c: Likewise.
+	* config/rs6000/ppc-fixbfsi.c: Likewise.
+	* config/rs6000/ppc-fixbfti.c: Likewise.
+	* config/rs6000/ppc-fixhfdi.c: Likewise.
+	* config/rs6000/ppc-fixhfsi.c: Likewise.
+	* config/rs6000/ppc-fixhfti.c: Likewise.
+	* config/rs6000/ppc-fixunsbfdi.c: Likewise.
+	* config/rs6000/ppc-fixunsbfsi.c: Likewise.
+	* config/rs6000/ppc-fixunsbfti.c: Likewise.
+	* config/rs6000/ppc-fixunshfdi.c: Likewise.
+	* config/rs6000/ppc-fixunshfsi.c: Likewise.
+	* config/rs6000/ppc-fixunshfti.c: Likewise.
+	* config/rs6000/ppc-floatdibf.c: Likewise.
+	* config/rs6000/ppc-floatdihf.c: Likewise.
+	* config/rs6000/ppc-floatsibf.c: Likewise.
+	* config/rs6000/ppc-floatsihf.c: Likewise.
+	* config/rs6000/ppc-floattibf.c: Likewise.
+	* config/rs6000/ppc-floattihf.c: Likewise.
+	* config/rs6000/ppc-floatundibf.c: Likewise.
+	* config/rs6000/ppc-floatundihf.c: Likewise.
+	* config/rs6000/ppc-floatunsibf.c: Likewise.
+	* config/rs6000/ppc-floatunsihf.c: Likewise.
+	* config/rs6000/ppc-floatuntibf.c: Likewise.
+	* config/rs6000/ppc-floatuntihf.c: Likewise.
+
 ==================== Branch work264-float, patch #219 ====================
 
 Make -mfloat16-gpr-convert default.
