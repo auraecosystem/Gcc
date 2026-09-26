@@ -11883,11 +11883,9 @@ init_float16 (void)
 
 	  sprintf (fname, "__extend%s%s2_gpr", fp16_name, fp_name);
 	  set_conv_libfunc (sext_optab, fp_mode, fp16_mode, fname);
-	  mark_float16_convert_function (fname);
 
 	  sprintf (fname, "__trunc%s%s2_gpr", fp_name, fp16_name);
 	  set_conv_libfunc (trunc_optab, fp16_mode, fp_mode, fname);
-	  mark_float16_convert_function (fname);
 	}
 
       /* Conversions between {SImode,DImode} <=> {BFmode,HFmode}.  */
@@ -11900,19 +11898,28 @@ init_float16 (void)
 	    {
 	      sprintf (fname, "__float%s%s2_gpr", int_name, fp16_name);
 	      set_conv_libfunc (sfloat_optab, fp16_mode, int_mode, fname);
-	      mark_float16_convert_function (fname);
 
 	      sprintf (fname, "__floatuns%s%s2_gpr", int_name, fp16_name);
 	      set_conv_libfunc (ufloat_optab, fp16_mode, int_mode, fname);
-	      mark_float16_convert_function (fname);
 
 	      sprintf (fname, "__fix_trunc%s%s2_gpr", fp16_name, int_name);
 	      set_conv_libfunc (sfix_optab, int_mode, fp16_mode, fname);
-	      mark_float16_convert_function (fname);
 
 	      sprintf (fname, "__fixuns_trunc%s%s2_gpr", fp16_name, int_name);
 	      set_conv_libfunc (ufix_optab, int_mode, fp16_mode, fname);
-	      mark_float16_convert_function (fname);
+	    }
+	}
+
+      /* Conversions between the two 16-bit floating point formats.  */
+      for (size_t j = 0; j < ARRAY_SIZE (fp16_modes); j++)
+	{
+	  enum machine_mode fp16_mode2 = fp16_modes[j].mode;
+	  const char *fp16_name2 = fp16_modes[j].name;
+
+	  if (fp16_mode != fp16_mode2)
+	    {
+	      sprintf (fname, "__trunc%s%s2_gpr", fp16_name, fp16_name2);
+	      set_conv_libfunc (trunc_optab, fp16_mode2, fp16_mode, fname);
 	    }
 	}
     }

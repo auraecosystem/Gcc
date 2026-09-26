@@ -188,13 +188,17 @@ typedef unsigned int UTItype2 __attribute__ ((mode (TI)));
 extern RET NAME (FP16);							\
 extern RET NAME ## _gpr (UHItype2)
 
-#define PASS_FP16_2(NAME, RET, FP16)					\
-extern RET NAME (FP16, FP16);						\
+#define PASS_FP16_2(NAME, RET, FP16_1, FP16_2)				\
+extern RET NAME (FP16_1, FP16_2);					\
 extern RET NAME ## _gpr (UHItype2, UHItype2)
 
 #define RETURN_FP16(NAME, FP16, ARG)					\
 extern FP16 NAME (ARG);							\
 extern UHItype2 NAME ## _gpr (ARG)
+
+#define CONVERT_FP16(NAME, FP16_RET, FP16_ARG)				\
+extern FP16_RET NAME (FP16_ARG);					\
+extern UHItype2 NAME ## _gpr (UHItype2)
 
 #ifdef __FLOAT16__
 typedef float HFtype2 __attribute__ ((mode (HF)));
@@ -205,7 +209,7 @@ union ushort_hf {
   HFtype2 hf;
 };
 
-PASS_FP16_2 (__eqhf2, CMPtype, HFtype2);
+PASS_FP16_2 (__eqhf2, CMPtype, HFtype2, HFtype2);
 
 PASS_FP16 (__extendhfsf2, SFtype2, HFtype2);
 PASS_FP16 (__extendhfdf2, DFtype2, HFtype2);
@@ -239,7 +243,7 @@ union ushort_bf {
   BFtype2 bf;
 };
 
-PASS_FP16_2 (__eqbf2, CMPtype, BFtype2);
+PASS_FP16_2 (__eqbf2, CMPtype, BFtype2, BFtype2);
 
 PASS_FP16 (__extendbfsf2, SFtype2, BFtype2);
 PASS_FP16 (__extendbfdf2, DFtype2, BFtype2);
@@ -265,6 +269,6 @@ RETURN_FP16 (__truncdfbf2, BFtype2, DFtype2);
 #endif
 
 #if defined(__FLOAT16__) && defined(__BFLOAT16__)
-extern HFtype2 __truncbfhf2 (BFtype2);
-extern BFtype2 __trunchfbf2 (HFtype2);
+CONVERT_FP16 (__truncbfhf2, HFtype2, BFtype2);
+CONVERT_FP16 (__trunchfbf2, BFtype2, HFtype2);
 #endif

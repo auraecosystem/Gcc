@@ -50,8 +50,8 @@ bfp16_obj	= $(bfp16_obj_1) $(bfp16_obj_2)
 $(bfp16_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
 
 # Conversion between __bf16 and _Float16
-both_fp16_funcs	 = truncbfhf2 trunchfbf2
-both_fp16_src	 = $(addprefix $(srcdir)/soft-fp/,$(addsuffix .c,$(both_fp16_funcs)))
+both_fp16_funcs	 = ppc-truncbfhf2 ppc-trunchfbf2
+both_fp16_src	 = $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(both_fp16_funcs)))
 both_fp16_obj	 = $(addsuffix $(objext),$(both_fp16_funcs))
 
 $(both_fp16_obj) : INTERNAL_CFLAGS += $(FP16_CFLAGS)
