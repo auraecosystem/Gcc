@@ -30,7 +30,7 @@
 
    We provide 2 conversions, one that takes the HFtype in a floating point
    register and the other takes it in a general purpose register that is used
-   when HFtype must be converted to the 32/64-bit scalar tyhpe.  */
+   when HFtype must be converted to the 32/64-bit scalar type.  */
 
 #include "soft-fp.h"
 #include "half.h"
