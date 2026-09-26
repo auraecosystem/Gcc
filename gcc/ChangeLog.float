@@ -1,3 +1,14 @@
+==================== Branch work264-float, patch #218 ====================
+
+Add ppc-eqhf2 and ppc-eqbf2
+
+2026-09-26  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/ppc-eqbf2.c: New file.
+	* config/rs6000/ppc-eqhf2.c: Likewise.
+	* config/rs6000/t-float16: Add ppc-eqbf2 and ppc-eqhf2.  Don't build
+	normal eqhf2.
+
 ==================== Branch work264-float, patch #217 ====================
 
 Rewrite -mfloat16-gpr-convert support.
