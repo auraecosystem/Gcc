@@ -1,5 +1,23 @@
 ==================== Branch work264-float, patch #221 ====================
 
+Add fixbfbitint, fixhfbitint.  Fix 16-bit fp bitint calls.
+
+2026-09-26  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.cc (init_float16): Properly set up the
+	conversions between 16-bit floating point and bitint to pass arguments
+	in GPRs.
+
+libgcc/
+
+	* config/rs6000/ppc-fixbfbitint.c: New file.
+	* config/rs6000/ppc-fixhfbitint.c: Likewise.
+	* config/rs6000/t-float16: Build ppc-fixbfbitint and ppc-fixhfbitint.
+
+==================== Branch work264-float, patch #221 ====================
+
 Add ppc-floatbitintbf.c and ppc-floatbitinthf.c
 
 2026-09-26  Michael Meissner  <meissner@linux.ibm.com>
