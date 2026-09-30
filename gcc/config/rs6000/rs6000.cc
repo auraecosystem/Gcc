@@ -11949,6 +11949,13 @@ init_float16 (void)
 	      set_conv_libfunc (trunc_optab, fp16_mode2, fp16_mode, fname);
 	    }
 	}
+
+      /* Bitint support.  */
+      sprintf (fname, "__floatbitint%s_gpr", fp16_name);
+      set_optab_libfunc (bitinttofp_optab, fp16_mode, fname);
+
+      sprintf (fname, "__fix%sbitint_gpr", fp16_name);
+      set_optab_libfunc (bitintfromfp_optab, fp16_mode, fname);
     }
 }
 
