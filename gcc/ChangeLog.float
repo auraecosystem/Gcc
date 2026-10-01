@@ -1,3 +1,59 @@
+==================== Branch work265-float, patch #221 ====================
+
+Use perl to convert float functions for 16-bit floating point
+
+This patch removes the ppc-float* functions, and instead uses perl to generate
+these automatically from the soft-fp sources.
+
+2026-09-30  Michael Meissner  <meissner@linux.ibm.com>
+
+libgcc/
+
+	* config/rs6000/convert-16bit-fp-fix: Minor cleanup.
+	* config/rs6000/convert-16bit-fp-float: New script to create the float*
+	and floatun* functions for 16-bit floating point.
+	* config/rs6000/t-float16: Automatially generate the ppc-float* files.
+	* config/rs6000/ppc-floatdibf.c: Delete.
+	* config/rs6000/ppc-floatdihf.c: Likewise.
+	* config/rs6000/ppc-floatsibf.c: Likewise.
+	* config/rs6000/ppc-floatsihf.c: Likewise.
+	* config/rs6000/ppc-floattibf.c: Likewise.
+	* config/rs6000/ppc-floattihf.c: Likewise.
+	* config/rs6000/ppc-floatundibf.c: Likewise.
+	* config/rs6000/ppc-floatundihf.c: Likewise.
+	* config/rs6000/ppc-floatunsibf.c: Likewise.
+	* config/rs6000/ppc-floatunsihf.c: Likewise.
+	* config/rs6000/ppc-floatuntibf.c: Likewise.
+	* config/rs6000/ppc-floatuntihf.c: Likewise.
+
+
+==================== Branch work265-float, patch #220 ====================
+
+Use perl to convert fix functions for 16-bit floating point
+
+This patch removes the ppc-fix* functions, and instead uses perl to generate
+these automatically from the soft-fp sources.
+
+2026-09-30  Michael Meissner  <meissner@linux.ibm.com>
+
+libgcc/
+
+	* config/rs6000/convert-16bit-fp-fix: New perl script.
+	* config/rs6000/t-float16: Remove static ppc-fix* functions.  Instead
+	generate these via the convert-16bit-fp-fix script.
+	* config/rs6000/ppc-fixbfdi.c: Delete.
+	* config/rs6000/ppc-fixbfsi.c: Likewise.
+	* config/rs6000/ppc-fixbfti.c: Likewise.
+	* config/rs6000/ppc-fixhfdi.c: Likewise.
+	* config/rs6000/ppc-fixhfsi.c: Likewise.
+	* config/rs6000/ppc-fixhfti.c: Likewise.
+	* config/rs6000/ppc-fixunsbfdi.c: Likewise.
+	* config/rs6000/ppc-fixunsbfsi.c: Likewise.
+	* config/rs6000/ppc-fixunsbfti.c: Likewise.
+	* config/rs6000/ppc-fixunshfdi.c: Likewise.
+	* config/rs6000/ppc-fixunshfsi.c: Likewise.
+	* config/rs6000/ppc-fixunshfti.c: Likewise.
+
 ==================== Branch work265-float, patch #211 ====================
 
 Pass and return 16-bit fp library values in GPRs
