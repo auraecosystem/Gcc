@@ -116,9 +116,10 @@ do {
 	if ($line =~ /^__fix/) {
 		$line =~ s/[BDHST]F/${u_letter}F/;
 		$line =~ s/[bdhst]f/${l_letter}f/;
-	}
 
-	$line =~ s/_(DECL|RAW|INT)_[BHDST]/_${1}_${u_letter}/;
+	} else {
+		$line =~ s/_(DECL|RAW|INT)_[BHDST]/_${1}_${u_letter}/;
+	}
 
 	push (@func, $line);
 	$line = <>;
@@ -143,10 +144,9 @@ foreach $line (@func) {
 	# Function header
 	if ($line =~ /^__(fix|fixuns)([bh]f)([sdt]i)/) {
 		$line = "__${1}${2}${3}_gpr (unsigned short us)";
-	}
 
 	# Add conversion from unsigned short
-	if ($line =~ /FP_INIT_EXCEPTIONS/) {
+	} elsif ($line =~ /FP_INIT_EXCEPTIONS/) {
 		print "  ${u_letter}Ftype a;\n";
 		print "  union ushort_${l_letter}f u;\n";
 		print "\n";
@@ -160,4 +160,3 @@ foreach $line (@func) {
 
 # Done
 exit 0;
-

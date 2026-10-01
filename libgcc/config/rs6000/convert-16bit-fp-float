@@ -1,0 +1,167 @@
+#! /usr/bin/perl -w
+# Convert a libgcc/soft-fp fix<fp><int> fuunction for the PowerPC
+
+# Copyright (C) 2020-2026 Free Software Foundation, Inc.
+#
+# This file is part of GCC.
+#
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+#
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+#
+# The PowerPC 16-bit floating point support is considering requiring
+# 16-bit floating point arguments to the 32/64-bit scalar format in
+# registers and similarly returning the 16-bit floating point return to
+# a 32/64-bit scalar value.  However, this presents a problem in that
+# if a machine doesn't have instructions to do a conversion in
+# hardware, you can't call the soft-fp conversion function using the
+# native calling sequence.
+#
+# This perl script converts a float<int><fp>.c. or floatun<int><fp>.c
+# file to do the conversion to BFtype (Google brain 16-bit float) or
+# HFtype (IEEE 754 _Float16).  It produces 2 functions, one that has
+# the normal name and takes the normal arguments, and the other that
+# adds a _gpr suffix and changes the 16-bit floating point to unsigned
+# short.
+#
+# A typical fix* conversion file looks like:
+#
+# <copyright message>
+#
+# DFtype
+# __floatdidf (DItype i)
+# {
+#   FP_DECL_EX;
+#   FP_DECL_D (A);
+#   DFtype a;
+#
+#   FP_INIT_ROUNDMODE;
+#   FP_FROM_INT_D (A, i, DI_BITS, UDItype);
+#   FP_PACK_RAW_D (a, A);
+#   FP_HANDLE_EXCEPTIONS;
+#
+#   return a;
+# }
+
+use warnings;
+use strict;
+use Getopt::Std;
+
+use vars qw($opt_b $opt_h);
+
+$opt_b = 0;
+$opt_h = 0;
+
+&getopts ("bh") || die "Useage $0 [-b] [-h] <input >output\n";
+
+die "$0: Either -b or -h must be passed\n"	if (!$opt_b && !$opt_h);
+die "$0: Both -b and -h must not be passed\n"	if ($opt_b && $opt_h);
+
+# Scan the input and put out the copyright message
+
+my $line;
+my $input = $ARGV[0];
+
+while ($line = <>) {
+	chomp $line;
+
+	last			if ($line =~ /^[#]include/);
+	print $line, "\n";
+}
+
+if ($input) {
+	print "/* Automatically converted from $input.  */\n";
+	print "\n";
+}
+
+# Change the include file from the floating point type to either half.h
+# or brain.h.
+
+die "$0: No include files\n"	if (! defined ($line));
+
+my $inc = ($opt_h ? "half" : "brain");
+
+do {
+	$line =~ s/(single|double|extended|half|quad)/$inc/;
+	print $line, "\n";
+	$line = <>;
+
+} while (defined ($line) && $line =~ /^[#]include/);
+
+# Scoop up the rest of the file, convert the function to
+# return a HFtype or BFtype type.
+
+die "$0: No main source\n"	if (! defined ($line));
+
+my @func = ();
+my $u_letter = ($opt_h ? "H" : "B");
+my $l_letter = ($opt_h ? "h" : "b");
+
+do {
+	chomp $line;
+
+	# Function return
+	if ($line =~ /^[BDHST]Ftype$/) {
+		$line = "${u_letter}Ftype";
+
+	# Function line
+	} elsif ($line =~ /^__float/) {
+		$line =~ s/[bdhst]f/${l_letter}f/;
+	}
+
+	$line =~ s/_(DECL|RAW|INT)_[BHDST]/_${1}_${u_letter}/;
+
+	push (@func, $line);
+	$line = <>;
+
+} while (defined ($line));
+
+# Print out the normal conversion function
+
+print "/* ${u_letter}Ftype returned in FPR registers.  */\n";
+
+foreach $line (@func) {
+	print $line, "\n";
+}
+
+# Print out the special GPR function.
+
+print "\n";
+print "/* ${u_letter}Ftype returned in GPR registers.  */\n";
+
+foreach $line (@func) {
+
+	# Function return
+	if ($line eq "${u_letter}Ftype") {
+		$line = "unsigned short";
+
+	# Function header
+	} elsif ($line =~ /^__(float|floatun)([sdt]i)([bh]f) (.*)$/) {
+		$line = "__${1}${2}${3}_gpr ${4}";
+
+	# Add declartion of union
+	} elsif ($line =~ /FP_INIT_ROUNDMODE/) {
+		print "  union ushort_or_${l_letter}f u;\n";
+		print "\n";
+
+	# Return value
+	} elsif ($line =~ /return a;/) {
+		print "  u.${l_letter}f = a;\n";
+		$line = "  return u.us;";
+	}
+
+	print $line, "\n";
+}
+
+# Done
+exit 0;
