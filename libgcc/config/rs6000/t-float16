@@ -1,8 +1,7 @@
 PERL		:= perl
 
 # _Float16 library support, source files in soft-ftp
-fp16_funcs	= truncsfdf-hf2 \
-		  ppc-eqhf2 ppc-floatbitinthf ppc-fixhfbitint
+fp16_funcs	= ppc-eqhf2 ppc-floatbitinthf ppc-fixhfbitint
 
 fp16_src	= $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(fp16_funcs)))
 fp16_obj	= $(addsuffix $(objext),$(fp16_funcs))
@@ -14,8 +13,7 @@ FP16_CFLAGS	= -mfloat16 -Wno-psabi \
 $(fp16_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
 
 # __bf16 library support, source files in config/rs6000
-bfp16_funcs	= truncsfdf-bf2 \
-		  ppc-eqbf2 ppc-floatbitintbf ppc-fixbfbitint
+bfp16_funcs	= ppc-eqbf2 ppc-floatbitintbf ppc-fixbfbitint
 
 bfp16_src	= $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(bfp16_funcs)))
 bfp16_obj	= $(addsuffix $(objext),$(bfp16_funcs))
@@ -45,10 +43,12 @@ float16_fixuns_ti_orig	= $(srcdir)/soft-fp/fixunshfti.c
 float16_fixuns_di_orig	= $(srcdir)/soft-fp/fixhunsfdi.c
 float16_fixuns_si_orig	= $(srcdir)/soft-fp/fixunshfsi.c
 float16_extend_orig	= $(srcdir)/soft-fp/extendhfsf2.c
+float16_trunc_orig	= $(srcdir)/soft-fp/truncsfhf2.c
 
 float16_fix_script	= $(srcdir)/config/rs6000/convert-16bit-fp-fix
 float16_float_script	= $(srcdir)/config/rs6000/convert-16bit-fp-float
 float16_extend_script	= $(srcdir)/config/rs6000/convert-16bit-fp-extend
+float16_trunc_script	= $(srcdir)/config/rs6000/convert-16bit-fp-trunc
 
 float16_fix_ti_func	= fixhfti fixbfti
 float16_fix_di_func	= fixhfti fixbfti
@@ -96,13 +96,21 @@ float16_extend_dep	= $(float16_extend_orig) \
 			  $(float16_extend_script) \
 			  $(float16_dep)
 
+float16_trunc_funcs	= truncdfbf2 truncdfhf2 truncsfbf2 truncsfhf2
+float16_trunc_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_trunc_funcs)))
+float16_trunc_dep	= $(float16_trunc_orig) \
+			  $(float16_trunc_script) \
+			  $(float16_dep)
+
 float16_all_funcs	= $(float16_fix_funcs) \
 			  $(float16_float_funcs) \
-			  $(float16_extend_funcs)
+			  $(float16_extend_funcs) \
+			  $(float16_trunc_funcs)
 
 float16_all_src		= $(float16_fix_src) \
 			  $(float16_float_src) \
-			  $(float16_extend_src)
+			  $(float16_extend_src) \
+			  $(float16_trunc_src)
 
 float16_all_obj		= $(addprefix $(float16_prefix),$(addsuffix $(objext),$(float16_all_funcs)))
 
@@ -136,6 +144,9 @@ $(float16_float_src) : $(subst $(float16_prefix),$(srcdir)/soft-fp/,$@) $(float1
 
 $(float16_extend_src) : $(float16_extend_dep)
 	$(PERL) $(float16_extend_script) -t $@ $(float16_extend_orig) > $@
+
+$(float16_trunc_src) : $(float16_trunc_dep)
+	$(PERL) $(float16_trunc_script) -t $@ $(float16_trunc_orig) > $@
 
 # For now, only put it in the static library
 # LIB2ADD	+= $(fp16_src) $(bfp16_src) $(both_fp16_src) $(float16_all_src)
@@ -184,10 +195,12 @@ test-float16:
 	echo "float16_fixuns_di_orig = $(float16_fixuns_di_orig)"; \
 	echo "float16_fixuns_si_orig = $(float16_fixuns_si_orig)"; \
 	echo "float16_extend_orig    = $(float16_extend_orig)"; \
+	echo "float16_trunc_orig     = $(float16_trunc_orig)"; \
 	echo; \
 	echo "float16_fix_script     = $(float16_fix_script)"; \
 	echo "float16_float_script   = $(float16_float_script)"; \
 	echo "float16_extend_script  = $(float16_extend_script)"; \
+	echo "float16_trunc_script   = $(float16_trunc_script)"; \
 	echo
 
 clean-float16:
