@@ -1,5 +1,51 @@
 ==================== Branch work265-float, patch #221 ====================
 
+Generate 16-bit floating point truncate functions
+
+Add support for automatically converting the soft-ftp extend functions for
+16-bit.
+
+2026-10-01  Michael Meissner  <meissner@linux.ibm.com>
+
+libgcc/
+
+	* config/rs6000/convert-16bit-fp-trunc: New perl script.
+	* config/rs6000/t-float16: Update.
+	* config/rs6000/truncsfdf-bf2.c: Delete.
+	* config/rs6000/truncsfdf-hf2.c: Likewise.
+
+==================== Branch work265-float, patch #223 ====================
+
+Generate 16-bit floating extend functions
+
+Add support for automatically converting the soft-ftp extend functions for
+16-bit.  Also rework the pevious conversion support.
+
+2026-10-01  Michael Meissner  <meissner@linux.ibm.com>
+
+libgcc/
+
+	* config/rs6000/convert-16bit-fp-extend: New perl script.
+	* config/rs6000/convert-16bit-fp-fix: Rewrite to use -t conversion
+	instead of -b/-h.
+	* config/rs6000/convert-16bit-fp-float: Likewise.
+	* config/rs6000/t-float16: Update.
+	* config/rs6000/extendbf-sfdf2.c: Delete.
+	* config/rs6000/extendhf-sfdf2.c: Likewise.
+
+==================== Branch work265-float, patch #221 ====================
+
+Add back missing files.
+
+2026-10-01  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/ppc-fixbfbitint.c: Add file back.
+	* config/rs6000/ppc-fixhfbitint.c: Likewise.
+	* config/rs6000/ppc-floatbitintbf.c: Likewise.
+	* config/rs6000/ppc-floatbitinthf.c: Likewise.
+
+==================== Branch work265-float, patch #221 ====================
+
 Use perl to convert float functions for 16-bit floating point
 
 This patch removes the ppc-float* functions, and instead uses perl to generate
