@@ -2,7 +2,7 @@ PERL		:= perl
 
 # _Float16 library support, source files in soft-ftp
 fp16_funcs	= extendhf-sfdf2 truncsfdf-hf2 \
-		  ppc-eqhf2 ppc-floatbitinthf ppc-fixhfbitint
+		  ppc-eqhf2
 
 fp16_src	= $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(fp16_funcs)))
 fp16_obj	= $(addsuffix $(objext),$(fp16_funcs))
@@ -15,7 +15,7 @@ $(fp16_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
 
 # __bf16 library support, source files in config/rs6000
 bfp16_funcs	= extendbf-sfdf2 truncsfdf-bf2 \
-		  ppc-eqbf2 ppc-floatbitintbf ppc-fixbfbitint
+		  ppc-eqbf2
 
 bfp16_src	= $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(bfp16_funcs)))
 bfp16_obj	= $(addsuffix $(objext),$(bfp16_funcs))
@@ -43,7 +43,7 @@ float16_fix_script	= $(srcdir)/config/rs6000/convert-16bit-fp-fix
 float16_float_script	= $(srcdir)/config/rs6000/convert-16bit-fp-float
 
 # Convert fix* functions for _Float16
-fp16x_fix_funcs		= fixhfti fixhfdi fixhfsi
+fp16x_fix_funcs		= fixhfti fixhfdi fixhfsi fixhfbitint
 fp16x_fix_src		= $(addprefix $(float16_prefix),$(addsuffix .c,$(fp16x_fix_funcs)))
 fp16x_fix_obj		= $(addprefix $(float16_prefix),$(addsuffix $(objext),$(fp16x_fix_funcs)))
 
@@ -59,7 +59,7 @@ fp16x_fixuns_dep	= $(float16_fixuns_orig) \
 			  $(float16_fix_script) \
 			  $(srcdir)/config/rs6000/t-float16
 
-fp16x_float_funcs	= floattihf floatdihf floatsihf
+fp16x_float_funcs	= floattihf floatdihf floatsihf floatbitinthf
 fp16x_float_src		= $(addprefloat $(float16_prefloat),$(addsuffloat .c,$(fp16x_float_funcs)))
 fp16x_float_obj		= $(addprefloat $(float16_prefloat),$(addsuffloat $(objext),$(fp16x_float_funcs)))
 
@@ -99,7 +99,7 @@ $(fp16x_floatun_src) : $(fp16x_floatun_dep)
 $(fp16x_all_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
 
 # Convert fix* functions for __bf12
-bfp16x_fix_funcs	= fixbfti fixbfdi fixbfsi
+bfp16x_fix_funcs	= fixbfti fixbfdi fixbfsi fixbfbitint
 bfp16x_fix_src		= $(addprefix $(float16_prefix),$(addsuffix .c,$(bfp16x_fix_funcs)))
 bfp16x_fix_obj		= $(addprefix $(float16_prefix),$(addsuffix $(objext),$(bfp16x_fix_funcs)))
 
@@ -115,7 +115,7 @@ bfp16x_fixuns_dep	= $(float16_fixuns_orig) \
 			  $(float16_fix_script) \
 			  $(srcdir)/config/rs6000/t-float16
 
-bfp16x_float_funcs	= floattibf floatdibf floatsibf
+bfp16x_float_funcs	= floattibf floatdibf floatsibf floatbitinthf
 bfp16x_float_src	= $(addprefloat $(float16_prefloat),$(addsuffloat .c,$(bfp16x_float_funcs)))
 bfp16x_float_obj	= $(addprefloat $(float16_prefloat),$(addsuffloat $(objext),$(bfp16x_float_funcs)))
 

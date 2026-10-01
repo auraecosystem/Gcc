@@ -145,6 +145,9 @@ foreach $line (@func) {
 	if ($line =~ /^__(fix|fixuns)([bh]f)([sdt]i)/) {
 		$line = "__${1}${2}${3}_gpr (unsigned short us)";
 
+	} elsif ($line =~ /^__(fix|fixuns)([bh]f)bitint/) {
+		$line =~ s/${u_letter}Ftype a/unsigned short us/;
+
 	# Add conversion from unsigned short
 	} elsif ($line =~ /FP_INIT_EXCEPTIONS/) {
 		print "  ${u_letter}Ftype a;\n";
