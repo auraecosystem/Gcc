@@ -59,15 +59,48 @@ use warnings;
 use strict;
 use Getopt::Std;
 
-use vars qw($opt_b $opt_h);
+use vars qw($opt_t);
 
-$opt_b = 0;
-$opt_h = 0;
+$opt_t = undef;
 
-&getopts ("bh") || die "Useage $0 [-b] [-h] <input >output\n";
+&getopts ("t:") || die "Useage $0 [-t type] <input >output\n";
 
-die "$0: Either -b or -h must be passed\n"	if (!$opt_b && !$opt_h);
-die "$0: Both -b and -h must not be passed\n"	if ($opt_b && $opt_h);
+die "$0: No -t option.\n"			if (! defined ($opt_t));
+
+my ($input_lc,
+    $output_lc,
+    $uns_lc,
+    $uns_uc_U,
+    $uns_sign);
+
+if ($opt_t =~ /fix(|uns)([bh])f([sdt])i/) {
+	if (defined ($1) && $1 ne "") {
+		($uns_lc, $uns_uc_U, $uns_sign) = ("uns", "U", 0);
+
+	} else {
+		($uns_lc, $uns_uc_U, $uns_sign) = ("", "", 1);
+	}
+
+	($input_lc, $output_lc) = ($2, $3);
+
+} else {
+	die "$0: Invalid -t ${opt_t}\n";
+}
+
+my $input_uc	= uc ($input_lc);
+my $input_uc_F	= "${input_uc}F";
+my $input_lc_f	= "${input_lc}f";
+my $input_type	= "${input_uc}Ftype";
+
+my $output_uc	= uc ($output_lc);
+my $output_uc_I	= "${output_uc}I";
+my $output_lc_i	= "${output_lc}i";
+my $output_type	= "${uns_uc_U}${output_uc}Itype";
+
+my %include_file = ("bf" => "#include \"brain.h\"",
+		    "hf" => "#include \"half.h\"",
+		    "sf" => "#include \"single.h\"",
+		    "df" => "#include \"double.h\"");
 
 # Scan the input and put out the copyright message
 
@@ -77,7 +110,7 @@ my $input = $ARGV[0];
 while ($line = <>) {
 	chomp $line;
 
-	last			if ($line =~ /^[#]include/);
+	last			if ($line =~ /^[#](include|define)/);
 	print $line, "\n";
 }
 
@@ -91,14 +124,17 @@ if ($input) {
 
 die "$0: No include files\n"	if (! defined ($line));
 
-my $inc = ($opt_h ? "half" : "brain");
-
 do {
-	$line =~ s/(single|double|extended|half|quad)/$inc/;
-	print $line, "\n";
+	if ($line =~ /^[#]include [\"](single|double|extended|half|quad|brain)[.]h[\"]$/) {
+		print $include_file{$input_lc_f}, "\n";
+
+	} else {
+		print $line, "\n";
+	}
+
 	$line = <>;
 
-} while (defined ($line) && $line =~ /^[#]include/);
+} while (defined ($line) && $line =~ /^[#](include|define)/);
 
 # Scoop up the rest of the file, convert the input and function to
 # operate on HFtype or BFtype.
@@ -106,19 +142,30 @@ do {
 die "$0: No main source\n"	if (! defined ($line));
 
 my @func = ();
-my $u_letter = ($opt_h ? "H" : "B");
-my $l_letter = ($opt_h ? "h" : "b");
+my $FP   = "BDHST";
+my $INT  = "QHSDT";
 
 do {
 	chomp $line;
 
 	# Function line
 	if ($line =~ /^__fix/) {
-		$line =~ s/[BDHST]F/${u_letter}F/;
-		$line =~ s/[bdhst]f/${l_letter}f/;
+		$line = "__fix${uns_lc}${input_lc_f}${output_lc_i} (${input_type} a)";
+
+	# Return type for function
+	} elsif ($line =~ /^(U)?[${INT}]Itype$/) {
+		$line = $output_type;
+
+	# Return value
+	} elsif ($line =~ /^(\s*)(U)?[${INT}]Itype r;/) {
+		$line = "${1}${output_type} r;";
+
+	# Conversion to int
+	} elsif ($line =~ /^(\s*)FP_TO_INT_[${FP}] [(]r, A, [${INT}]I_BITS, [01][)];/) {
+		$line = "${1}FP_TO_INT_${input_uc} (r, A, ${output_uc_I}_BITS, ${uns_sign});";
 
 	} else {
-		$line =~ s/_(DECL|RAW|INT)_[BHDST]/_${1}_${u_letter}/;
+		$line =~ s/_(DECL|RAW|INT)_[${FP}]/_${1}_${input_uc}/;
 	}
 
 	push (@func, $line);
@@ -128,7 +175,8 @@ do {
 
 # Print out the normal conversion function
 
-print "/* ${u_letter}Ftype passed in FPR registers.  */\n";
+print "\n";
+print "/* ${input_type} passed in FPR registers.  */\n";
 
 foreach $line (@func) {
 	print $line, "\n";
@@ -137,25 +185,25 @@ foreach $line (@func) {
 # Print out the special GPR function.
 
 print "\n";
-print "/* ${u_letter}Ftype passed in GPR registers.  */\n";
+print "/* ${input_type} passed in GPR registers.  */\n";
 
 foreach $line (@func) {
 
 	# Function header
 	if ($line =~ /^__(fix|fixuns)([bh]f)([sdt]i)/) {
 		$line = "__${1}${2}${3}_gpr (unsigned short us)";
-
-	# Add conversion from unsigned short
-	} elsif ($line =~ /FP_INIT_EXCEPTIONS/) {
-		print "  ${u_letter}Ftype a;\n";
-		print "  union ushort_${l_letter}f u;\n";
-		print "\n";
-		print "  u.us = us;\n";
-		print "  a = u.${l_letter}f;\n";
-		print "\n";
 	}
 
 	print $line, "\n";
+
+	# Add conversion from unsigned short
+	if ($line =~ /^(\s*)U?[${INT}]Itype r;/) {
+		print "${1}${input_type} a;\n";
+		print "${1}union ushort_${input_lc_f} u;\n";
+		print "\n";
+		print "${1}u.us = us;\n";
+		print "${1}a = u.${input_lc_f};\n";
+	}
 }
 
 # Done
