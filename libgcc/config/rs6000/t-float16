@@ -1,7 +1,7 @@
+PERL		:= perl
+
 # _Float16 library support, source files in soft-ftp
 fp16_funcs	= extendhf-sfdf2 truncsfdf-hf2 \
-		  ppc-fixhfsi  ppc-fixhfdi ppc-fixhfti \
-		  ppc-fixunshfsi ppc-fixunshfdi ppc-fixunshfti \
 		  ppc-floatsihf ppc-floatdihf ppc-floattihf \
 		  ppc-floatunsihf ppc-floatundihf ppc-floatuntihf \
 		  ppc-eqhf2 ppc-floatbitinthf ppc-fixhfbitint
@@ -19,8 +19,6 @@ $(fp16_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
 bfp16_funcs	= extendbf-sfdf2 truncsfdf-bf2 \
 		  ppc-floatsibf ppc-floatdibf ppc-floattibf \
 		  ppc-floatunsibf ppc-floatundibf ppc-floatuntibf \
-		  ppc-fixbfsi  ppc-fixbfdi ppc-fixbfti \
-		  ppc-fixunsbfsi  ppc-fixunsbfdi ppc-fixunsbfti \
 		  ppc-eqbf2 ppc-floatbitintbf ppc-fixbfbitint
 
 bfp16_src	= $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(bfp16_funcs)))
@@ -35,10 +33,79 @@ both_fp16_obj	 = $(addsuffix $(objext),$(both_fp16_funcs))
 
 $(both_fp16_obj) : INTERNAL_CFLAGS += $(FP16_CFLAGS)
 
+# Convert functions in soft-fp to powerpc, building 2 versions, one
+# with normal __bf16/_Float16 arguments, and the other where we
+# pass/return 16-bit floating point in gprs.
+
+float16_prefix		= ppc-
+float16_fix_orig	= $(srcdir)/soft-fp/fixsfdi.c
+float16_fixuns_orig	= $(srcdir)/soft-fp/fixsfdi.c
+
+float16_fix_script	= $(srcdir)/config/rs6000/convert-16bit-fp-fix
+
+# Convert fix* functions for _Float16
+fp16x_fix_funcs		= fixhfti fixhfdi fixhfsi
+fp16x_fix_src		= $(addprefix $(float16_prefix),$(addsuffix .c,$(fp16x_fix_funcs)))
+fp16x_fix_obj		= $(addprefix $(float16_prefix),$(addsuffix $(objext),$(fp16x_fix_funcs)))
+
+fp16x_fixuns_funcs	= fixunshfti fixunshfdi fixunshfsi
+fp16x_fixuns_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(fp16x_fixuns_funcs)))
+fp16x_fixuns_obj	= $(addprefix $(float16_prefix),$(addsuffix $(objext),$(fp16x_fixuns_funcs)))
+
+fp16x_all_funcs		= $(fp16x_fix_funcs) $(fp16x_fixuns_funcs)
+fp16x_all_src		= $(fp16x_fix_src) $(fp16x_fixuns_src)
+fp16x_all_obj		= $(fp16x_fix_obj) $(fp16x_fixuns_obj)
+
+fp16x_fix_dep		= $(float16_fix_orig) \
+			  $(float16_fix_script) \
+			  $(srcdir)/config/rs6000/t-float16
+
+fp16x_fixuns_dep	= $(float16_fixuns_orig) \
+			  $(float16_fix_script) \
+			  $(srcdir)/config/rs6000/t-float16
+
+$(fp16x_fix_src) : $(fp16x_fix_dep)
+	$(PERL) $(float16_fix_script) -h $(float16_fix_orig) > $@
+
+$(fp16x_fixuns_src) : $(fp16x_fixuns_dep)
+	$(PERL) $(float16_fix_script) -h $(float16_fixuns_orig) > $@
+
+$(fp16x_all_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
+
+# Convert fix* functions for __bf12
+bfp16x_fix_funcs	= fixbfti fixbfdi fixbfsi
+bfp16x_fix_src		= $(addprefix $(float16_prefix),$(addsuffix .c,$(bfp16x_fix_funcs)))
+bfp16x_fix_obj		= $(addprefix $(float16_prefix),$(addsuffix $(objext),$(bfp16x_fix_funcs)))
+
+bfp16x_fixuns_funcs	= fixunsbfti fixunsbfdi fixunsbfsi
+bfp16x_fixuns_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(bfp16x_fixuns_funcs)))
+bfp16x_fixuns_obj	= $(addprefix $(float16_prefix),$(addsuffix $(objext),$(bfp16x_fixuns_funcs)))
+
+bfp16x_all_funcs	= $(bfp16x_fix_funcs) $(bfp16x_fixuns_funcs)
+bfp16x_all_src		= $(bfp16x_fix_src) $(bfp16x_fixuns_src)
+bfp16x_all_obj		= $(bfp16x_fix_obj) $(bfp16x_fixuns_obj)
+
+bfp16x_fix_dep		= $(float16_fix_orig) \
+			  $(float16_fix_script) \
+			  $(srcdir)/config/rs6000/t-float16
+
+bfp16x_fixuns_dep	= $(float16_fixuns_orig) \
+			  $(float16_fix_script) \
+			  $(srcdir)/config/rs6000/t-float16
+
+$(bfp16x_fix_src) : $(bfp16x_fix_dep)
+	$(PERL) $(float16_fix_script) -b $(float16_fix_orig) > $@
+
+$(bfp16x_fixuns_src) : $(bfp16x_fixuns_dep)
+	$(PERL) $(float16_fix_script) -b $(float16_fixuns_orig) > $@
+
+$(bfp16x_all_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
+
 # For now, only put it in the static library
 # LIB2ADD	+= $(fp16_src) $(bfp16_src) $(both_fp16_src)
 
-LIB2ADD_ST	+= $(fp16_src) $(bfp16_src) $(both_fp16_src)
+LIB2ADD_ST	+= $(fp16_src) $(bfp16_src) $(both_fp16_src) \
+		   $(fp16x_all_src) $(bfp16x_all_src)
 
 .PHONY: test-float16 clean-float16
 
@@ -59,7 +126,23 @@ test-float16:
 	for x in $(bfp16_obj); do echo "    $$x"; done; \
 	echo; \
 	echo "both_fp16_obj:"; \
-	for x in $(bfp16_obj); do echo "    $$x"; done;
+	for x in $(bfp16_obj); do echo "    $$x"; done; \
+	echo; \
+	echo "fp16x_all_funcs:"; \
+	for x in $(fp16x_all_funcs); do echo "    $$x"; done; \
+	echo; \
+	echo "fp16x_all_src:"; \
+	for x in $(fp16x_all_src); do echo "    $$x"; done; \
+	echo; \
+	echo "fp16x_all_obj:"; \
+	for x in $(fp16x_all_obj); do echo "    $$x"; done; \
+	echo; \
+	echo "float16_prefix      = $(float16_prefix)"; \
+	echo "float16_fix_orig    = $(float16_fix_orig)"; \
+	echo "float16_fixuns_orig = $(float16_fixuns_orig)"; \
+	echo "float16_fix_script  = $(float16_fix_script)"; \
+	echo
 
 clean-float16:
 	@$(MULTICLEAN) multi-clean DO=clean-float16
+	rm -f $(fp16x_all_src)
