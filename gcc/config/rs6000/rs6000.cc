@@ -2636,33 +2636,6 @@ rs6000_debug_reg_global (void)
   if (TARGET_DIRECT_MOVE_128)
     fprintf (stderr, DEBUG_FMT_D, "VSX easy 64-bit mfvsrld element",
 	     (int)VECTOR_ELEMENT_MFVSRLD_64BIT);
-
-  if (TARGET_FLOAT16)
-    {
-      fprintf (stderr, DEBUG_FMT_S, "_Float16",
-	       (TARGET_FLOAT16_HW ? "hardware" : "software"));
-      fprintf (stderr, DEBUG_FMT_S, "__bf16",
-	       (TARGET_BFLOAT16_HW ? "hardware" : "software"));
-      fprintf (stderr, DEBUG_FMT_S, "-mfloat16-gpr-convert",
-	       (TARGET_FLOAT16_GPR_CONVERT ? "yes" : "no"));
-
-#if POWERPC_FLOAT16_DEFAULT
-      fprintf (stderr, DEBUG_FMT_S, "float16 configured", "enabled");
-#else
-      fprintf (stderr, DEBUG_FMT_S, "float16 configured", "disabled");
-#endif
-
-#if POWERPC_FLOAT16_DISABLE_WARNING
-      fprintf (stderr, DEBUG_FMT_S, "float16 call warnings", "disabled");
-#else
-      fprintf (stderr, DEBUG_FMT_S, "float16 call warnings", "enabled");
-#endif
-    }
-  else
-    {
-      fprintf (stderr, DEBUG_FMT_S, "_Float16", "disabled");
-      fprintf (stderr, DEBUG_FMT_S, "__bf16", "disabled");
-    }
 }
 
 
@@ -11864,101 +11837,6 @@ init_float128_ieee (machine_mode mode)
     }
 }
 
-/* For 16-bit floating point, mark the identifier of the conversion functions
-   so they pass/register the HFmode and BFmode in a GPR register rather than a
-   floating point register.  Thus if HFmode/BFmode are converted to DFmode for
-   passing and returning values, we can do the conversion on machines that
-   don't have the conversions.  */
-
-static void
-init_float16 (void)
-{
-  char fname[80];
-
-  /* Map mode to a string.  */
-  struct mode_string  {
-    const enum machine_mode mode;
-    const char *const name;
-  };
-
-  const static struct mode_string fp16_modes[] = {
-    { E_BFmode, "bf" },
-    { E_HFmode, "hf" },
-  };
-
-  const static struct mode_string fp_modes[] = {
-    { E_SFmode, "sf" },
-    { E_DFmode, "df" },
-  };
-
-  const static struct mode_string int_modes[] = {
-    { E_SImode, "si" },
-    { E_DImode, "di" },
-    { E_TImode, "ti" },
-  };
-
-  for (size_t i = 0; i < ARRAY_SIZE (fp16_modes); i++)
-    {
-      enum machine_mode fp16_mode = fp16_modes[i].mode;
-      const char *fp16_name = fp16_modes[i].name;
-
-      /* Conversions between {SFmode,DFmode} <=> {BFmode,HFmode}.  */
-      for (size_t j = 0; j < ARRAY_SIZE (fp_modes); j++)
-	{
-	  enum machine_mode fp_mode = fp_modes[j].mode;
-	  const char *fp_name = fp_modes[j].name;
-
-	  sprintf (fname, "__extend%s%s2_gpr", fp16_name, fp_name);
-	  set_conv_libfunc (sext_optab, fp_mode, fp16_mode, fname);
-
-	  sprintf (fname, "__trunc%s%s2_gpr", fp_name, fp16_name);
-	  set_conv_libfunc (trunc_optab, fp16_mode, fp_mode, fname);
-	}
-
-      /* Conversions between {SImode,DImode} <=> {BFmode,HFmode}.  */
-      for (size_t j = 0; j < ARRAY_SIZE (int_modes); j++)
-	{
-	  enum machine_mode int_mode = int_modes[j].mode;
-	  const char *int_name = int_modes[j].name;
-
-	  if (int_mode == SImode || TARGET_POWERPC64)
-	    {
-	      sprintf (fname, "__float%s%s2_gpr", int_name, fp16_name);
-	      set_conv_libfunc (sfloat_optab, fp16_mode, int_mode, fname);
-
-	      sprintf (fname, "__floatuns%s%s2_gpr", int_name, fp16_name);
-	      set_conv_libfunc (ufloat_optab, fp16_mode, int_mode, fname);
-
-	      sprintf (fname, "__fix_trunc%s%s2_gpr", fp16_name, int_name);
-	      set_conv_libfunc (sfix_optab, int_mode, fp16_mode, fname);
-
-	      sprintf (fname, "__fixuns_trunc%s%s2_gpr", fp16_name, int_name);
-	      set_conv_libfunc (ufix_optab, int_mode, fp16_mode, fname);
-	    }
-	}
-
-      /* Conversions between the two 16-bit floating point formats.  */
-      for (size_t j = 0; j < ARRAY_SIZE (fp16_modes); j++)
-	{
-	  enum machine_mode fp16_mode2 = fp16_modes[j].mode;
-	  const char *fp16_name2 = fp16_modes[j].name;
-
-	  if (fp16_mode != fp16_mode2)
-	    {
-	      sprintf (fname, "__trunc%s%s2_gpr", fp16_name, fp16_name2);
-	      set_conv_libfunc (trunc_optab, fp16_mode2, fp16_mode, fname);
-	    }
-	}
-
-      /* Bitint support.  */
-      sprintf (fname, "__floatbitint%s_gpr", fp16_name);
-      set_optab_libfunc (bitinttofp_optab, fp16_mode, fname);
-
-      sprintf (fname, "__fix%sbitint_gpr", fp16_name);
-      set_optab_libfunc (bitintfromfp_optab, fp16_mode, fname);
-    }
-}
-
 static void
 rs6000_init_libfuncs (void)
 {
@@ -11979,10 +11857,6 @@ rs6000_init_libfuncs (void)
       else
 	init_float128_ieee (TFmode);
     }
-
-  /* 16-bit float support functions.  */
-  if (TARGET_FLOAT16 && TARGET_FLOAT16_GPR_CONVERT)
-    init_float16 ();
 }
 
 /* Emit a potentially record-form instruction, setting DST from SRC.
@@ -24576,8 +24450,6 @@ rs6000_libcall_value (machine_mode mode)
   if (DECIMAL_FLOAT_MODE_P (mode) && TARGET_HARD_FLOAT)
     /* _Decimal128 must use an even/odd register pair.  */
     regno = (mode == TDmode) ? FP_ARG_RETURN + 1 : FP_ARG_RETURN;
-  else if (FP16_SCALAR_MODE_P (mode) && TARGET_FLOAT16_GPR_CONVERT)
-    regno = GP_ARG_RETURN;
   else if (SCALAR_FLOAT_MODE_NOT_VECTOR_P (mode) && TARGET_HARD_FLOAT)
     regno = FP_ARG_RETURN;
   /* VSX is a superset of Altivec and adds V2DImode/V2DFmode.  Since the same
@@ -25170,9 +25042,6 @@ static struct rs6000_opt_var const rs6000_opt_vars[] =
   { "speculate-indirect-jumps",
     offsetof (struct gcc_options, x_rs6000_speculate_indirect_jumps),
     offsetof (struct cl_target_option, x_rs6000_speculate_indirect_jumps), },
-  { "float16-gpr-convert",
-    offsetof (struct gcc_options, x_TARGET_FLOAT16_GPR_CONVERT),
-    offsetof (struct cl_target_option, x_TARGET_FLOAT16_GPR_CONVERT), },
 };
 
 /* Inner function to handle attribute((target("..."))) and #pragma GCC target
