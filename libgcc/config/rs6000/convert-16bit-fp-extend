@@ -1,0 +1,220 @@
+#! /usr/bin/perl -w
+# Convert a libgcc/soft-fp fix<fp><int> fuunction for the PowerPC
+
+# Copyright (C) 2020-2026 Free Software Foundation, Inc.
+#
+# This file is part of GCC.
+#
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+#
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+#
+# The PowerPC 16-bit floating point support is considering requiring
+# 16-bit floating point arguments to the 32/64-bit scalar format in
+# registers and similarly returning the 16-bit floating point return to
+# a 32/64-bit scalar value.  However, this presents a problem in that
+# if a machine doesn't have instructions to do a conversion in
+# hardware, you can't call the soft-fp conversion function using the
+# native calling sequence.
+#
+# This perl script converts a extend<fp1><fp2>.c to do the conversion
+# to BFtype (Google brain 16-bit float) or HFtype (IEEE 754 _Float16).
+# It produces 2 functions, one that has the normal name and takes the
+# normal arguments, and the other that adds a _gpr suffix and changes
+# the 16-bit floating point to unsigned short.
+#
+# A typical extend* conversion file looks like:
+#
+# <copyright message>
+#
+# #define FP_NO_EXACT_UNDERFLOW
+# #include "soft-fp.h"
+# #include "single.h"
+# #include "double.h"
+#
+# DFtype
+# __extendsfdf2 (SFtype a)
+# {
+#   FP_DECL_EX;
+#   FP_DECL_S (A);
+#   FP_DECL_D (R);
+#   DFtype r;
+#
+#   FP_INIT_EXCEPTIONS;
+#   FP_UNPACK_RAW_S (A, a);
+# #if _FP_W_TYPE_SIZE < _FP_FRACBITS_D
+#   FP_EXTEND (D, S, 2, 1, R, A);
+# #else
+#   FP_EXTEND (D, S, 1, 1, R, A);
+# #endif
+#   FP_PACK_RAW_D (r, R);
+#   FP_HANDLE_EXCEPTIONS;
+#
+#   return r;
+# }
+
+use warnings;
+use strict;
+use Getopt::Std;
+
+use vars qw($opt_t);
+
+$opt_t = undef;
+
+&getopts ("t:") || die "Useage $0 [-t type] <input >output\n";
+
+die "$0: No -t option.\n"			if (! defined ($opt_t));
+
+my ($input_lc, $output_lc);
+
+if ($opt_t =~ /extend([bh])f([sd])f2/) {
+	($input_lc, $output_lc) = ($1, $2);
+
+} else {
+	die "$0: Invalid -t ${opt_t}\n";
+}
+
+my $input_uc	= uc ($input_lc);
+my $input_uc_F	= "${input_uc}F";
+my $input_lc_f	= "${input_lc}f";
+my $input_type	= "${input_uc}Ftype";
+
+my $output_uc	= uc ($output_lc);
+my $output_uc_F	= "${output_uc}F";
+my $output_lc_f	= "${output_lc}f";
+my $output_type	= "${output_uc}Ftype";
+
+my %include_file = ("bf" => "#include \"brain.h\"",
+		    "hf" => "#include \"half.h\"",
+		    "sf" => "#include \"single.h\"",
+		    "df" => "#include \"double.h\"");
+
+# Scan the input and put out the copyright message
+
+my $line;
+my $input = $ARGV[0];
+
+while ($line = <>) {
+	chomp $line;
+
+	last			if ($line =~ /^[#](include|define)/);
+	print $line, "\n";
+}
+
+if ($input) {
+	print "/* Automatically converted from $input.  */\n";
+	print "\n";
+}
+
+# Change the include file from the floating point type to either half.h
+# or brain.h.
+
+die "$0: No include files\n"	if (! defined ($line));
+
+my $include_found = 0;
+
+do {
+	if ($line =~ /^#include ["](brain|half|single|double|quad)[.]h["]$/) {
+		if (!$include_found) {
+			print $include_file{$input_lc_f}, "\n";
+			print $include_file{$output_lc_f}, "\n";
+			$include_found = 1;
+		}
+
+	} else {
+		print $line, "\n";
+	}
+
+	$line = <>;
+
+} while (defined ($line) && $line =~ /^(\s*$|[#](include|define))/);
+
+# Scoop up the rest of the file, convert the input and function to
+# operate on HFtype or BFtype.
+
+die "$0: No main source\n"	if (! defined ($line));
+
+my @func = ();
+my $FP   = "BDHSTQ";
+
+do {
+	chomp $line;
+
+	# Return type
+	if ($line =~ /^[${FP}]Ftype$/) {
+		$line = $output_type;
+
+	# Function line
+	} elsif ($line =~ /^__extend/) {
+		$line = "__extend${input_lc_f}${output_lc_f}2 (${input_type} a)";
+
+	# Declaration line of the input type
+	} elsif ($line =~ /^(\s*FP_DECL_)[${FP}] [(]A[)];/) {
+		$line = "${1}${input_uc} (A);";
+
+	# Declaration line of the output type
+	} elsif ($line =~ /^(\s*FP_DECL_)[${FP}] [(]R[)];/) {
+		$line = "${1}${output_uc} (R);";
+
+	# Declaration of the actual result
+	} elsif ($line =~ /^(\s*)[${FP}]Ftype r;/) {
+		$line = "${1}${output_type} r;";
+
+	} else {
+		# Unpack input type
+		$line =~ s/FP_UNPACK_RAW_[${FP}]/FP_UNPACK_RAW_${input_uc}/;
+
+		# Pack output type
+		$line =~ s/FP_PACK_RAW_[${FP}]/FP_PACK_RAW_${output_uc}/;
+
+		# Extend line
+		$line =~ s/FP_EXTEND [(][${FP}], [${FP}],/FP_EXTEND (${output_uc}, ${input_uc},/;
+	}
+
+	push (@func, $line);
+	$line = <>;
+
+} while (defined ($line));
+
+# Print out the normal conversion function
+
+print "/* ${input_type} passed in FPR registers.  */\n";
+
+foreach $line (@func) {
+	print $line, "\n";
+}
+
+# Print out the conversion function that uses GPRs
+
+print "\n";
+print "/* ${input_type} passed in GPR registers.  */\n";
+
+foreach $line (@func) {
+	if ($line =~ /^__extend/) {
+		$line = "__extend${input_lc_f}${output_lc_f}2_gpr (unsigned short us)";
+	}
+
+	print $line, "\n";
+
+
+	if ($line =~ /^(\s*)[${FP}]Ftype r;/) {
+		print "${1}union ushort_${input_lc_f} u;\n";
+		print "${1}${input_type} a;\n";
+		print "\n";
+		print "${1}u.us = us;\n";
+		print "${1}a = u.${input_lc_f};\n";
+	}
+}
+
+# Done
+exit 0;

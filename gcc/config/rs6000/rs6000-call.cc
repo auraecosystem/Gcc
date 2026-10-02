@@ -81,10 +81,17 @@
 #define TARGET_NO_PROTOTYPE 0
 #endif
 
-/* Nonzero if we can use a floating-point register to pass this arg.  */
-#define USE_FP_FOR_ARG_P(CUM,MODE)		\
-  (SCALAR_FLOAT_MODE_NOT_VECTOR_P (MODE)		\
-   && (CUM)->fregno <= FP_ARG_MAX_REG		\
+/* Whether we pass 16-bit floating point values in GPRs for library
+   calls.  */
+#define FP16_USE_GPR(MODE, LIBCALL)					\
+  (FP16_SCALAR_MODE_P (MODE) && TARGET_FLOAT16_GPR_CONVERT && LIBCALL)
+
+/* Nonzero if we can use a floating-point register to pass this arg.  16-bit
+   floating point arguments to library functions are passed as ints.  */
+#define USE_FP_FOR_ARG_P(CUM,MODE)					\
+  (SCALAR_FLOAT_MODE_NOT_VECTOR_P (MODE)				\
+   && !FP16_USE_GPR (MODE, (CUM)->libcall)				\
+   && (CUM)->fregno <= FP_ARG_MAX_REG					\
    && TARGET_HARD_FLOAT)
 
 /* Nonzero if we can use an AltiVec register to pass this arg.  */
@@ -590,7 +597,7 @@ call_ABI_of_interest (tree fndecl)
 
 void
 init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
-		      rtx libname ATTRIBUTE_UNUSED, int incoming,
+		      rtx libname, int incoming,
 		      int libcall, int n_named_args,
 		      tree fndecl,
 		      machine_mode return_mode ATTRIBUTE_UNUSED)
@@ -652,6 +659,12 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
 
       if (cum->call_cookie & CALL_LONG)
 	fprintf (stderr, " longcall,");
+
+      if (libname)
+	fprintf (stderr, " name=%s,", XSTR (libname, 0));
+
+      if (libcall)
+	fprintf (stderr, " libcall,");
 
       fprintf (stderr, " proto = %d, nargs = %d\n",
 	       cum->prototype, cum->nargs_prototype);
