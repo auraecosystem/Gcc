@@ -1,3 +1,75 @@
+==================== Branch work266-float, patch #211 ====================
+
+Pass and return 16-bit fp library values in GPRs
+
+This patch changes all of the 16-bit floating point library functions to pass
+and return 16-bit floating point values as unsigned short.  The intention is to
+prepare for modifying the calling sequence so that the values are converted to
+32/64-bit scalar floating point.  However, we can't call the library functions
+which are used to do the conversion if we have to convert the argument on a
+machine that does not have native conversion instructions.
+
+2026-09-30  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000-call.cc (FP16_USE_GPR): New macro.
+	(USE_FP_FOR_ARG_P) Add support for 16-bit fp library functions passing
+	16-bit fp in GPR registers.
+	(init_cumulative_args): Print name and if it is a library function if
+	-mdebug=ag.
+	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Print 16-bit
+	floating point information if -mdebug=reg.
+	(init_float16): Mark all of the 16-bit floating point library functions
+	as passing/returning 16-bit floating point values in GPR registers and
+	change the name to have a '_gpr' suffix.
+	(rs6000_init_libfuncs): Likewise.
+	(rs6000_opt_vars): Add -mfloat16-gpr-convert switch.
+	* config/rs6000/rs6000.opt (-mfloat16-gpr-convert): New switch.
+
+libgcc/
+
+	* config/rs6000/extendbf-sfdf2.c: New file.
+	* config/rs6000/extendhf-sfdf2.c: Likewise.
+	* config/rs6000/ppc-eqbf2.c: Likewise.
+	* config/rs6000/ppc-eqhf2.c: Likewise.
+	* config/rs6000/ppc-fixbfbitint.c: Likewise.
+	* config/rs6000/ppc-fixbfdi.c: Likewise.
+	* config/rs6000/ppc-fixbfdi.c: Likewise.
+	* config/rs6000/ppc-fixbfdi.c: Likewise.
+	* config/rs6000/ppc-fixhfbitint.c: Likewise.
+	* config/rs6000/ppc-fixhfdi.c: Likewise.
+	* config/rs6000/ppc-fixhfsi.c: Likewise.
+	* config/rs6000/ppc-fixhfti.c: Likewise.
+	* config/rs6000/ppc-fixunsbfdi.c: Likewise.
+	* config/rs6000/ppc-fixunsbfsi.c: Likewise.
+	* config/rs6000/ppc-fixunsbfti.c: Likewise.
+	* config/rs6000/ppc-fixunshfdi.c: Likewise.
+	* config/rs6000/ppc-fixunshfsi.c: Likewise.
+	* config/rs6000/ppc-fixunshfti.c: Likewise.
+	* config/rs6000/ppc-floatbitintbf.c: Likewise.
+	* config/rs6000/ppc-floatbitinthf.c: Likewise.
+	* config/rs6000/ppc-floatdibf.c: Likewise.
+	* config/rs6000/ppc-floatdihf.c: Likewise.
+	* config/rs6000/ppc-floatsibf.c: Likewise.
+	* config/rs6000/ppc-floatsihf.c: Likewise.
+	* config/rs6000/ppc-floattibf.c: Likewise.
+	* config/rs6000/ppc-floattihf.c: Likewise.
+	* config/rs6000/ppc-floatundibf.c: Likewise.
+	* config/rs6000/ppc-floatundihf.c: Likewise.
+	* config/rs6000/ppc-floatunsibf.c: Likewise.
+	* config/rs6000/ppc-floatunsihf.c: Likewise.
+	* config/rs6000/ppc-floatuntibf.c: Likewise.
+	* config/rs6000/ppc-floatuntihf.c: Likewise.
+	* config/rs6000/ppc-truncbfhf2.c: Likewise.
+	* config/rs6000/sfp-machine.h: Add declarations for declaring the *_gpr
+	library functions.
+	* config/rs6000/t-float16: Build all of the new 16-bit floating point
+	conversion functions that pass and return 16-bit floating point in GPR
+	registers.
+	* config/rs6000/truncsfdf-bf2.c: New file.
+	* config/rs6000/truncsfdf-hf2.c: Likewise.
+
 ==================== Branch work266-float, patch #210 ====================
 
 Add conversions between 128-bit integers and 16-bit floating point
