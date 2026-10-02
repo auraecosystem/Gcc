@@ -1,0 +1,14 @@
+==================== Branch work266-submit, baseline ====================
+
+2026-10-01   Michael Meissner  <meissner@linux.ibm.com>
+
+Add ChangeLog.submit and update REVISION.
+
+2026-10-01  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* ChangeLog.submit: New file for branch.
+	* REVISION: Update.
+
+	Clone branch
