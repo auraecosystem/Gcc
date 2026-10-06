@@ -1,3 +1,12 @@
+==================== Branch work266-float, patch #213 ====================
+
+Fix building 16-bit floating point fix functions #2.
+
+2026-10-01  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/t-float16: Fix typos that prevented building the 16-bit
+	floating point conversion functions to integer types.
+
 ==================== Branch work266-float, patch #212 ====================
 
 Fix building 16-bit floating point fix functions.
