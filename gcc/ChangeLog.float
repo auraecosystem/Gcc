@@ -1,3 +1,22 @@
+==================== Branch work266-float, patch #221 ====================
+
+Fix float conversions
+
+Fix the name used for usngiend float conversions in libgcc.
+
+Allow {TFmode, KFmode, IFmode} <=> {BFmode, HFmode} conversions to convert to
+DFmode even if we don't have hardware support for the 16-bit floating point
+type.
+
+2026-10-06  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.md
+	(extend<FP16_HW:mode><FP16_FLOAT_CONVERT:mode>2): Allow insn even if we
+	do not have hardware support.
+	(trunc<FP16_FLOAT_CONVERT:mode><FP16_HW:mode>2): Likewise.
+	* config/rs6000/rs6000.cc (init_float16): Correct the names of unsigned
+	to float conversion functions.
+
 ==================== Branch work266-float, patch #220 ====================
 
 Pass and return 16-bit fp library values in GPRs
