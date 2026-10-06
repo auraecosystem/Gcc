@@ -11923,10 +11923,10 @@ init_float16 (void)
 
 	  if (int_mode == SImode || TARGET_POWERPC64)
 	    {
-	      sprintf (fname, "__float%s%s2_gpr", int_name, fp16_name);
+	      sprintf (fname, "__float%s%s_gpr", int_name, fp16_name);
 	      set_conv_libfunc (sfloat_optab, fp16_mode, int_mode, fname);
 
-	      sprintf (fname, "__floatuns%s%s2_gpr", int_name, fp16_name);
+	      sprintf (fname, "__floatun%s%s_gpr", int_name, fp16_name);
 	      set_conv_libfunc (ufloat_optab, fp16_mode, int_mode, fname);
 
 	      sprintf (fname, "__fix_trunc%s%s2_gpr", fp16_name, int_name);
