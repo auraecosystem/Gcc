@@ -35,12 +35,12 @@ float16_prefix		= ppc-
 float16_dep		= $(srcdir)/config/rs6000/t-float16
 
 # We don't have a full set of BFmode conversions in soft-fp, so modify the HFmode
-# conversions to do what we want
+# conversions to do what we want for BFmode as well as HFmode.
 float16_fix_ti_orig	= $(srcdir)/soft-fp/fixhfti.c
 float16_fix_di_orig	= $(srcdir)/soft-fp/fixhfdi.c
 float16_fix_si_orig	= $(srcdir)/soft-fp/fixhfsi.c
 float16_fixuns_ti_orig	= $(srcdir)/soft-fp/fixunshfti.c
-float16_fixuns_di_orig	= $(srcdir)/soft-fp/fixhunsfdi.c
+float16_fixuns_di_orig	= $(srcdir)/soft-fp/fixunshfdi.c
 float16_fixuns_si_orig	= $(srcdir)/soft-fp/fixunshfsi.c
 float16_extend_orig	= $(srcdir)/soft-fp/extendhfsf2.c
 float16_trunc_orig	= $(srcdir)/soft-fp/truncsfhf2.c
@@ -50,26 +50,26 @@ float16_float_script	= $(srcdir)/config/rs6000/convert-16bit-fp-float
 float16_extend_script	= $(srcdir)/config/rs6000/convert-16bit-fp-extend
 float16_trunc_script	= $(srcdir)/config/rs6000/convert-16bit-fp-trunc
 
-float16_fix_ti_func	= fixhfti fixbfti
-float16_fix_di_func	= fixhfti fixbfti
-float16_fix_si_func	= fixhfti fixbfti
-float16_fixuns_ti_func	= fixhfti fixbfti
-float16_fixuns_di_func	= fixhfti fixbfti
-float16_fixuns_si_func	= fixhfti fixbfti
+float16_fix_ti_funcs	= fixhfti fixbfti
+float16_fix_di_funcs	= fixhfdi fixbfdi
+float16_fix_si_funcs	= fixhfsi fixbfsi
+float16_fixuns_ti_funcs	= fixunshfti fixunsbfti
+float16_fixuns_di_funcs	= fixunshfdi fixunsbfdi
+float16_fixuns_si_funcs	= fixunshfsi fixunsbfsi
 
 float16_fix_ti_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_fix_ti_funcs)))
 float16_fix_di_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_fix_di_funcs)))
 float16_fix_si_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_fix_si_funcs)))
 float16_fixuns_ti_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_fixuns_ti_funcs)))
-float16_fixuns_dti_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_fixuns_di_funcs)))
+float16_fixuns_di_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_fixuns_di_funcs)))
 float16_fixuns_si_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_fixuns_si_funcs)))
 
-float16_fix_funcs	= $(float_fix_ti_funcs) \
-			  $(float_fix_di_funcs) \
-			  $(float_fix_si_funcs) \
-			  $(float_fix_unsti_funcs) \
-			  $(float_fixuns_di_funcs) \
-			  $(float_fixuns_si_funcs)
+float16_fix_funcs	= $(float16_fix_ti_funcs) \
+			  $(float16_fix_di_funcs) \
+			  $(float16_fix_si_funcs) \
+			  $(float16_fix_unsti_funcs) \
+			  $(float16_fixuns_di_funcs) \
+			  $(float16_fixuns_si_funcs)
 
 float16_fix_src		= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_fix_funcs)))
 float16_fix_dep		= $(float16_fix_orig) \
@@ -77,7 +77,7 @@ float16_fix_dep		= $(float16_fix_orig) \
 			  $(float16_dep)
 
 float16_float_sign_funcs = floattihf floatdihf floatsihf \
-			  floattibf floatdibf floatsibf
+			   floattibf floatdibf floatsibf
 
 float16_float_uns_funcs	= floatuntihf floatundihf floatunsihf \
 			  floatuntibf floatundibf floatunsibf
@@ -174,6 +174,18 @@ test-float16:
 	echo; \
 	echo "both_fp16_obj:"; \
 	for x in $(bfp16_obj); do echo "    $$x"; done; \
+	echo; \
+	echo "float16_fix_funcs:"; \
+	for x in $(float16_fix_funcs); do echo "    $$x"; done; \
+	echo; \
+	echo "float16_float_funcs:"; \
+	for x in $(float16_float_funcs); do echo "    $$x"; done; \
+	echo; \
+	echo "float16_extend_funcs:"; \
+	for x in $(float16_extend_funcs); do echo "    $$x"; done; \
+	echo; \
+	echo "float16_trunc_funcs:"; \
+	for x in $(float16_trunc_funcs); do echo "    $$x"; done; \
 	echo; \
 	echo "float16_all_funcs:"; \
 	for x in $(float16_all_funcs); do echo "    $$x"; done; \
