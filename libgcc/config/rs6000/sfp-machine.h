@@ -170,105 +170,42 @@ void __sfp_handle_exceptions (int);
 /* Add prototypes for the HFmode and BFmode functions.  */
 typedef double DFtype2;
 typedef float SFtype2;
-typedef int HItype2 __attribute__ ((mode (HI)));
-typedef unsigned int UHItype2 __attribute__ ((mode (HI)));
-typedef int SItype2 __attribute__ ((mode (SI)));
-typedef unsigned int USItype2 __attribute__ ((mode (SI)));
 typedef int DItype2 __attribute__ ((mode (DI)));
 typedef unsigned int UDItype2 __attribute__ ((mode (DI)));
-typedef int TItype2 __attribute__ ((mode (TI)));
-typedef unsigned int UTItype2 __attribute__ ((mode (TI)));
-
-/* We have 2 different conversion functions.  One passes or returns the 16-bit
-   floating point type in a floating point register, and the other passes or
-   returns it in a general purpose register.  If 16-bit floating point is
-   normally converted to the 32/64-bit scalar represention, we need a function
-   that does not do this conversion.  */
-#define PASS_FP16(NAME, RET, FP16)					\
-extern RET NAME (FP16);							\
-extern RET NAME ## _gpr (UHItype2)
-
-#define PASS_FP16_2(NAME, RET, FP16_1, FP16_2)				\
-extern RET NAME (FP16_1, FP16_2);					\
-extern RET NAME ## _gpr (UHItype2, UHItype2)
-
-#define RETURN_FP16(NAME, FP16, ARG)					\
-extern FP16 NAME (ARG);							\
-extern UHItype2 NAME ## _gpr (ARG)
-
-#define CONVERT_FP16(NAME, FP16_RET, FP16_ARG)				\
-extern FP16_RET NAME (FP16_ARG);					\
-extern UHItype2 NAME ## _gpr (UHItype2)
+typedef int SItype2 __attribute__ ((mode (SI)));
+typedef unsigned int USItype2 __attribute__ ((mode (SI)));
 
 #ifdef __FLOAT16__
 typedef float HFtype2 __attribute__ ((mode (HF)));
 
-/* Move between HFtype and unsigned short.  */
-union ushort_hf {
-  unsigned short us;
-  HFtype2 hf;
-};
-
-PASS_FP16_2 (__eqhf2, CMPtype, HFtype2, HFtype2);
-
-PASS_FP16 (__extendhfsf2, SFtype2, HFtype2);
-PASS_FP16 (__extendhfdf2, DFtype2, HFtype2);
-
-PASS_FP16 (__fixhfsi, SItype2, HFtype2);
-PASS_FP16 (__fixhfdi, DItype2, HFtype2);
-PASS_FP16 (__fixhfti, TItype2, HFtype2);
-
-PASS_FP16 (__fixunshfsi, USItype2, HFtype2);
-PASS_FP16 (__fixunshfdi, UDItype2, HFtype2);
-PASS_FP16 (__fixunshfti, UTItype2, HFtype2);
-
-RETURN_FP16 (__floatsihf, HFtype2, SItype2);
-RETURN_FP16 (__floatdihf, HFtype2, DItype2);
-RETURN_FP16 (__floattihf, HFtype2, TItype2);
-
-RETURN_FP16 (__floatunsihf, HFtype2, USItype2);
-RETURN_FP16 (__floatundihf, HFtype2, UDItype2);
-RETURN_FP16 (__floatuntihf, HFtype2, UTItype2);
-
-RETURN_FP16 (__truncsfhf2, HFtype2, SFtype2);
-RETURN_FP16 (__truncdfhf2, HFtype2, DFtype2);
+extern CMPtype __eqhf2 (HFtype2, HFtype2);
+extern DFtype2 __extendhfdf2 (HFtype2);
+extern SFtype2 __extendhfsf2 (HFtype2);
+extern DItype2 __fixhfdi (HFtype2);
+extern SItype2 __fixhfsi (HFtype2);
+extern UDItype2 __fixunshfdi (HFtype2);
+extern USItype2 __fixunshfsi (HFtype2);
+extern HFtype2 __floatdihf (DItype2);
+extern HFtype2 __floatsihf (SItype2);
+extern HFtype2 __floatundihf (UDItype2);
+extern HFtype2 __floatunsihf (USItype2);
+extern HFtype2 __truncdfhf2 (DFtype2);
+extern HFtype2 __truncsfhf2 (SFtype2);
 #endif
 
 #ifdef __BFLOAT16__
 typedef float BFtype2 __attribute__ ((mode (BF)));
 
-/* Move between BFtype and unsigned short.  */
-union ushort_bf {
-  unsigned short us;
-  BFtype2 bf;
-};
-
-PASS_FP16_2 (__eqbf2, CMPtype, BFtype2, BFtype2);
-
-PASS_FP16 (__extendbfsf2, SFtype2, BFtype2);
-PASS_FP16 (__extendbfdf2, DFtype2, BFtype2);
-
-PASS_FP16 (__fixbfsi, SItype2, BFtype2);
-PASS_FP16 (__fixbfdi, DItype2, BFtype2);
-PASS_FP16 (__fixbfti, TItype2, BFtype2);
-
-PASS_FP16 (__fixunsbfsi, USItype2, BFtype2);
-PASS_FP16 (__fixunsbfdi, UDItype2, BFtype2);
-PASS_FP16 (__fixunsbfti, UTItype2, BFtype2);
-
-RETURN_FP16 (__floatsibf, BFtype2, SItype2);
-RETURN_FP16 (__floatdibf, BFtype2, DItype2);
-RETURN_FP16 (__floattibf, BFtype2, TItype2);
-
-RETURN_FP16 (__floatunsibf, BFtype2, USItype2);
-RETURN_FP16 (__floatundibf, BFtype2, UDItype2);
-RETURN_FP16 (__floatuntibf, BFtype2, UTItype2);
-
-RETURN_FP16 (__truncsfbf2, BFtype2, SFtype2);
-RETURN_FP16 (__truncdfbf2, BFtype2, DFtype2);
+extern SFtype2 __extendbfsf2 (BFtype2);
+extern BFtype2 __floatdibf (DItype2);
+extern BFtype2 __floatsibf (SItype2);
+extern BFtype2 __floatundibf (UDItype2);
+extern BFtype2 __floatunsibf (USItype2);
+extern BFtype2 __truncdfbf2 (DFtype2);
+extern BFtype2 __truncsfbf2 (SFtype2);
 #endif
 
 #if defined(__FLOAT16__) && defined(__BFLOAT16__)
-CONVERT_FP16 (__truncbfhf2, HFtype2, BFtype2);
-CONVERT_FP16 (__trunchfbf2, BFtype2, HFtype2);
+extern HFtype2 __truncbfhf2 (BFtype2);
+extern BFtype2 __trunchfbf2 (HFtype2);
 #endif
