@@ -67,7 +67,7 @@ float16_fixuns_si_src	= $(addprefix $(float16_prefix),$(addsuffix .c,$(float16_f
 float16_fix_funcs	= $(float16_fix_ti_funcs) \
 			  $(float16_fix_di_funcs) \
 			  $(float16_fix_si_funcs) \
-			  $(float16_fix_unsti_funcs) \
+			  $(float16_fixuns_ti_funcs) \
 			  $(float16_fixuns_di_funcs) \
 			  $(float16_fixuns_si_funcs)
 
