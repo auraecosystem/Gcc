@@ -11929,10 +11929,10 @@ init_float16 (void)
 	      sprintf (fname, "__floatun%s%s_gpr", int_name, fp16_name);
 	      set_conv_libfunc (ufloat_optab, fp16_mode, int_mode, fname);
 
-	      sprintf (fname, "__fix_trunc%s%s2_gpr", fp16_name, int_name);
+	      sprintf (fname, "__fix%s%s_gpr", fp16_name, int_name);
 	      set_conv_libfunc (sfix_optab, int_mode, fp16_mode, fname);
 
-	      sprintf (fname, "__fixuns_trunc%s%s2_gpr", fp16_name, int_name);
+	      sprintf (fname, "__fixuns%s%s_gpr", fp16_name, int_name);
 	      set_conv_libfunc (ufix_optab, int_mode, fp16_mode, fname);
 	    }
 	}
