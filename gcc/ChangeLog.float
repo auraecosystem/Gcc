@@ -1,5 +1,14 @@
 ==================== Branch work266-float, patch #221 ====================
 
+Fix float16 fix conversions
+
+2026-10-07  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000.cc (init_float16): Correct the names of 16-bit
+	floating point to signed/unsigned int128 conversion functions.
+
+==================== Branch work266-float, patch #221 ====================
+
 Fix float conversions
 
 Fix the name used for usngiend float conversions in libgcc.
