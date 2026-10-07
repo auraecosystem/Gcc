@@ -1,32 +1,4 @@
-==================== Branch work266-float, patch #221 ====================
-
-Fix float16 fix conversions
-
-2026-10-07  Michael Meissner  <meissner@linux.ibm.com>
-
-	* config/rs6000/rs6000.cc (init_float16): Correct the names of 16-bit
-	floating point to signed/unsigned int128 conversion functions.
-
-==================== Branch work266-float, patch #221 ====================
-
-Fix float conversions
-
-Fix the name used for usngiend float conversions in libgcc.
-
-Allow {TFmode, KFmode, IFmode} <=> {BFmode, HFmode} conversions to convert to
-DFmode even if we don't have hardware support for the 16-bit floating point
-type.
-
-2026-10-06  Michael Meissner  <meissner@linux.ibm.com>
-
-	* config/rs6000/float16.md
-	(extend<FP16_HW:mode><FP16_FLOAT_CONVERT:mode>2): Allow insn even if we
-	do not have hardware support.
-	(trunc<FP16_FLOAT_CONVERT:mode><FP16_HW:mode>2): Likewise.
-	* config/rs6000/rs6000.cc (init_float16): Correct the names of unsigned
-	to float conversion functions.
-
-==================== Branch work266-float, patch #220 ====================
+==================== Branch work266-float, patch #223 ====================
 
 Pass and return 16-bit fp library values in GPRs
 
@@ -41,20 +13,27 @@ This patch adds support in libgcc to build the normal conversion functions and a
 modified conversion that has a _gpr suffix, and are the functions called when
 -mfloat16-gpr-convert is one.
 
-2026-10-04  Michael Meissner  <meissner@linux.ibm.com>
+This patch also does conversions between TFmode, KFmode, IFmode and BFmode or
+HFmode even if we do not have hardware support for BFmode or HFmode.
+
+2026-10-07  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
+	* config/rs6000/float16.md
+	(extend<FP16_HW:mode><FP16_FLOAT_CONVERT:mode>2): Allow insn even if we
+	do not have hardware support.
+	(trunc<FP16_FLOAT_CONVERT:mode><FP16_HW:mode>2): Likewise.
 	* config/rs6000/rs6000-call.cc (FP16_USE_GPR): New macro.
 	(USE_FP_FOR_ARG_P) Add support for 16-bit fp library functions passing
 	16-bit fp in GPR registers.
-	(init_cumulative_args): Print name and if the function is a library
-	function when -mdebug=ag is used.
+	(init_cumulative_args): Print the function name if it exists and if the
+	function is a library function when -mdebug=ag is used.
 	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Print 16-bit
 	floating point information if -mdebug=reg.
-	(init_float16): Mark all of the 16-bit floating point library functions
-	as passing/returning 16-bit floating point values in GPR registers and
-	change the name to have a '_gpr' suffix.
+	(init_float16): New function.  Mark all of the 16-bit floating point
+	library functions as passing/returning 16-bit floating point values in
+	GPR registers and change the name to have a '_gpr' suffix.
 	(rs6000_init_libfuncs): Likewise.
 	(rs6000_opt_vars): Add -mfloat16-gpr-convert switch.
 	* config/rs6000/rs6000.opt (-mfloat16-gpr-convert): New switch.
@@ -79,7 +58,9 @@ libgcc/
 	conversion functions that pass and return 16-bit floating point in GPR
 	registers.
 
-
+==================== Branch work266-float, patch #222 was reverted ====================
+==================== Branch work266-float, patch #221 was reverted ====================
+==================== Branch work266-float, patch #220 was reverted ====================
 ==================== Branch work266-float, patch #213 was reverted ====================
 ==================== Branch work266-float, patch #212 was reverted ====================
 ==================== Branch work266-float, patch #211 was reverted ====================
