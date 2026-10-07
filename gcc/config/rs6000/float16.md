@@ -774,9 +774,9 @@
 ;; types might not have valid RTX expanders.  We use DFmode as the
 ;; intermediate conversion destination.
 
-(define_expand "extend<FP16_HW:mode><FP16_FLOAT_CONVERT:mode>2"
+(define_expand "extend<FP16:mode><FP16_FLOAT_CONVERT:mode>2"
   [(use (match_operand:FP16_FLOAT_CONVERT 0 "vsx_register_operand"))
-   (use (match_operand:FP16_HW 1 "vsx_register_operand"))]
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
   "can_create_pseudo_p ()"
 {
   rtx df_tmp = gen_reg_rtx (DFmode);
@@ -786,8 +786,8 @@
   DONE;
 })
 
-(define_expand "trunc<FP16_FLOAT_CONVERT:mode><FP16_HW:mode>2"
-  [(use (match_operand:FP16_HW 0 "vsx_register_operand"))
+(define_expand "trunc<FP16_FLOAT_CONVERT:mode><FP16:mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
    (use (match_operand:FP16_FLOAT_CONVERT 1 "vsx_register_operand"))]
   "can_create_pseudo_p ()"
 {
