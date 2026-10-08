@@ -233,7 +233,12 @@
   [(set_attr "type" "fpsimple")])
 
 ;; Convert BFmode to SFmode/DFmode.
-;; 3 instructions are generated on power10:
+;; We could use the following sequence on power10, but for normal conversions
+;; we will continue to use the shift left sequence on power9.  However, if we
+;; are optiming
+;;	__bf16 a, b, c; a = b + c
+;;
+;; to use xvaddsp, we will generate the sequence:
 ;;	XXSPLTW		-- duplicate BFmode into all even elements
 ;;	XVCVBF16SPN	-- convert even BFmode elements to SFmode
 ;;	XSCVSPNDP	-- convert memory format of SFmode to DFmode.
@@ -246,63 +251,13 @@
 ;; We have 2 variants for testing.  One that uses the xvcvbf16spn
 ;; instruction on power10, and one that does not.
 
-(define_expand "extendbf<mode>2"
-  [(set (match_operand:SFDF 0 "vsx_register_operand")
-	(float_extend:SFDF
-	 (match_operand:BF 1 "gpc_reg_operand")))]
-  "TARGET_FLOAT16"
-{
-  if (TARGET_BFLOAT16_HW)
-    emit_insn (gen_extendbf<mode>2_p10 (operands[0], operands[1]));
-  else
-    emit_insn (gen_extendbf<mode>2_not_p10 (operands[0], operands[1]));
-
-  DONE;
-})
-
-(define_insn_and_split "extendbf<mode>2_p10"
-  [(set (match_operand:SFDF 0 "vsx_register_operand" "=wa")
-	(float_extend:SFDF
-	 (match_operand:BF 1 "vsx_register_operand" "wa")))
-   (clobber (match_scratch:V4SF 2 "=wa"))]
-  "TARGET_BFLOAT16_HW"
-  "#"
-  "&& 1"
-  [(pc)]
-{
-  rtx op0 = operands[0];
-  rtx op1 = operands[1];
-  rtx op2 = operands[2];
-
-  if (GET_CODE (op2) == SCRATCH)
-    op2 = gen_reg_rtx (V4SFmode);
-
-  /* XXSPLTW -- duplicate BFmode element into all of the even elements.
-     We can use splat words because we won't be using the odd
-     elements.  */
-  emit_insn (gen_xxspltw_bf (op2, op1));
-
-  /* XVCVBF16SPN -- convert even V8BFmode elements to V4SFmode.  */
-  rtx op2_v8bf = gen_lowpart (V8BFmode, op2);
-  emit_insn (gen_cvt_fp16_to_v4sf_v8bf (op2, op2_v8bf));
-
-  /* XSCVSPNDP -- convert single V4SFmode element to DFmode.  */
-  emit_insn (GET_MODE (op0) == SFmode
-	     ? gen_xscvspdpn_sf (op0, op2)
-	     : gen_vsx_xscvspdpn (op0, op2));
-
-  DONE;
-}
-  [(set_attr "type" "fpsimple")
-   (set_attr "length" "12")])
-
-(define_insn_and_split "extendbf<mode>2_not_p10"
+(define_insn_and_split "extendbf<mode>2"
   [(set (match_operand:SFDF 0 "vsx_register_operand" "=wa")
 	(float_extend:SFDF
 	 (match_operand:BF 1 "int_reg_operand" "r")))
    (clobber (match_scratch:V4SF 2 "=wa"))
    (clobber (match_scratch:DI 3 "=r"))]
-  "TARGET_FLOAT16 && !TARGET_BFLOAT16_HW"
+  "TARGET_FLOAT16"
   "#"
   "&& reload_completed"
   [(pc)]
