@@ -1,3 +1,14 @@
+==================== Branch work266-float, patch #224 ====================
+
+Do not use xvcvbf16spn for normal bf to df conversions on power10
+
+2026-10-08  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.md (extendbf<mode>2): Do not use xvcvbf16s on
+	power10 to convert BFmode to SFmode or DFmode for normal conversions.
+	(extendbf<mode>2_p10): Delete.
+	(extendbf<mode>2_not_p10): Delete, fold back into extendbf<mode>2.
+
 ==================== Branch work266-float, patch #223 ====================
 
 Pass and return 16-bit fp library values in GPRs
