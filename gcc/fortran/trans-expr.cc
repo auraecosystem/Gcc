@@ -11954,10 +11954,10 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 	      gfc_conv_descriptor_data_set (&block, desc, data);
 
 	      /* Copy the span.  */
-	      if (expr2->ts.type != BT_CLASS
-		  && expr2->ts.type != BT_CHARACTER
-		  && (expr2->ts.type != BT_DERIVED
-		      || !expr2->ts.u.derived->attr.pdt_type))
+	      if (!(expr2->ts.type == BT_CLASS
+		    || expr2->ts.type == BT_CHARACTER
+		    || (expr2->ts.type == BT_DERIVED
+			&& expr2->ts.u.derived->attr.pdt_type)))
 		{
 		  tmp = TREE_TYPE (rse.expr);
 		  tmp = TYPE_SIZE_UNIT (gfc_get_element_type (tmp));
@@ -11978,7 +11978,7 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 		  span = gfc_vptr_size_get (vptr);
 		}
 	      else
-		span = gfc_conv_array_span (rse.expr);
+		span = gfc_get_array_span (rse.expr, expr2);
 	      gfc_conv_descriptor_span_set (&block, desc, span);
 
 	      /* Copy offset but adjust it such that it would correspond
