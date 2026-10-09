@@ -11629,7 +11629,7 @@ get_array_span (gfc_expr * expr, gfc_se & array)
 	  tmp = TREE_TYPE (rse.expr);
 	  tmp = TYPE_SIZE_UNIT (gfc_get_element_type (tmp));
 	  span = fold_convert (gfc_array_index_type, tmp);
-	  gcc_checking_assert (CONST_CLASS_P (span));
+	  gcc_checking_assert (CONSTANT_CLASS_P (span));
 	  return span;
 	}
       else if (expr->ts.type == BT_CLASS
@@ -11644,8 +11644,7 @@ get_array_span (gfc_expr * expr, gfc_se & array)
 	      gcc_assert (array.class_container);
 	      vptr = gfc_class_vptr_get (array.class_container);
 	    }
-	  span = gfc_vptr_size_get (vptr);
-	  return span;
+	  return gfc_vptr_size_get (vptr);
 	}
     }
 
