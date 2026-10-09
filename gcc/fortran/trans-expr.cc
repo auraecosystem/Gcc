@@ -11609,6 +11609,50 @@ gfc_trans_pointer_assign (gfc_code * code)
 }
 
 
+/* Try to get a span value for the array corresponding to expression EXPR and
+   evaluated to ARRAY.  Return true if a value was set; false otherwise.  */
+
+static tree
+get_array_span (gfc_expr * expr, gfc_se & array)
+{
+  if (gfc_is_simply_contiguous (expr, false, true))
+    {
+      if (expr->ts.type != BT_CLASS
+	  && !(expr->ts.type == BT_DERIVED
+	       && expr->ts.u.derived->attr.pdt_type)
+	  && (expr->ts.type != BT_CHARACTER
+	      || (expr->ts.u.cl
+		  && expr->ts.u.cl->length
+		  && expr->ts.u.cl->length->expr_type
+		     == EXPR_CONSTANT)))
+	{
+	  tmp = TREE_TYPE (rse.expr);
+	  tmp = TYPE_SIZE_UNIT (gfc_get_element_type (tmp));
+	  span = fold_convert (gfc_array_index_type, tmp);
+	  gcc_checking_assert (CONST_CLASS_P (span));
+	  return span;
+	}
+      else if (expr->ts.type == BT_CLASS
+	       && (array.class_vptr
+		   || array.class_container))
+	{
+	  tree vptr;
+	  if (array.class_vptr)
+	    vptr = array.class_vptr;
+	  else
+	    {
+	      gcc_assert (array.class_container);
+	      vptr = gfc_class_vptr_get (array.class_container);
+	    }
+	  span = gfc_vptr_size_get (vptr);
+	  return span;
+	}
+    }
+
+  return gfc_get_array_span (array, expr);
+}
+
+
 /* Generate code for a pointer assignment.  */
 
 tree
@@ -11954,31 +11998,7 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 	      gfc_conv_descriptor_data_set (&block, desc, data);
 
 	      /* Copy the span.  */
-	      if (!(expr2->ts.type == BT_CLASS
-		    || expr2->ts.type == BT_CHARACTER
-		    || (expr2->ts.type == BT_DERIVED
-			&& expr2->ts.u.derived->attr.pdt_type)))
-		{
-		  tmp = TREE_TYPE (rse.expr);
-		  tmp = TYPE_SIZE_UNIT (gfc_get_element_type (tmp));
-		  span = fold_convert (gfc_array_index_type, tmp);
-		}
-	      else if (expr2->ts.type == BT_CLASS
-		       && (rse.class_vptr || rse.class_container)
-		       && gfc_is_simply_contiguous (expr2, false, true))
-		{
-		  tree vptr;
-		  if (rse.class_vptr)
-		    vptr = rse.class_vptr;
-		  else
-		    {
-		      gcc_assert (rse.class_container);
-		      vptr = gfc_class_vptr_get (rse.class_container);
-		    }
-		  span = gfc_vptr_size_get (vptr);
-		}
-	      else
-		span = gfc_get_array_span (rse.expr, expr2);
+	      span = get_array_span (expr2, rse);
 	      gfc_conv_descriptor_span_set (&block, desc, span);
 
 	      /* Copy offset but adjust it such that it would correspond
