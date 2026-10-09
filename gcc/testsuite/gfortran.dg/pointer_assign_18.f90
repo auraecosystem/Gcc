@@ -47,9 +47,9 @@ contains
       integer, intent(in) :: a(:), r(:)
       integer, intent(in) :: e
       if (size(a, dim=1) /= size(r, dim=1)) error stop e*10+9
-      do i = 1, size(a,dim=1)
-         print *, e*10+i, (a(i) == r(i) ? "PASS" : "FAIL"), a(i), r(i)
-      end do
-      !if (any(a%c1 /= [ 12, 19, 26, 33, 40 ])) error stop e*10+1
+      !do i = 1, size(a,dim=1)
+      !   print *, e*10+i, (a(i) == r(i) ? "PASS" : "FAIL"), a(i), r(i)
+      !end do
+      if (any(a /= r)) error stop e*10+1
    end subroutine
 end program
