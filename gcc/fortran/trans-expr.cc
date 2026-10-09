@@ -11626,7 +11626,7 @@ get_array_span (gfc_expr * expr, gfc_se & array)
 		  && expr->ts.u.cl->length->expr_type
 		     == EXPR_CONSTANT)))
 	{
-	  tree tmp = TREE_TYPE (rse.expr);
+	  tree tmp = TREE_TYPE (array.expr);
 	  tmp = TYPE_SIZE_UNIT (gfc_get_element_type (tmp));
 	  tree span = fold_convert (gfc_array_index_type, tmp);
 	  gcc_checking_assert (CONSTANT_CLASS_P (span));
