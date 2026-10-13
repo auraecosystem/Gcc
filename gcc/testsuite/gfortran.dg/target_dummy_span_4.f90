@@ -42,9 +42,9 @@ contains
       integer, intent(in) :: e
       integer :: i
       if (size(a) /= size(v)) error stop e*10
-      do i = 1, size(a)
-         print *, e*10+i, (a(i) == v(i) ? "PASS" : "FAIL"), a(i), v(i)
-      end do
-      ! if (any(a /= v)) error stop e*10+9
+      !do i = 1, size(a)
+      !   print *, e*10+i, (a(i) == v(i) ? "PASS" : "FAIL"), a(i), v(i)
+      !end do
+      if (any(a /= v)) error stop e*10+9
    end subroutine
 end program
