@@ -7152,7 +7152,8 @@ copy_in_out_allowed (gfc_symbol *fsym, gfc_expr *e, bool nodesc_arg)
   if (fsym == NULL || nodesc_arg || gfc_has_vector_subscript (e))
     return true;
 
-  if (gfc_dummy_requires_direct_arg (fsym))
+  if (fsym->ts.type != BT_CLASS
+      && gfc_dummy_requires_direct_arg (fsym))
     return false;
 
   return !(fsym->attr.pointer && !fsym->attr.contiguous && fsym->as
