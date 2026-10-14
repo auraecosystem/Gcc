@@ -8168,6 +8168,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
   tree start;
   int full;
   bool subref_array_target = false;
+  bool subobject_ref_target = false;
   bool deferred_array_component = false;
   bool substr = false;
   gfc_expr *arg, *ss_expr;
@@ -8227,6 +8228,10 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 			     && (se->direct_byref
 				 || se->force_no_tmp
 				 || expr->ts.type == BT_CHARACTER));
+      subobject_ref_target = (is_subobject_ref (expr)
+			      && (se->direct_byref
+				  || se->force_no_tmp
+				  || expr->ts.type == BT_CHARACTER));
       need_tmp = (gfc_ref_needs_temporary_p (expr->ref)
 		  && !subref_array_target);
 
@@ -8279,7 +8284,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 
 	      /* Add any offsets from subreferences.  */
 	      gfc_get_dataptr_offset (&se->pre, se->expr, desc, NULL_TREE,
-				      subref_array_target, expr);
+				      subobject_ref_target, expr);
 
 	      /* ....and set the span field.  */
 	      if (ss_info->expr->ts.type == BT_CHARACTER)
@@ -8586,7 +8591,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	  /* Otherwise make a new one.  The element type is that of the
 	     subobject for a subreference of the array.  */
 	  if (expr->ts.type == BT_CHARACTER
-	      || (subref_array_target && !se->direct_byref))
+	      || (subobject_ref_target && !se->direct_byref))
 	    parmtype = gfc_typenode_for_spec (&expr->ts);
 	  else
 	    parmtype = gfc_get_element_type (TREE_TYPE (desc));
@@ -8774,7 +8779,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
       else
 	/* Point the data pointer at the 1st element in the section.  */
 	gfc_get_dataptr_offset (&loop.pre, parm, desc, base,
-				subref_array_target, expr);
+				subobject_ref_target, expr);
 
       gfc_conv_descriptor_offset_set (&loop.pre, parm, offset);
 
