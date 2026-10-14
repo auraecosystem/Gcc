@@ -677,7 +677,32 @@ gfc_get_array_span (tree desc, gfc_expr *expr)
   gfc_symbol *sym = (expr && expr->expr_type == EXPR_VARIABLE) ?
 		    expr->symtree->n.sym : NULL;
 
-  if (tree span = GFC_DECL_GET_SPAN (desc))
+  tree decl = desc;
+  while (decl && !DECL_P (decl))
+    {
+      if (TREE_CODE (decl) == ADDR_EXPR
+	  || INDIRECT_REF_P (decl)
+	  || CONVERT_EXPR_P (decl))
+	decl = TREE_OPERAND (decl, 0);
+      else if (TREE_CODE (decl) == COMPONENT_REF)
+	{
+	  tree base = TREE_OPERAND (decl, 0);
+	  tree field_decl = TREE_OPERAND (decl, 1);
+	  if ((GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base))
+	       && !strcmp (IDENTIFIER_POINTER (DECL_NAME (field_decl)), "data"))
+	      || (GFC_CLASS_TYPE_P (TREE_TYPE (base))
+		  && !strcmp (IDENTIFIER_POINTER (DECL_NAME (field_decl)), 
+			      "_data")))
+	    decl = field_decl;
+	  else
+	    decl = NULL_TREE;
+	}
+      else
+	decl = NULL_TREE;
+    }
+
+  tree span;
+  if (decl && span = GFC_DECL_GET_SPAN (decl))
     /* A span addressed dummy loaded its span on entry.  */
     tmp = span;
   else if (is_span_addressed_array (desc)
