@@ -1217,13 +1217,29 @@ is_subref_array (gfc_expr * e)
   bool seen_array;
   gfc_symbol *sym;
 
-  if (e->expr_type != EXPR_VARIABLE)
+  if (e->expr_type == EXPR_FUNCTION
+      && e->value.function.isym)
+    return false;
+  else if (e->expr_type == EXPR_FUNCTION
+	   && e->value.function.esym)
+    sym = e->value.function.esym;
+  else if (e->expr_type == EXPR_FUNCTION
+	   || e->expr_type == EXPR_VARIABLE)
+    sym = e->symtree->n.sym;
+  else
     return false;
 
-  sym = e->symtree->n.sym;
+  if (e->expr_type == EXPR_FUNCTION
+      && sym->result)
+    sym = sym->result;
 
-  if (sym->attr.subref_array_pointer
-      || gfc_is_span_addressed_dummy (sym))
+  if (IS_POINTER (sym))
+    return true;
+  else if (e->expr_type == EXPR_FUNCTION)
+    return false;
+
+  gcc_assert (e->expr_type == EXPR_VARIABLE);
+  if (gfc_is_span_addressed_dummy (sym))
     return true;
 
   seen_array = false;
@@ -1231,19 +1247,16 @@ is_subref_array (gfc_expr * e)
   for (ref = e->ref; ref; ref = ref->next)
     {
       if (ref->type == REF_ARRAY
-	    && ref->u.ar.type != AR_ELEMENT)
+	  && ref->u.ar.type != AR_ELEMENT)
 	seen_array = true;
 
-      if (seen_array
-	    && ref->type != REF_ARRAY)
-	return seen_array;
-    }
+      if (seen_array && ref->type != REF_ARRAY)
+	return true;
 
-  if (sym->ts.type == BT_CLASS
-      && sym->attr.dummy
-      && CLASS_DATA (sym)->attr.dimension
-      && CLASS_DATA (sym)->attr.class_pointer)
-    return true;
+      if (ref->type == REF_COMPONENT
+	  && IS_POINTER (ref->u.c.component))
+	return true;
+    }
 
   return false;
 }
