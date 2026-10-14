@@ -701,10 +701,9 @@ gfc_get_array_span (tree desc, gfc_expr *expr)
 	decl = NULL_TREE;
     }
 
-  tree span;
-  if (decl && span = GFC_DECL_GET_SPAN (decl))
+  if (decl && GFC_DECL_GET_SPAN (decl))
     /* A span addressed dummy loaded its span on entry.  */
-    tmp = span;
+    tmp = GFC_DECL_GET_SPAN (span);
   else if (is_span_addressed_array (desc)
 	   || (get_CFI_desc (NULL, expr, &desc, NULL)
 	       && (POINTER_TYPE_P (TREE_TYPE (desc))
