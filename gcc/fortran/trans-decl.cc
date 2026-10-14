@@ -1822,7 +1822,11 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	  && sym->attr.allocatable)
 	gfc_defer_symbol_init (sym);
 
-      if ((sym->attr.pointer && sym->attr.dimension && sym->ts.type != BT_CLASS)
+      if ((IS_POINTER (sym)
+	   && ((sym->ts.type == BT_CLASS
+		&& sym->ts.u.derived->attr.is_class
+		&& CLASS_DATA (sym)->attr.dimension)
+	       || sym->attr.dimension))
 	  || gfc_is_span_addressed_dummy (sym))
 	GFC_DECL_PTR_ARRAY_P (sym->backend_decl) = 1;
 
