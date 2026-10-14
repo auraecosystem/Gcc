@@ -1230,16 +1230,6 @@ is_subref_array (gfc_expr * e)
 
   for (ref = e->ref; ref; ref = ref->next)
     {
-      /* If we haven't seen the array reference and this is an intrinsic,
-	 what follows cannot be a subreference array, unless there is a
-	 substring reference.  */
-      if (!seen_array && ref->type == REF_COMPONENT
-	  && ref->next == NULL
-	  && ref->u.c.component->ts.type != BT_CHARACTER
-	  && ref->u.c.component->ts.type != BT_CLASS
-	  && !gfc_bt_struct (ref->u.c.component->ts.type))
-	return false;
-
       if (ref->type == REF_ARRAY
 	    && ref->u.ar.type != AR_ELEMENT)
 	seen_array = true;
