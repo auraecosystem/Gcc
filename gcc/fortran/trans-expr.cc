@@ -2294,8 +2294,11 @@ gfc_get_expr_charlen (gfc_expr *e)
 
   length = NULL; /* To silence compiler warning.  */
 
-  if (is_subref_array (e) && e->ts.u.cl->length)
+  if (e->ts.u.cl->length)
     {
+      if (e->ts.u.cl->backend_decl)
+	return e->ts.u.cl->backend_decl;
+
       gfc_se tmpse;
       gfc_init_se (&tmpse, NULL);
       gfc_conv_expr_type (&tmpse, e->ts.u.cl->length, gfc_charlen_type_node);
@@ -7094,7 +7097,7 @@ conv_null_actual (gfc_se * parmse, gfc_expr * e, gfc_symbol * fsym)
 
 /* Return true if a subobject of the elements of an array is referenced.  */
 
-static bool
+bool
 is_subobject_ref (gfc_expr *e)
 {
   bool seen_array = false;

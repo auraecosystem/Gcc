@@ -2057,7 +2057,7 @@ trans_associate_var (gfc_symbol *sym, gfc_wrapped_block *block)
   /* PDT array and string components are separately allocated for each element
      of a PDT array. Therefore, there is no choice but to copy in and copy out
      the target expression.  */
-  else if (e && is_subref_array (e)
+  else if (e && is_subobject_ref (e)
 	   && (gfc_expr_attr (e).pdt_array || gfc_expr_attr (e).pdt_string))
     {
       gfc_se init;
@@ -6732,7 +6732,7 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	 substring references, part-refs, or %re/%im inquiries, wrap the
 	 entity in parentheses to force evaluation of the expression.  */
       if (code->expr3->expr_type == EXPR_VARIABLE
-	  && is_subref_array (code->expr3))
+	  && is_subobject_ref (code->expr3))
 	code->expr3 = gfc_get_parentheses (code->expr3);
 
       if (code->expr3->expr_type == EXPR_VARIABLE
