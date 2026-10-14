@@ -693,9 +693,9 @@ gfc_get_array_span (tree desc, gfc_expr *expr)
 	      || (GFC_CLASS_TYPE_P (TREE_TYPE (base))
 		  && !strcmp (IDENTIFIER_POINTER (DECL_NAME (field_decl)), 
 			      "_data")))
-	    decl = field_decl;
+	    decl = base;
 	  else
-	    decl = NULL_TREE;
+	    decl = field_decl;
 	}
       else
 	decl = NULL_TREE;
