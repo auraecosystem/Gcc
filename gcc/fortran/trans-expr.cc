@@ -5907,6 +5907,27 @@ class_array_fcn:
 	  /* present_var = present(sym); .  */
 	  tmp = gfc_conv_expr_present (sym);
 	  tmp = fold_convert (boolean_type_node, tmp);
+	  if (fsym
+	      && ((fsym->ts.type == BT_CLASS
+		   && fsym->ts.u.derived->attr.is_class
+		   && !CLASS_DATA (fsym)->attr.allocatable
+		   && !CLASS_DATA (fsym)->attr.class_pointer)
+		  || (!fsym->attr.allocatable
+		      && !fsym->attr.pointer))
+	      && sym
+	      && ((sym->ts.type == BT_CLASS
+		   && sym->ts.u.derived->attr.is_class
+		   && (CLASS_DATA (sym)->attr.allocatable
+		       || CLASS_DATA (sym)->attr.class_pointer))
+		  || sym->attr.allocatable
+		  || sym->attr.pointer))
+	    {
+	      tree non_null = fold_build2_loc (input_location, NE_EXPR,
+					       boolean_type_node, pointer,
+					       build_zero_cst (type));
+	      tmp = fold_build2_loc (input_location, TRUTH_ANDIF_EXPR,
+				     boolean_type_node, tmp, non_null);
+	    }
 	  gfc_add_modify (&se->pre, present_var, tmp);
 
 	  /* else_stmt = { pointer = NULL; } .  */
@@ -8233,7 +8254,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		  gfc_conv_subref_array_arg (&parmse, e, nodesc_arg,
 				fsym ? fsym->attr.intent : INTENT_INOUT,
 				fsym && fsym->attr.pointer, fsym, sym->name,
-				NULL, whole_span, false,
+				e->symtree->n.sym, whole_span, false,
 				whole_span
 				&& dummy_accepts_strided_arg (fsym,
 							      nodesc_arg));

@@ -8287,7 +8287,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
       /* A subobject of the array elements is described by a new descriptor,
 	 whose element type is that of the subobject and whose span is the
 	 element size of the array.  */
-      if (subref_array_target && !se->direct_byref
+      if (subobject_ref_target && !se->direct_byref
 	  && info->ref && info->ref->next)
 	full = 0;
 
