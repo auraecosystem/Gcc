@@ -1248,6 +1248,8 @@ is_subref_array (gfc_expr * e)
     return true;
 
   seen_array = false;
+  bool class_current_ref = sym->ts.type == BT_CLASS
+			   && sym->ts.u.derived->attr.is_class;
 
   for (ref = e->ref; ref; ref = ref->next)
     {
@@ -1258,14 +1260,24 @@ is_subref_array (gfc_expr * e)
       if (seen_array && ref->type != REF_ARRAY)
 	return true;
 
-      if (ref->type == REF_COMPONENT
-	  && ((ref->u.c.component->ts.type == BT_CLASS
-	       && ref->u.c.component->ts.u.derived->attr.is_class
-	       && CLASS_DATA (ref->u.c.component)->as
-	       && CLASS_DATA (ref->u.c.component)->attr.class_pointer)
-	      || (ref->u.c.component->as
-		  && ref->u.c.component->attr.pointer)))
-	return true;
+      if (ref->type == REF_COMPONENT)
+	{
+	  gfc_component *comp = ref->u.c.component;
+	  bool class_next_ref = comp->ts.type == BT_CLASS
+				&& comp->ts.u.derived->attr.is_class;
+	  if (!class_current_ref)
+	    {
+	      if ((class_next_ref
+		   && CLASS_DATA (comp)->as
+		   && CLASS_DATA (comp)->attr.class_pointer)
+		  || (!class_next_ref
+		      && comp->as
+		      && comp->attr.pointer))
+		return true;
+	    }
+
+	  class_current_ref = class_next_ref;
+	}
     }
 
   return false;
