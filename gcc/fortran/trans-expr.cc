@@ -7202,7 +7202,11 @@ copy_in_out_allowed (gfc_symbol *fsym, gfc_expr *e, bool nodesc_arg)
     return false;
 
   return !((fsym->attr.pointer && !fsym->attr.contiguous)
-	   || (fsym->as && fsym->as->type == AS_ASSUMED_RANK));
+	   || (fsym->as
+	       && fsym->as->type == AS_ASSUMED_RANK
+	       && e->expr_type == EXPR_VARIABLE
+	       && e->symtree->n.sym->as
+	       && e->symtree->n.sym->as->type == AS_ASSUMED_RANK));
 }
 
 
