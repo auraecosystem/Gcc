@@ -7201,7 +7201,7 @@ copy_in_out_allowed (gfc_symbol *fsym, gfc_expr *e, bool nodesc_arg)
       && gfc_dummy_requires_direct_arg (fsym))
     return false;
 
-  return !((fsym->attr.pointer && !fsym->attr.contiguous)
+  return !((fsym->attr.pointer && !fsym->attr.contiguous && fsym->as)
 	   || (fsym->as
 	       && fsym->as->type == AS_ASSUMED_RANK
 	       && e->expr_type == EXPR_VARIABLE
