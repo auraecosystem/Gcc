@@ -5913,8 +5913,13 @@ class_array_fcn:
 	  present_var = gfc_create_var (boolean_type_node, "present");
 
 	  /* present_var = present(sym); .  */
-	  tmp = gfc_conv_expr_present (sym);
-	  tmp = fold_convert (boolean_type_node, tmp);
+	  if (sym->attr.optional)
+	    {
+	      tmp = gfc_conv_expr_present (sym);
+	      tmp = fold_convert (boolean_type_node, tmp);
+	    }
+	  else
+	    tmp = boolean_true_node;
 	  if (fsym
 	      && ((fsym->ts.type == BT_CLASS
 		   && fsym->ts.u.derived->attr.is_class
