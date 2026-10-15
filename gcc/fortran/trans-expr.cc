@@ -5922,8 +5922,16 @@ class_array_fcn:
 		  || sym->attr.allocatable
 		  || sym->attr.pointer))
 	    {
+	      tree ptr = gfc_get_symbol_decl (sym);
+	      if (sym->ts.type == BT_CLASS)
+		ptr = gfc_class_data_get (ptr);
+	      if (POINTER_TYPE_P (ptr)
+		  && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (TREE_TYPE (ptr))))
+		ptr = build_fold_indirect_ref_loc (input_location, ptr);
+	      if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (ptr)))
+		ptr = gfc_conv_descriptor_data_get (ptr);
 	      tree non_null = fold_build2_loc (input_location, NE_EXPR,
-					       boolean_type_node, pointer,
+					       boolean_type_node, ptr,
 					       build_zero_cst (type));
 	      tmp = fold_build2_loc (input_location, TRUTH_ANDIF_EXPR,
 				     boolean_type_node, tmp, non_null);
