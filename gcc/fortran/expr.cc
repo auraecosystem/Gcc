@@ -1259,7 +1259,12 @@ is_subref_array (gfc_expr * e)
 	return true;
 
       if (ref->type == REF_COMPONENT
-	  && IS_POINTER (ref->u.c.component))
+	  && ((ref->u.c.component->ts.type == BT_CLASS
+	       && ref->u.c.component->ts.u.derived->attr.is_class
+	       && CLASS_DATA (ref->u.c.component)->as
+	       && CLASS_DATA (ref->u.c.component)->attr.class_pointer)
+	      || (ref->u.c.component->as
+		  && ref->u.c.component->attr.pointer)))
 	return true;
     }
 
