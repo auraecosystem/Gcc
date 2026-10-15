@@ -1233,7 +1233,12 @@ is_subref_array (gfc_expr * e)
       && sym->result)
     sym = sym->result;
 
-  if (IS_POINTER (sym))
+  if ((sym->ts.type == BT_CLASS
+       && sym->ts.u.derived->attr.is_class
+       && CLASS_DATA (sym)->as
+       && CLASS_DATA (sym)->attr.class_pointer)
+      || (sym->as
+	  && sym->attr.pointer))
     return true;
   else if (e->expr_type == EXPR_FUNCTION)
     return false;
