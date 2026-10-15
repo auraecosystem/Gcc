@@ -12007,12 +12007,15 @@ gfc_trans_pointer_assignment (gfc_expr * expr1, gfc_expr * expr2)
 	      if (VAR_P (rse.expr)
 		  && GFC_DECL_PTR_ARRAY_P (rse.expr))
 		span = gfc_conv_descriptor_span_get (rse.expr);
-	      else
+	      else if (expr2->ts.type != BT_CLASS
+		       && gfc_is_simply_contiguous (expr2, false, false))
 		{
 		  tmp = TREE_TYPE (rse.expr);
 		  tmp = TYPE_SIZE_UNIT (gfc_get_element_type (tmp));
 		  span = fold_convert (gfc_array_index_type, tmp);
 		}
+	      else
+		span = gfc_get_array_span (rse.expr, expr2);
 	      gfc_conv_descriptor_span_set (&block, desc, span);
 
 	      /* Copy offset but adjust it such that it would correspond
