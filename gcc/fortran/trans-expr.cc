@@ -8276,6 +8276,30 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		   is only that the span be the element length.  */
 		{
 		  bool whole_span = is_whole_span_addressed_dummy (e);
+		  if (!whole_span && IS_POINTER (e->symtree->n.sym))
+		    whole_span = true;
+		  bool polymorphic_current_type = e->symtree->n.sym->ts.type == BT_CLASS;
+		  for (gfc_ref *r = e->ref; r; r = r->next)
+		    {
+		      if (whole_span)
+			break;
+		      if (r->type != REF_COMPONENT)
+			continue;
+		      if (polymorphic_current_type)
+			{
+			  polymorphic_current_type = false;
+			  continue;
+			}
+		      gfc_component *comp = r->u.c.component;
+		      bool polymorphic_next_type = comp->ts.type == BT_CLASS
+						   && comp->ts.u.derived->attr.is_class;
+		      if ((polymorphic_next_type
+			   && CLASS_DATA (r->u.c.component)->attr.class_pointer)
+			  || (!polymorphic_next_type
+			      && r->u.c.component->attr.pointer))
+			whole_span = true;
+		      polymorphic_current_type = polymorphic_next_type;
+		    }
 		  gfc_conv_subref_array_arg (&parmse, e, nodesc_arg,
 				fsym ? fsym->attr.intent : INTENT_INOUT,
 				fsym && fsym->attr.pointer, fsym, sym->name,
