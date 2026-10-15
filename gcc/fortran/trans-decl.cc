@@ -2132,7 +2132,8 @@ gfc_get_symbol_decl (gfc_symbol * sym)
     {
       gfc_symbol *sel = sym->assoc->target->symtree->n.sym;
       if (!sel->attr.contiguous
-	  && (sel->attr.target || sel->attr.pointer || sel->ts.type == BT_CLASS))
+	  && (sel->attr.target || sel->attr.pointer || sel->ts.type == BT_CLASS
+	      || (sel->as && sel->as->type == AS_ASSUMED_RANK)))
 	GFC_DECL_PTR_ARRAY_P (decl) = 1;
     }
 
