@@ -5488,7 +5488,15 @@ gfc_conv_subref_array_arg (gfc_se *se, gfc_expr * expr, int g77,
   bool pass_optional;
   bool readonly;
 
-  pass_optional = fsym && fsym->attr.optional && sym && sym->attr.optional;
+  pass_optional = fsym && fsym->attr.optional
+		  && sym
+		  && (sym->attr.optional
+		      || (sym->ts.type == BT_CLASS
+			  && sym->ts.u.derived->attr.is_class
+			  && (CLASS_DATA (sym)->attr.allocatable
+			      || CLASS_DATA (sym)->attr.class_pointer))
+		      || sym->attr.allocatable
+		      || sym->attr.pointer) ;
 
   if (pass_optional || check_contiguous)
     {
