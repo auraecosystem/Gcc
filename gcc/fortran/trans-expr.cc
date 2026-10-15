@@ -5925,7 +5925,7 @@ class_array_fcn:
 	      tree ptr = gfc_get_symbol_decl (sym);
 	      if (sym->ts.type == BT_CLASS)
 		ptr = gfc_class_data_get (ptr);
-	      if (POINTER_TYPE_P (ptr)
+	      if (POINTER_TYPE_P (TREE_TYPE (ptr))
 		  && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (TREE_TYPE (ptr))))
 		ptr = build_fold_indirect_ref_loc (input_location, ptr);
 	      if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (ptr)))
