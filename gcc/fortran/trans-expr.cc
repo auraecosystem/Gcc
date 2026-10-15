@@ -1120,6 +1120,11 @@ gfc_conv_intrinsic_to_class (gfc_se *parmse, gfc_expr *e,
       && class_ts.u.derived->components->attr.dimension
       && !class_ts.u.derived->components->attr.allocatable
       && !class_ts.u.derived->components->attr.class_pointer
+      && class_ts.u.derived->components->as
+      && !(class_ts.u.derived->components->as->type == AS_ASSUMED_SHAPE
+	   || class_ts.u.derived->components->as->type == AS_ASSUMED_RANK
+	   || class_ts.u.derived->components->as->type == AS_DEFERRED
+	   || class_ts.u.derived->components->as->type == AS_ASSUMED_SIZE)
       && is_subref_array (e))
     parmse->force_tmp = 1;
 
