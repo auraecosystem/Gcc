@@ -1,18 +1,14 @@
-==================== Branch work266-float, patch #225 ====================
+==================== Branch work266-float, patch #226 ====================
 
 Work on using vector insns to do BFmode operations.
 
 2026-10-15  Michael Meissner  <meissner@linux.ibm.com>
 
 	* config/rs6000/float16.cc (toplevel): Include emit-rtl.h.
-	(bfloat16_operation_as_v4sf_inner): Use vslw if we are loading the
-	value.  Try to improve constant handling.
-	* config/rs6000/float16.md (bf_shift_left): New insn.
-	* config/rs6000/predicates.md (easy_vector_constant_add_self): Generate
-	xxspltib on power9 rather than issuing 2 altivec instructions.
-	(easy_vector_constant_msb): Likewise.
-	(easy_vector_constant_vsldoi): Likewise.
-	(bfloat16_v4sf_operand): Rework code.
+	(bfloat16_operation_as_v4sf_inner): Rework.  Try to improve constant
+	handling.
+
+==================== Branch work266-float, patch #225 was reverted ====================
 
 ==================== Branch work266-float, patch #224 ====================
 
