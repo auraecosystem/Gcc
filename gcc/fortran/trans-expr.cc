@@ -5834,10 +5834,12 @@ class_array_fcn:
       if (check_contiguous)
 	{
 	  gfc_se cont_se, array_se;
-	  stmtblock_t if_block, else_block;
+	  stmtblock_t outer_block, if_block, else_block;
 	  tree if_stmt, else_stmt;
 	  mpz_t size;
 	  bool size_set;
+
+	  gfc_init_block (&outer_block);
 
 	  cont_var = gfc_create_var (boolean_type_node, "contiguous");
 
@@ -5850,7 +5852,7 @@ class_array_fcn:
 	  size_set = gfc_array_size (expr, &size);
 	  if (size_set && mpz_cmp_ui (size, 1) == 0)
 	    {
-	      gfc_add_modify (&se->pre, cont_var,
+	      gfc_add_modify (&outer_block, cont_var,
 			      build_one_cst (boolean_type_node));
 	    }
 	  else
@@ -5862,9 +5864,9 @@ class_array_fcn:
 		gfc_conv_span_is_elem_len (&cont_se, expr);
 	      else
 		gfc_conv_is_contiguous_expr (&cont_se, expr);
-	      gfc_add_block_to_block (&se->pre, &(&cont_se)->pre);
-	      gfc_add_modify (&se->pre, cont_var, cont_se.expr);
-	      gfc_add_block_to_block (&se->pre, &(&cont_se)->post);
+	      gfc_add_block_to_block (&outer_block, &(&cont_se)->pre);
+	      gfc_add_modify (&outer_block, cont_var, cont_se.expr);
+	      gfc_add_block_to_block (&outer_block, &(&cont_se)->post);
 	    }
 
 	  if (size_set)
@@ -5873,8 +5875,8 @@ class_array_fcn:
 	  /* arrayse->expr = descriptor of a.  */
 	  gfc_init_se (&array_se, se);
 	  gfc_conv_expr_descriptor (&array_se, expr);
-	  gfc_add_block_to_block (&se->pre, &(&array_se)->pre);
-	  gfc_add_block_to_block (&se->pre, &(&array_se)->post);
+	  gfc_add_block_to_block (&outer_block, &array_se.pre);
+	  gfc_add_block_to_block (&outer_block, &array_se.post);
 
 	  /* if_stmt = { descriptor ? pointer = a : pointer = &a[0]; } .  */
 	  gfc_init_block (&if_block);
@@ -5898,10 +5900,12 @@ class_array_fcn:
 	  else_stmt = gfc_finish_block (&else_block);
 
 	  /* And put the above into an if statement.  */
-	  pre_stmts = fold_build3_loc (input_location, COND_EXPR, void_type_node,
-				       gfc_likely (cont_var,
-						   PRED_FORTRAN_CONTIGUOUS),
-				       if_stmt, else_stmt);
+	  tree tmp = fold_build3_loc (input_location, COND_EXPR, void_type_node,
+				      gfc_likely (cont_var,
+						  PRED_FORTRAN_CONTIGUOUS),
+				      if_stmt, else_stmt);
+	  gfc_add_expr_to_block (&outer_block, tmp);
+	  pre_stmts = gfc_finish_block (&outer_block);
 	}
       else
 	{
