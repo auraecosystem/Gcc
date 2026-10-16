@@ -8202,9 +8202,11 @@ get_array_descriptor (tree expr)
 		      "data") == 0
 	      && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base)))
 	    return base;
+	  else
+	    decl = NULL_TREE;
 	}
-
-      decl = NULL_TREE;
+      else
+	decl = NULL_TREE;
     }
 
   if (decl)
