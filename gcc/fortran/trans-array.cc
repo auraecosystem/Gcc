@@ -729,6 +729,27 @@ gfc_get_array_span (tree desc, gfc_expr *expr)
 	   && expr->ref->type == REF_COMPONENT
 	   && expr->ref->next->type == REF_ARRAY
 	   && expr->ref->next->next == NULL
+	   && gfc_is_simply_contiguous (expr, false, false))
+    /* Having escaped the above, this can only be a class array dummy.  */
+    tmp = class_array_element_size (sym->backend_decl,
+				    UNLIMITED_POLY (sym));
+  else if (sym && sym->ts.type == BT_CLASS
+	   && expr->ref->type == REF_COMPONENT
+	   && expr->ref->next->type == REF_ARRAY
+	   && expr->ref->next->next == NULL
+	   && CLASS_DATA (sym)->attr.dimension
+	   && decl
+	   && GFC_DECL_SAVED_DESCRIPTOR (decl))
+    {
+      /* Having escaped the above, this can only be a class array dummy.  */
+      tmp = GFC_DECL_SAVED_DESCRIPTOR (decl);
+      tmp = gfc_class_data_get (tmp);
+      tmp = gfc_conv_descriptor_span_get (tmp);
+    }
+  else if (sym && sym->ts.type == BT_CLASS
+	   && expr->ref->type == REF_COMPONENT
+	   && expr->ref->next->type == REF_ARRAY
+	   && expr->ref->next->next == NULL
 	   && CLASS_DATA (sym)->attr.dimension)
     /* Having escaped the above, this can only be a class array dummy.  */
     tmp = class_array_element_size (sym->backend_decl,

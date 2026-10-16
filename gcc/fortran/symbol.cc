@@ -5714,7 +5714,6 @@ bool
 gfc_dummy_requires_direct_arg (gfc_symbol *sym)
 {
   return sym->attr.dummy
-	 && sym->attr.target
 	 && !sym->attr.value
 	 && !sym->attr.contiguous
 	 && sym->ts.type != BT_ASSUMED
@@ -5726,6 +5725,7 @@ gfc_dummy_requires_direct_arg (gfc_symbol *sym)
 		  || CLASS_DATA (sym)->as->type == AS_ASSUMED_RANK
 		  || CLASS_DATA (sym)->as->type == AS_DEFERRED))
 	     || (sym->attr.dimension
+		 && sym->attr.target
 		 && !sym->attr.allocatable
 		 && sym->as
 		 && (sym->as->type == AS_ASSUMED_SHAPE
