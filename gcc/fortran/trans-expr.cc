@@ -8279,31 +8279,60 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		   has a descriptor takes any stride, so for it the condition
 		   is only that the span be the element length.  */
 		{
-		  bool whole_span = is_whole_span_addressed_dummy (e);
-		  if (!whole_span && IS_POINTER (e->symtree->n.sym))
-		    whole_span = true;
-		  bool polymorphic_current_type = e->symtree->n.sym->ts.type == BT_CLASS;
-		  for (gfc_ref *r = e->ref; r; r = r->next)
+		  bool whole_span = is_whole_span_addressed_dummy (e)
+				    || !gfc_is_not_contiguous (e);
+#if 0
+		  if (!whole_span)
 		    {
-		      if (whole_span)
-			break;
-		      if (r->type != REF_COMPONENT)
-			continue;
-		      if (polymorphic_current_type)
+		      bool seen_possibly_contiguous = false;
+		      if (((e->symtree->n.sym->ts.type == BT_CLASS
+			    && e->symtree->n.sym->ts.u.derived-attr.is_class
+			    && CLASS_DATA (e->symtree->n.sym)->attr.dimension)
+			   || e->symtree->n.sym->attr.dimension))
+			seen_possibly_contiguous = true;
+		      bool polymorphic_current_type = e->symtree->n.sym->ts.type == BT_CLASS;
+		      gfc_ref *r;
+		      for (r = e->ref; r; r = r->next)
 			{
-			  polymorphic_current_type = false;
-			  continue;
+			  if (r->type == REF_ARRAY
+			      && r->u.ar->type == AR_FULL)
+			    continue;
+			  if (r->type != REF_COMPONENT)
+			    {
+			      if (seen_possibly_contiguous)
+				break;
+			      else
+				continue;
+			    }
+			  if (polymorphic_current_type)
+			    {
+			      polymorphic_current_type = false;
+			      continue;
+			    }
+			  gfc_component *comp = r->u.c.component;
+			  if (polymorphic_current_type
+			      && strcmp (comp->name, "_data") == 0)
+			    continue;
+			  if (seen_possibly_contiguous)
+			    {
+			      if (strcmp (comp->name, "data") == 0)
+				continue;
+			      else
+				break;
+			    }
+			  bool polymorphic_next_type = comp->ts.type == BT_CLASS
+						       && comp->ts.u.derived->attr.is_class;
+			  if ((polymorphic_next_type
+			       && CLASS_DATA (r->u.c.component)->attr.dimension)
+			      || (!polymorphic_next_type
+				  && r->u.c.component->attr.dimension))
+			    seen_possibly_contiguous = true;
+			  polymorphic_current_type = polymorphic_next_type;
 			}
-		      gfc_component *comp = r->u.c.component;
-		      bool polymorphic_next_type = comp->ts.type == BT_CLASS
-						   && comp->ts.u.derived->attr.is_class;
-		      if ((polymorphic_next_type
-			   && CLASS_DATA (r->u.c.component)->attr.class_pointer)
-			  || (!polymorphic_next_type
-			      && r->u.c.component->attr.pointer))
+		      if (!r)
 			whole_span = true;
-		      polymorphic_current_type = polymorphic_next_type;
 		    }
+#endif
 		  gfc_conv_subref_array_arg (&parmse, e, nodesc_arg,
 				fsym ? fsym->attr.intent : INTENT_INOUT,
 				fsym && fsym->attr.pointer, fsym, sym->name,
