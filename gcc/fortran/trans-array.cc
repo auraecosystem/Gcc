@@ -8168,6 +8168,52 @@ is_explicit_coarray (gfc_expr *expr)
   return cas && cas->cotype == AS_EXPLICIT;
 }
 
+
+static tree
+get_array_descriptor (tree expr)
+{
+  if (expr == NULL_TREE)
+    return NULL_TREE;
+
+  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (expr)))
+    return expr;
+
+  if (POINTER_TYPE_P (TREE_TYPE (expr)))
+    expr = build_fold_indirect_ref_loc (input_location, expr);
+
+  if (GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (expr)))
+    return expr;
+
+  if (GFC_CLASS_TYPE_P (TREE_TYPE (expr)))
+    return get_array_descriptor (gfc_class_data_get (expr));
+
+  tree decl = expr;
+  while (decl && !DECL_P (decl))
+    {
+      if (TREE_CODE (decl) == ADDR_EXPR
+	  || INDIRECT_REF_P (decl)
+	  || CONVERT_EXPR_P (decl))
+	decl = TREE_OPERAND (decl, 0);
+      else if (TREE_CODE (decl) == COMPONENT_REF)
+	{
+	  tree base = TREE_OPERAND (decl, 0);
+	  tree field_decl = TREE_OPERAND (decl, 1);
+	  if (strcmp (IDENTIFIER_POINTER (DECL_NAME (field_decl)),
+		      "data") == 0
+	      && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base)))
+	    return base;
+	}
+
+      decl = NULL_TREE;
+    }
+
+  if (decl)
+    return get_array_descriptor (GFC_DECL_SAVED_DESCRIPTOR (decl));
+
+  return NULL_TREE;
+}
+
+
 /* Convert an array for passing as an actual argument.  Expressions and
    vector subscripts are evaluated and stored in a temporary, which is then
    passed.  For whole arrays the descriptor is passed.  For array sections
@@ -8697,7 +8743,13 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
          the offsets because all elements are within the array data.  */
 
       /* Set the dtype.  */
-      if (se->unlimited_polymorphic)
+      if (se->unlimited_polymorphic
+	  && UNLIMITED_POLY (expr))
+	{
+	  tree array_desc = get_array_descriptor (desc);
+	  dtype = gfc_conv_descriptor_dtype_get (array_desc);
+	}
+      else if (se->unlimited_polymorphic)
 	dtype = gfc_get_dtype (TREE_TYPE (desc), &loop.dimen);
       else if (expr->ts.type == BT_ASSUMED)
 	{
