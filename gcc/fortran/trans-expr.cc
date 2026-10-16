@@ -1169,6 +1169,8 @@ gfc_conv_intrinsic_to_class (gfc_se *parmse, gfc_expr *e,
       else
 	{
 	  parmse->ss = ss;
+	  parmse->direct_byref = 1;
+	  parmse->byref_noassign = 1;
 	  gfc_conv_expr_descriptor (parmse, e);
 
 	  /* Array references with vector subscripts and non-variable expressions
