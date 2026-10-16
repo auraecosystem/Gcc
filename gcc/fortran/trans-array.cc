@@ -8452,7 +8452,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
     loop.array_parameter = 1;
   else
     /* The right-hand side of a pointer assignment mustn't use a temporary.  */
-    gcc_assert (!se->direct_byref);
+    gcc_assert (!se->direct_byref || se->byref_noassign);
 
   /* Do we need bounds checking or not?  */
   ss->no_bounds_check = expr->no_bounds_check;
