@@ -39,6 +39,7 @@
 #include "attribs.h"
 #include "explow.h"
 #include "expr.h"
+#include "emit-rtl.h"
 #include "common/common-target.h"
 #include "rs6000-internal.h"
 
@@ -275,31 +276,39 @@ bfloat16_operation_as_v4sf_inner (enum rtx_code icode,
 
       rtx tmp = ops_v4sf[i] = gen_reg_rtx (V4SFmode);
       if (op == CONST0_RTX (SFmode) || op == CONST0_RTX (BFmode))
-	emit_move_insn (tmp, CONST0_RTX (V4SFmode));
+	{
+	  rtx zero = CONST0_RTX (V4SFmode);
+	  rtx insn = emit_insn (gen_rtx_SET (tmp, zero));
+	  set_unique_reg_note (insn, REG_EQUIV, zero);
+	}
+
+      else if (CONST_DOUBLE_P (op))
+	{
+	  rtx sf_op;
+
+	  if (GET_MODE (op) == SFmode)
+	    sf_op = op;
+	  else
+	    {
+	      const REAL_VALUE_TYPE *rtype = CONST_DOUBLE_REAL_VALUE (op);
+	      sf_op = const_double_from_real_value (*rtype, SFmode);
+	    }
+
+	  rtvec v = gen_rtvec (4, sf_op, sf_op, sf_op, sf_op);
+	  rtx cv = gen_rtx_CONST_VECTOR (V4SFmode, v);
+	  rtx insn = emit_insn (gen_rtx_SET (tmp, cv));
+	  set_unique_reg_note (insn, REG_EQUIV, cv);
+	}
 
       else if (GET_MODE (op) == BFmode)
 	{
-	  emit_insn (gen_xxspltw_bf (tmp, force_reg (BFmode, op)));
-	  emit_insn (gen_xvcvbf16spn_bf (tmp, tmp));
+	  rtx tmp2 = gen_reg_rtx (V4SFmode);
+	  emit_insn (gen_xxspltw_bf (tmp2, force_reg (BFmode, op)));
+	  emit_insn (gen_xvcvbf16spn_bf (tmp, tmp2));
 	}
 
       else if (GET_MODE (op) == SFmode)
-	{
-	  if (GET_CODE (op) == CONST_DOUBLE)
-	    {
-	      rtvec v = rtvec_alloc (4);
-
-	      for (size_t i = 0; i < 4; i++)
-		RTVEC_ELT (v, i) = op;
-
-	      emit_insn (gen_rtx_SET (tmp,
-				      gen_rtx_CONST_VECTOR (V4SFmode, v)));
-	    }
-
-	  else
-	    emit_insn (gen_vsx_splat_v4sf (tmp,
-					   force_reg (SFmode, op)));
-	}
+	emit_insn (gen_vsx_splat_v4sf (tmp, force_reg (SFmode, op)));
 
       else
 	gcc_unreachable ();
