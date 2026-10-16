@@ -1242,6 +1242,24 @@
   "TARGET_BFLOAT16_HW"
   "xvcvbf16spn %x0,%x1"
   [(set_attr "type" "vecperm")])
+
+(define_insn_and_split "bf_shift_left"
+  [(set (match_operand:V4SF 0 "altivec_register_operand" "=v")
+	(unspec:V4SF [(match_operand:BF 1 "altivec_register_operand" "v")
+		      (match_operand:V16QI 2 "altivec_register_operand" "v")]
+		     UNSPEC_CVT_FP16_TO_V4SF))]
+  "TARGET_BFLOAT16_HW"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 3)
+	(ashift:V4SI (match_dup 4)
+		     (match_dup 5)))]
+{
+  operands[3] = gen_rtx_REG (V4SImode, reg_or_subregno (operands[0]));
+  operands[4] = gen_rtx_REG (V4SImode, reg_or_subregno (operands[1]));
+  operands[5] = gen_rtx_REG (V4SImode, reg_or_subregno (operands[2]));
+}
+  [(set_attr "type" "vecsimple")])
 
 ;; Optimize __bfloat16 binary operations.  Unlike _Float16 where we
 ;; have instructions to convert between HFmode and SFmode as scalar

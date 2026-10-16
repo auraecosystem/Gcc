@@ -820,6 +820,8 @@
   int elt;
   if (mode == V2DImode || mode == V2DFmode)
     return 0;
+  if (TARGET_P9_VECTOR && xxspltib_constant_nosplit (op, mode))
+    return false;
   elt = BYTES_BIG_ENDIAN ? GET_MODE_NUNITS (mode) - 1 : 0;
   val = const_vector_elt_as_int (op, elt);
   val = sext_hwi (val, 8);
@@ -839,6 +841,8 @@
   int isz = GET_MODE_SIZE (inner);
   if (mode == V2DImode || mode == V2DFmode)
     return 0;
+  if (TARGET_P9_VECTOR && xxspltib_constant_nosplit (op, mode))
+    return false;
   elt = BYTES_BIG_ENDIAN ? GET_MODE_NUNITS (mode) - 1 : 0;
   if (isz < sz)
     {
@@ -858,6 +862,7 @@
   (and (match_code "const_vector")
        (and (match_test "TARGET_ALTIVEC")
 	    (and (match_test "easy_altivec_constant (op, mode)")
+		 (match_test "!xxspltib_constant_nosplit (op, mode)")
 		 (match_test "vspltis_shifted (op) != 0")))))
 
 ;; Return true if this is a vector constant and each byte in
@@ -2320,6 +2325,9 @@
 (define_predicate "bfloat16_v4sf_operand"
   (match_code "reg,subreg,const_double,float_extend,float_truncate,plus,minus,mult")
 {
+  rtx arg;
+  machine_mode arg_mode;
+
   if (mode != BFmode && mode != SFmode)
     return false;
 
@@ -2336,32 +2344,25 @@
 	return true;
 
       case FLOAT_EXTEND:
-	{
-	  if (mode != SFmode)
-	    return false;
+	if (mode != SFmode)
+	  return false;
 
-	  rtx arg = XEXP (op, 0);
-	  machine_mode arg_mode = GET_MODE (arg);
+	arg = XEXP (op, 0);
+	arg_mode = GET_MODE (arg);
 
-	  if (arg_mode != BFmode)
-	    return false;
+	if (arg_mode != BFmode)
+	  return false;
 
-	  if (MEM_P (arg))
-	    return true;
-
-	  return register_operand (arg, arg_mode);
-	}
+	return register_operand (arg, arg_mode) || MEM_P (arg);
 
       case FLOAT_TRUNCATE:
-	{
-          if (mode != BFmode)
-	    return false;
+	if (mode != BFmode)
+	  return false;
 
-	  rtx arg = XEXP (op, 0);
-	  return (GET_MODE (arg) == SFmode
-		  && GET_CODE (arg) == FLOAT_EXTEND
-		  && GET_MODE (XEXP (arg, 0)) == BFmode);
-	}
+	arg = XEXP (op, 0);
+	return (GET_MODE (arg) == SFmode
+		&& GET_CODE (arg) == FLOAT_EXTEND
+		&& GET_MODE (XEXP (arg, 0)) == BFmode);
 
         /* Allow for chained operations.  */
       case PLUS:
