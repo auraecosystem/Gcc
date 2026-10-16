@@ -6732,7 +6732,7 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	 substring references, part-refs, or %re/%im inquiries, wrap the
 	 entity in parentheses to force evaluation of the expression.  */
       if (code->expr3->expr_type == EXPR_VARIABLE
-	  && is_subref_array (code->expr3))
+	  && is_subobject_ref (code->expr3))
 	code->expr3 = gfc_get_parentheses (code->expr3);
 
       if (code->expr3->expr_type == EXPR_VARIABLE
