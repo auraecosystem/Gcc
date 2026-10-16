@@ -39,7 +39,6 @@
 #include "attribs.h"
 #include "explow.h"
 #include "expr.h"
-#include "emit-rtl.h"
 #include "common/common-target.h"
 #include "rs6000-internal.h"
 
@@ -265,73 +264,42 @@ bfloat16_operation_as_v4sf_inner (enum rtx_code icode,
 	  break;
 	}
 
-      /* Convert operands to V4SFmode format.
-
-	 We use SPLAT for registers to get the value into the upper 32-bits.
-	 We can use XXSPLTW to splat words instead of VSPLTIH since the
-	 XVCVBF16SPN instruction ignores the odd half-words, and XXSPLTW can
-	 operate on all VSX registers instead of just the Altivec registers.
-	 Using SPLAT instead of a shift also insure that other bits are not a
-	 signalling NaN.  If we are using XXSPLTIW or XXSPLTIB to load the
-	 constant the other bits are duplicated.
-
-	 However, if we are loading up the value from memory, we know the other
-	 bits will all be 0, so we can do a vslw to get the 16-bit BFmode value
-	 into the position that xvcvspbf16 will use to create the BFmode
-	 value after the operation.  */
+      /* Convert operands to V4SFmode format.  We use SPLAT for registers to
+	 get the value into the upper 32-bits.  We can use XXSPLTW to splat
+	 words instead of VSPLTIH since the XVCVBF16SPN instruction ignores the
+	 odd half-words, and XXSPLTW can operate on all VSX registers instead
+	 of just the Altivec registers.  Using SPLAT instead of a shift also
+	 insure that other bits are not a signalling NaN.  If we are using
+	 XXSPLTIW or XXSPLTIB to load the constant the other bits are
+	 duplicated.  */
 
       rtx tmp = ops_v4sf[i] = gen_reg_rtx (V4SFmode);
       if (op == CONST0_RTX (SFmode) || op == CONST0_RTX (BFmode))
 	emit_move_insn (tmp, CONST0_RTX (V4SFmode));
 
-      else if (CONST_DOUBLE_P (op))
-	{
-	  rtx sf_op;
-
-	  if (GET_MODE (op) == SFmode)
-	    sf_op = op;
-	  else
-	    {
-	      const REAL_VALUE_TYPE *rtype = CONST_DOUBLE_REAL_VALUE (op);
-	      sf_op = const_double_from_real_value (*rtype, SFmode);
-	    }
-
-	  rtvec v = gen_rtvec (4, sf_op, sf_op, sf_op, sf_op);
-	  rtx cv = gen_rtx_CONST_VECTOR (V4SFmode, v);
-	  rtx insn = emit_insn (gen_rtx_SET (tmp, cv));
-	  set_unique_reg_note (insn, REG_EQUIV, cv);
-	}
-
       else if (GET_MODE (op) == BFmode)
 	{
-	  rtx op_reg = force_reg (BFmode, op);
-
-	  if (MEM_P (op))
-	    {
-	      rtx s = GEN_INT (16);
-	      rtvec shift_vec = gen_rtvec (16,
-					   s, s, s, s, s, s, s, s,
-					   s, s, s, s, s, s, s, s);
-
-	      rtx shift = gen_rtx_CONST_VECTOR (V16QImode, shift_vec);
-	      rtx tmp2 = gen_reg_rtx (V16QImode);
-
-	      rtx insn = emit_insn (gen_rtx_SET (tmp2, shift));
-	      set_unique_reg_note (insn, REG_EQUIV, shift);
-
-	      emit_insn (gen_bf_shift_left (tmp, op_reg, tmp2));
-	    }
-	  else
-	    {
-	      rtx tmp2 = gen_reg_rtx (V4SFmode);
-	      emit_insn (gen_xxspltw_bf (tmp2, op_reg));
-	      emit_insn (gen_xvcvbf16spn_bf (tmp, tmp2));
-	    }
+	  emit_insn (gen_xxspltw_bf (tmp, force_reg (BFmode, op)));
+	  emit_insn (gen_xvcvbf16spn_bf (tmp, tmp));
 	}
 
       else if (GET_MODE (op) == SFmode)
-	emit_insn (gen_vsx_splat_v4sf (tmp,
-				       force_reg (SFmode, op)));
+	{
+	  if (GET_CODE (op) == CONST_DOUBLE)
+	    {
+	      rtvec v = rtvec_alloc (4);
+
+	      for (size_t i = 0; i < 4; i++)
+		RTVEC_ELT (v, i) = op;
+
+	      emit_insn (gen_rtx_SET (tmp,
+				      gen_rtx_CONST_VECTOR (V4SFmode, v)));
+	    }
+
+	  else
+	    emit_insn (gen_vsx_splat_v4sf (tmp,
+					   force_reg (SFmode, op)));
+	}
 
       else
 	gcc_unreachable ();
