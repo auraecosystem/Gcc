@@ -7094,7 +7094,7 @@ conv_null_actual (gfc_se * parmse, gfc_expr * e, gfc_symbol * fsym)
 
 /* Return true if a subobject of the elements of an array is referenced.  */
 
-static bool
+bool
 is_subobject_ref (gfc_expr *e)
 {
   bool seen_array = false;
