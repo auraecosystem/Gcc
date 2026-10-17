@@ -1,3 +1,26 @@
+==================== Branch work266-float, patch #229 ====================
+
+Add bfloat16 define_peephole2.
+
+2026-10-17  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.md (bfloat16 define_peephole2): Add a peephole2
+	to try to catch some cases where bfloat16 uses vector V4SFmode
+	arithmetic for some things and then converts the value to scalar SFmode
+	for other calculations.
+	* config/rs6000/rs6000.opt (-mfloat16-peephole2): New debug switch.
+
+==================== Branch work266-float, patch #228 ====================
+
+Add -mdebug=extra1 through -mdebug=extra5
+
+2026-10-15  Michael Meissner  <meissner@linux.ibm.com>
+
+	* common/config/rs6000/rs6000rcommon.cc (rs6000_handle_option): Add
+	support for -mdebug=estra{1,2,3,4,5}.
+	* config/rs6000/rs6000.h (MASK_DEBUG_*): Likewise.
+	(TARGET_DEBUG_*): Likewise.
+
 ==================== Branch work266-float, patch #227 ====================
 
 Use xxspltib rather than 2 Altivec instructions.
