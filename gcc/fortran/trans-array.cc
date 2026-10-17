@@ -6469,18 +6469,20 @@ gfc_array_init_size (tree descriptor, int rank, int corank, tree * poffset,
 /* Retrieve the last ref from the chain.  This routine is specific to
    gfc_array_allocate ()'s needs.  */
 
-bool
-retrieve_last_ref (gfc_ref **ref_in, gfc_ref **prev_ref_in)
+static bool
+retrieve_array_ref (gfc_ref **ref_in, gfc_ref **prev_ref_in)
 {
   gfc_ref *ref, *prev_ref;
 
   ref = *ref_in;
   /* Prevent warnings for uninitialized variables.  */
   prev_ref = *prev_ref_in;
-  while (ref && ref->next != NULL)
+  while (ref
+	 && (ref->type != REF_ARRAY
+	     || ref->u.ar.type == AR_ELEMENT
+	     || (ref->u.ar.dimen == 0
+		 && ref->u.ar.codimen > 0)))
     {
-      gcc_assert (ref->type != REF_ARRAY || ref->u.ar.type == AR_ELEMENT
-		  || (ref->u.ar.dimen == 0 && ref->u.ar.codimen > 0));
       prev_ref = ref;
       ref = ref->next;
     }
@@ -6528,7 +6530,7 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
   ref = expr->ref;
 
   /* Find the last reference in the chain.  */
-  if (!retrieve_last_ref (&ref, &prev_ref))
+  if (!retrieve_array_ref (&ref, &prev_ref))
     return false;
 
   /* Take the allocatable and coarray properties solely from the expr-ref's
@@ -6572,7 +6574,7 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
       ref = expr3->ref;
 
       /* Find the last reference in the chain.  */
-      if (!retrieve_last_ref (&ref, &prev_ref))
+      if (!retrieve_array_ref (&ref, &prev_ref))
 	{
 	  if (expr3->expr_type == EXPR_FUNCTION
 	      && gfc_expr_attr (expr3).dimension)

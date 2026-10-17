@@ -6727,6 +6727,7 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
 	vtab_needed = (al->expr->ts.type == BT_CLASS);
 
       gfc_init_se (&se, NULL);
+#if 0
       /* When expr3 is a variable, i.e., a very simple expression, then
 	 convert it once here.  If one has a source expression that has
 	 substring references, part-refs, or %re/%im inquiries, wrap the
@@ -6734,6 +6735,7 @@ gfc_trans_allocate (gfc_code * code, gfc_omp_namelist *omp_allocate)
       if (code->expr3->expr_type == EXPR_VARIABLE
 	  && is_subobject_ref (code->expr3))
 	code->expr3 = gfc_get_parentheses (code->expr3);
+#endif
 
       if (code->expr3->expr_type == EXPR_VARIABLE
 	  || code->expr3->expr_type == EXPR_ARRAY
