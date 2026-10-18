@@ -3943,7 +3943,7 @@ conv_array_index_offset (gfc_se * se, gfc_ss * ss, int dim, int i,
 static bool
 build_class_array_ref (gfc_se *se, tree base, tree index)
 {
-  tree size;
+  tree size = NULL_TREE;
   tree decl = NULL_TREE;
   tree tmp;
   gfc_expr *expr = se->ss->info->expr;
@@ -3951,61 +3951,79 @@ build_class_array_ref (gfc_se *se, tree base, tree index)
   gfc_typespec *ts;
   gfc_symbol *sym;
 
-  tmp = !VAR_P (base) ? gfc_get_class_from_expr (base) : NULL_TREE;
-
-  if (tmp != NULL_TREE)
-    decl = tmp;
-  else
+  tree span_decl = base;
+  while (span_decl && !DECL_P (span_decl))
     {
-      /* The base expression does not contain a class component, either
-	 because it is a temporary array or array descriptor.  Class
-	 array functions are correctly resolved above.  */
-      if (!expr
-	  || (expr->ts.type != BT_CLASS
-	      && !gfc_is_class_array_ref (expr, NULL)))
-	return false;
-
-      /* Obtain the expression for the class entity or component that is
-	 followed by an array reference, which is not an element, so that
-	 the span of the array can be obtained.  */
-      class_expr = gfc_find_and_cut_at_last_class_ref (expr, false, &ts);
-
-      if (!ts)
-	return false;
-
-      sym = (!class_expr && expr) ? expr->symtree->n.sym : NULL;
-      if (sym && sym->attr.function
-	  && sym == sym->result
-	  && sym->backend_decl == current_function_decl)
-	/* The temporary is the data field of the class data component
-	   of the current function.  */
-	decl = gfc_get_fake_result_decl (sym, 0);
-      else if (sym)
-	{
-	  if (decl == NULL_TREE)
-	    decl = expr->symtree->n.sym->backend_decl;
-	  /* For class arrays the tree containing the class is stored in
-	     GFC_DECL_SAVED_DESCRIPTOR of the sym's backend_decl.
-	     For all others it's sym's backend_decl directly.  */
-	  if (DECL_LANG_SPECIFIC (decl) && GFC_DECL_SAVED_DESCRIPTOR (decl))
-	    decl = GFC_DECL_SAVED_DESCRIPTOR (decl);
-	}
+      if (TREE_CODE (span_decl) == ADDR_EXPR
+	  || INDIRECT_REF_P (span_decl)
+	  || CONVERT_EXPR_P (span_decl))
+	span_decl = TREE_OPERAND (span_decl, 0);
       else
-	decl = gfc_get_class_from_gfc_expr (class_expr);
-
-      if (POINTER_TYPE_P (TREE_TYPE (decl)))
-	decl = build_fold_indirect_ref_loc (input_location, decl);
-
-      if (!GFC_CLASS_TYPE_P (TREE_TYPE (decl)))
-	return false;
+	span_decl = NULL_TREE;
     }
 
-  se->class_vptr = gfc_evaluate_now (gfc_class_vptr_get (decl), &se->pre);
+  if (span_decl)
+    size = GFC_DECL_GET_SPAN (span_decl);
 
-  size = gfc_class_vtab_size_get (decl);
-  /* For unlimited polymorphic entities then _len component needs to be
-     multiplied with the size.  */
-  size = gfc_resize_class_size_with_len (&se->pre, decl, size);
+  if (!size)
+    {
+      tmp = !VAR_P (base) ? gfc_get_class_from_expr (base) : NULL_TREE;
+
+      if (tmp != NULL_TREE)
+	decl = tmp;
+      else
+	{
+	  /* The base expression does not contain a class component, either
+	     because it is a temporary array or array descriptor.  Class
+	     array functions are correctly resolved above.  */
+	  if (!expr
+	      || (expr->ts.type != BT_CLASS
+		  && !gfc_is_class_array_ref (expr, NULL)))
+	    return false;
+
+	  /* Obtain the expression for the class entity or component that is
+	     followed by an array reference, which is not an element, so that
+	     the span of the array can be obtained.  */
+	  class_expr = gfc_find_and_cut_at_last_class_ref (expr, false, &ts);
+
+	  if (!ts)
+	    return false;
+
+	  sym = (!class_expr && expr) ? expr->symtree->n.sym : NULL;
+	  if (sym && sym->attr.function
+	      && sym == sym->result
+	      && sym->backend_decl == current_function_decl)
+	    /* The temporary is the data field of the class data component
+	       of the current function.  */
+	    decl = gfc_get_fake_result_decl (sym, 0);
+	  else if (sym)
+	    {
+	      if (decl == NULL_TREE)
+		decl = expr->symtree->n.sym->backend_decl;
+	      /* For class arrays the tree containing the class is stored in
+		 GFC_DECL_SAVED_DESCRIPTOR of the sym's backend_decl.
+		 For all others it's sym's backend_decl directly.  */
+	      if (DECL_LANG_SPECIFIC (decl) && GFC_DECL_SAVED_DESCRIPTOR (decl))
+		decl = GFC_DECL_SAVED_DESCRIPTOR (decl);
+	    }
+	  else
+	    decl = gfc_get_class_from_gfc_expr (class_expr);
+
+	  if (POINTER_TYPE_P (TREE_TYPE (decl)))
+	    decl = build_fold_indirect_ref_loc (input_location, decl);
+
+	  if (!GFC_CLASS_TYPE_P (TREE_TYPE (decl)))
+	    return false;
+	}
+
+      se->class_vptr = gfc_evaluate_now (gfc_class_vptr_get (decl), &se->pre);
+
+      size = gfc_class_vtab_size_get (decl);
+      /* For unlimited polymorphic entities then _len component needs to be
+	 multiplied with the size.  */
+      size = gfc_resize_class_size_with_len (&se->pre, decl, size);
+    }
+
   size = fold_convert (TREE_TYPE (index), size);
 
   /* Return the element in the se expression.  */
