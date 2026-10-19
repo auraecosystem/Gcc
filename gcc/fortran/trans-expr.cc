@@ -3187,6 +3187,7 @@ gfc_conv_variable (gfc_se * se, gfc_expr * expr)
 		    && ref->u.ar.type != AR_ELEMENT);
       else
 	gfc_conv_tmp_array_ref (se);
+      se->class_container = ss_info->class_container;
     }
   else
     {
@@ -3433,6 +3434,8 @@ gfc_conv_unary_op (enum tree_code code, gfc_se * se, gfc_expr * expr)
   else
     se->expr = fold_build1_loc (input_location, code, type, operand.expr);
 
+  if (code == PAREN_EXPR)
+    se->class_container = operand.class_container;
 }
 
 /* Expand power operator to optimal multiplications when a value is raised
