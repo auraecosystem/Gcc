@@ -1966,7 +1966,10 @@ trans_scalar_class_assign (stmtblock_t *block, gfc_se *lse, gfc_se *rse)
   if (!GFC_CLASS_TYPE_P (TREE_TYPE (rse->expr))
       || not_call_expr)
     {
-      tmp = gfc_get_class_from_expr (rse->expr);
+      if (rse->class_container != NULL_TREE)
+	tmp = rse->class_container;
+      else
+	tmp = gfc_get_class_from_expr (rse->expr);
       if (tmp == NULL_TREE)
 	return false;
       rse_expr = gfc_evaluate_now (tmp, block);
