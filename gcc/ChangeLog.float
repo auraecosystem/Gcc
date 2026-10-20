@@ -1,3 +1,37 @@
+==================== Branch work266-float, patch #230 ====================
+
+Rework BFmode to V4SF mode code.
+
+2026-10-19  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.cc (fp16_vectorization): Add FP16_UNARY support.
+	(bfloat16_operation_as_v4sf_inner): Likewise.
+	(struct bfloat16_to_v4sf_stats): New structure.
+	(zero_bfloat16_to_v4sf_stats): Likewise.
+	(bfloat16_to_v4sf_inner): New function.
+	(bfloat16_to_v4sf_p): Likewise.
+	(bfloat16_to_v4sf_split): Likewise.
+	* config/rs6000/float16.md (bfloat16_as_v4sf_1): New insn to support
+	using V4SFmode to evaluate BFmode expressions.
+	(bfloat16_as_v4sf_2): Likewise.
+	(bfloat16_as_v4sf_3): Likewise.
+	(bfloat16_binary_op_internal1): For now, keep old BFmode to V4SFmode
+	code controlled by the -mno-float16-bf-v4sf switch.
+	(bfloat16_binary_op_internal2): Likewise.
+	(bfloat16_fma_internal1): Likewise.
+	(bfloat16_fma_internal2): Likewise.
+	(bfloat16_fms_internal1): Likewise.
+	(bfloat16_fms_internal2): Likewise.
+	(bfloat16_nfma_internal1): Likewise.
+	(bfloat16_nfma_internal2): Likewise.
+	(bfloat16_nfms_internal1): Likewise.
+	(bfloat16_nfms_internal2): Likewise.
+	* config/rs6000/predicates.md (bfloat16_to_v4sf_operand): New predicate.
+	* config/rs6000/rs6000.h (enum fp16_operation): Add FP16_UNARY.
+	* config/rs6000/rs6000-protos.h (bfloat16_to_v4sf_p): New prototype.
+	(bfloat16_to_v4sf_split): Likewise.
+	* config/rs6000/rs6000.opt (-mfloat16-bf-v4sf): New debug switch.
+
 ==================== Branch work266-float, patch #229 was reverted ====================
 
 ==================== Branch work266-float, patch #228 ====================
