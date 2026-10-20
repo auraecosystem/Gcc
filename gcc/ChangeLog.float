@@ -45,15 +45,7 @@ Add -mdebug=extra1 through -mdebug=extra5
 	* config/rs6000/rs6000.h (MASK_DEBUG_*): Likewise.
 	(TARGET_DEBUG_*): Likewise.
 
-==================== Branch work266-float, patch #227 ====================
-
-Use xxspltib rather than 2 Altivec instructions.
-
-2026-10-15  Michael Meissner  <meissner@linux.ibm.com>
-
-	* config/rs6000/rs6000.cc (easy_altivec_constant): If we can use
-	xxspltib to generate a constant, don't treat it like an Altivec
-	constant.
+==================== Branch work266-float, patch #227 was reverted ====================
 
 ==================== Branch work266-float, patch #226 ====================
 

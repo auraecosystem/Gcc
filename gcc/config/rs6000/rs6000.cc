@@ -6610,15 +6610,6 @@ easy_altivec_constant (rtx op, machine_mode mode)
   else if (mode != GET_MODE (op))
     return 0;
 
-  /* If we can use xxsplitb, don't classify this as an Altivec constant.  This
-     prevents vec_dup ((char)16) from generating vsltib/xxsplitb and
-     vaddubm.  */
-  int value = 256;
-  int num_insns = -1;
-
-  if (xxspltib_constant_p (op, mode, &num_insns, &value) && num_insns >= 0)
-    return false;
-
   /* V2DI/V2DF was added with VSX.  Only allow 0 and all 1's as easy
      constants.  */
   if (mode == V2DFmode)
