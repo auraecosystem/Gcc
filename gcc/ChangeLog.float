@@ -1,3 +1,12 @@
+==================== Branch work266-float, patch #231 ====================
+
+Fix typo in the last change.
+
+2026-10-20  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.cc (bfloat16_to_v4sf_split): Fix typos in the
+	last change.
+
 ==================== Branch work266-float, patch #230 ====================
 
 Rework BFmode to V4SF mode code.
