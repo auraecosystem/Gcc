@@ -72,6 +72,10 @@ fp16_vectorization (enum rtx_code icode,
 
   switch (subtype)
     {
+    case FP16_UNARY:
+      n_opts = 1;
+      break;
+
     case FP16_BINARY:
       n_opts = 2;
       break;
@@ -123,6 +127,16 @@ fp16_vectorization (enum rtx_code icode,
   /* Do 2 sets of V4SFmode operations.  */
   switch (subtype)
     {
+    case FP16_UNARY:
+      emit_insn (gen_rtx_SET (result_hi,
+			      gen_rtx_fmt_e (icode, V4SFmode,
+					     op_hi[0])));
+
+      emit_insn (gen_rtx_SET (result_lo,
+			      gen_rtx_fmt_e (icode, V4SFmode,
+					     op_lo[0])));
+      break;
+
     case FP16_BINARY:
       emit_insn (gen_rtx_SET (result_hi,
 			      gen_rtx_fmt_ee (icode, V4SFmode,
@@ -219,6 +233,11 @@ bfloat16_operation_as_v4sf_inner (enum rtx_code icode,
 
   switch (subtype)
     {
+    case FP16_UNARY:
+      n_opts = 1;
+      gcc_assert (op2 == NULL_RTX && op3 == NULL_RTX);
+      break;
+
     case FP16_BINARY:
       n_opts = 2;
       gcc_assert (op3 == NULL_RTX);
@@ -244,6 +263,15 @@ bfloat16_operation_as_v4sf_inner (enum rtx_code icode,
 
       switch (GET_CODE (op))
 	{
+	case NEG:
+	case ABS:
+	  ops_v4sf[i] = bfloat16_operation_as_v4sf_inner (GET_CODE (op),
+							  XEXP (op, 0),
+							  NULL_RTX,
+							  NULL_RTX,
+							  FP16_UNARY);
+	  continue;
+
 	  /* Handle chained operations.  */
 	case PLUS:
 	case MINUS:
@@ -317,6 +345,13 @@ bfloat16_operation_as_v4sf_inner (enum rtx_code icode,
   /* Do the operation in V4SFmode.  */
   switch (subtype)
     {
+    case FP16_UNARY:
+      emit_insn (gen_rtx_SET (result_v4sf,
+			      gen_rtx_fmt_e (icode, V4SFmode,
+					     ops_v4sf[0])));
+
+      break;
+
     case FP16_BINARY:
       emit_insn (gen_rtx_SET (result_v4sf,
 			      gen_rtx_fmt_ee (icode, V4SFmode,
@@ -395,4 +430,368 @@ bfloat16_operation_as_v4sf (enum rtx_code icode,
 
   else
     gcc_unreachable ();
+}
+
+
+/*
+ * Recognize if can BFmode operations in V4SFmode.  If the operation mostly
+ * involves BFmode values with some SFmode values. it is faster to convert the
+ * scalar code to vector and do the operation using one element of the vector,
+ * due to the lack of instructions to convert between BFmode and SFmode/DFmode
+ * scalars on power10.
+ *
+ * We allow multiple operations (a + b + c) to be folded together to try to do
+ * as much possible in the vector unit without having to convert back to scalar
+ * mode.
+ *
+ * We also fold in loads from memory to simplify the conversion.
+ *
+ * The expression that is combined is split before register allocation.
+ */
+
+/*
+ * Stats for whole expression.
+ */
+
+struct bfloat16_to_v4sf_stats
+{
+  unsigned num_bf_regs;		// # of BF registers used
+  unsigned num_bf_loads;		// # of BF values loaded from memory
+  unsigned num_sf_regs;		// # of SF registers used
+  unsigned num_const;		// # of constants used
+  unsigned num_binary;		// # of binary operations done
+  unsigned num_fma;		// # of FMA (fused multiply-adds) done
+  unsigned num_unary;		// # of unary ops not folded into FMA/ABS
+  unsigned num_neg_folded;	// # of negates folded into a FMA/ABS insn
+  unsigned num_extend;		// # of FLOAT_EXTENDs
+};
+
+/* Initialize the bfloat16_to_v4sf_stats structure.  */
+static struct bfloat16_to_v4sf_stats	zero_bfloat16_to_v4sf_stats;
+
+/*
+ * Recursively evaluate whether a RTX expression can be optimized to use
+ * V4SFmode operations.  Return true if the expression might be able to be
+ * optimized, and update the stats.
+ */
+
+static bool
+bfloat16_to_v4sf_inner (rtx op, struct bfloat16_to_v4sf_stats *stats)
+{
+  machine_mode mode = GET_MODE (op);
+  rtx arg;
+  rtx_code code;
+  bool ret = true;
+  bool update_stats = false;
+
+#ifdef TARGET_DEBUG_EXTRA1
+  if (TARGET_DEBUG_EXTRA1)
+    update_stats = true;
+#endif
+
+  if (mode != BFmode && mode != SFmode)
+    ret = false;
+
+  else
+    {
+      switch (GET_CODE (op))
+	{
+	default:
+	  ret = false;
+	  break;
+
+	  // Update register counts.
+	case REG:
+	case SUBREG:
+	  if (mode == BFmode)
+	    stats->num_bf_regs++;
+	  else
+	    stats->num_sf_regs++;
+
+	  break;
+
+	  // Update memory counts.
+	case MEM:
+	  if (mode != BFmode)
+	    ret = false;
+	  else
+	    stats->num_bf_loads++;
+
+	  break;
+
+	  // Update constants
+	case CONST_DOUBLE:
+	  stats->num_const++;
+	  break;
+
+	  // Process absolute value
+	case ABS:
+	  stats->num_unary++;
+	  if (!bfloat16_to_v4sf_inner (XEXP (op, 0), stats))
+	    ret = false;
+
+	  break;
+
+	  // Process negation, deal with negate being folded into FMA or ABS.
+	case NEG:
+	  arg = XEXP (op, 0);
+	  code = GET_CODE (arg);
+
+	  if (code == FMA || code == ABS)
+	    stats->num_neg_folded++;
+	  else
+	    stats->num_unary++;
+
+	  if (!bfloat16_to_v4sf_inner (arg, stats))
+	    ret = false;
+
+	  break;
+
+	  // Process binary operations
+	case PLUS:
+	case MINUS:
+	case MULT:
+	case SMIN:
+	case SMAX:
+	  stats->num_binary++;
+
+	  if (update_stats)
+	    {
+	      bool ret1 = bfloat16_to_v4sf_inner (XEXP (op, 0), stats);
+	      bool ret2 = bfloat16_to_v4sf_inner (XEXP (op, 1), stats);
+	      if (!ret1 || !ret2)
+		ret = false;
+	    }
+	  else if (!bfloat16_to_v4sf_inner (XEXP (op, 0), stats)
+		   || !bfloat16_to_v4sf_inner (XEXP (op, 1), stats))
+	    ret = false;
+
+	  break;
+
+	  // Process fused multiply-adds
+	case FMA:
+	  stats->num_fma++;
+
+	  if (update_stats)
+	    {
+	      bool ret1 = bfloat16_to_v4sf_inner (XEXP (op, 0), stats);
+	      bool ret2 = bfloat16_to_v4sf_inner (XEXP (op, 1), stats);
+	      bool ret3 = bfloat16_to_v4sf_inner (XEXP (op, 2), stats);
+	      if (!ret1 || !ret2 || !ret3)
+		ret = false;
+	    }
+	  else
+	    if (!bfloat16_to_v4sf_inner (XEXP (op, 0), stats)
+		|| !bfloat16_to_v4sf_inner (XEXP (op, 1), stats)
+		|| !bfloat16_to_v4sf_inner (XEXP (op, 2), stats))
+	      ret = false;
+
+	  break;
+
+	  // Process extend BF -> SF
+	case FLOAT_EXTEND:
+	  stats->num_extend++;
+	  arg = XEXP (op, 0);
+	  if (mode != SFmode || GET_MODE (arg) != BFmode)
+	    ret = false;;
+
+	  if (!bfloat16_to_v4sf_inner (arg, stats))
+	    ret = false;
+	}
+    }
+
+  return ret;
+}
+
+/*
+ * Decide whether an expression can optimize BFmode to use V4SFmode.
+ */
+
+bool
+bfloat16_to_v4sf_p (rtx op, machine_mode mode)
+{
+  if (mode != BFmode && mode != SFmode)
+    return false;
+
+#ifdef TARGET_DEBUG_EXTRA1
+  rtx orig_op = op;
+#endif
+
+  struct bfloat16_to_v4sf_stats stats = zero_bfloat16_to_v4sf_stats;
+
+  // Handle top level FLOAT_TRUNCATE
+  if (GET_CODE (op) == FLOAT_TRUNCATE
+      && mode == BFmode
+      && GET_MODE (XEXP (op, 0)) == SFmode)
+    op = XEXP (op, 0);
+
+  bool ret = bfloat16_to_v4sf_inner (op, &stats);
+
+  // Make sure we had enough BFmode operations to do the optimization
+  if (ret)
+    {
+      unsigned num_bf = stats.num_bf_regs + stats.num_bf_loads;
+
+      // If we had no BFmode values, don't do the optimization.
+      if (!num_bf)
+	ret = false;
+
+      // If we had no binary or fma opertors, don't do the optimization.
+      else if (!stats.num_binary && !stats.num_fma)
+	ret = false;
+
+      // If the expression has much more SFmode elements than BFmode, prefer
+      // converting BFmode to SFmode instead of using V4SFmode.
+      else if (stats.num_sf_regs > (num_bf + 2))
+	ret = false;
+    }
+
+  // Debugging.
+#ifdef TARGET_DEBUG_EXTRA1
+  if (TARGET_DEBUG_EXTRA1)
+    {
+      fprintf (stderr, "\n========== bfloat16_to_v4sf_p, return = %s",
+	       ret ? "true" : "false");
+
+      if (stats.num_bf_regs)
+	fprintf (stderr, ", # BF regs = %u", stats.num_bf_regs);
+
+      if (stats.num_bf_loads)
+	fprintf (stderr, ", # BF values loaded = %u", stats.num_bf_loads);
+
+      if (stats.num_sf_regs)
+	fprintf (stderr, ", # SF regs = %u", stats.num_sf_regs);
+
+      if (stats.num_const)
+	fprintf (stderr, ", # constants = %u", stats.num_const);
+
+      if (stats.num_extend)
+	fprintf (stderr, ", # extends = %u", stats.num_extend);
+
+      if (stats.num_unary)
+	fprintf (stderr, ", # unary = %u", stats.num_unary);
+
+      if (stats.num_binary)
+	fprintf (stderr, ", # binary = %u", stats.num_binary);
+
+      if (stats.num_fma)
+	fprintf (stderr, ", # fma = %u", stats.num_fma);
+
+      if (stats.num_neg_folded)
+	fprintf (stderr, ", # neg fold  = %u", stats.num_neg_folded);
+
+      fprintf (stderr, "\n");
+      debug_rtx (orig_op);
+    }
+#endif
+
+  return ret;
+}
+
+/*
+ * Split the isnsns tht optimize BFmode to use V4SFmode.
+ */
+
+void
+bfloat16_to_v4sf_split (rtx dest, rtx src)
+{
+  rtx orig_src = src;
+  enum rtx_code code = GET_CODE (src);
+  rtx arg, op0, op1, op2;
+
+#ifdef TARGET_DEBUG_EXTRA2
+  if (TARGET_DEBUG_EXTRA2)
+    debug_rtx (gen_rtx_SET (dest, src));
+#endif
+
+  if (code == FLOAT_EXTEND || code == FLOAT_TRUNCATE)
+    {
+      src = XEXP (src, 0);
+      code = GET_CODE (src);
+    }
+
+  switch (code)
+    {
+    case ABS:
+      bfloat16_operation_as_v4sf (code, dest,
+				  XEXP (src, 0),
+				  NULL_RTX,
+				  NULL_RTX,
+				  FP16_UNARY);
+      break;
+
+    case NEG:
+      arg = XEXP (src, 0);
+      if (GET_CODE (arg) == FMA)
+	{
+	  op0 = XEXP (arg, 0);
+	  op1 = XEXP (arg, 1);
+	  op2 = XEXP (arg, 2);
+	  if (GET_CODE (op2) == NEG)
+	    {
+	      op2 = XEXP (op2, 0);
+	      bfloat16_operation_as_v4sf (code, dest,
+					  op0,
+					  op1,
+					  op2,
+					  FP16_NFMS);
+	    }
+
+	  else
+	    bfloat16_operation_as_v4sf (code, dest,
+					op0,
+					op1,
+					op2,
+					FP16_NFMA);
+	}
+
+      else
+	bfloat16_operation_as_v4sf (code, dest,
+				    XEXP (arg, 0),
+				    NULL_RTX,
+				    NULL_RTX,
+				    FP16_UNARY);
+
+      break;
+
+    case PLUS:
+    case MINUS:
+    case MULT:
+    case SMIN:
+    case SMAX:
+      bfloat16_operation_as_v4sf (code, dest,
+				  XEXP (src, 0),
+				  XEXP (src, 1),
+				  NULL_RTX,
+				  FP16_BINARY);
+      break;
+
+    case FMA:
+      op0 = XEXP (src, 0);
+      op1 = XEXP (src, 1);
+      op2 = XEXP (src, 2);
+      if (GET_CODE (op2) == NEG)
+	{
+	  op2 = XEXP (op2, 0);
+	  bfloat16_operation_as_v4sf (code, dest,
+				      op0,
+				      op1,
+				      op2,
+				      FP16_FMS);
+	}
+
+      else
+	bfloat16_operation_as_v4sf (code, dest,
+				    op0,
+				    op1,
+				    op2,
+				    FP16_FMA);
+
+      break;
+
+    default:
+      fatal_insn_not_found (gen_rtx_SET (dest, orig_src));
+    }
+
+  return;
 }

@@ -1283,12 +1283,55 @@
 ;; uses -Ofast.  Without -Ofast, it will always convert BFmode into
 ;; SFmode.
 
+(define_insn_and_split "*bfloat16_as_v4sf_1"
+  [(set (match_operand:BF 0 "vsx_register_operand")
+	(match_operand:BF 1 "bfloat16_to_v4sf_operand"))]
+  "TARGET_BF_V4SF
+   && TARGET_BFLOAT16_HW
+   && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(pc)]
+{
+  bfloat16_to_v4sf_split (operands[0], operands[1]);
+  DONE;
+})
+
+(define_insn_and_split "*bfloat16_as_v4sf_2"
+  [(set (match_operand:BF 0 "vsx_register_operand")
+	(float_truncate:BF
+	 (match_operand:SF 1 "bfloat16_to_v4sf_operand")))]
+  "TARGET_BF_V4SF
+   && TARGET_BFLOAT16_HW
+   && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(pc)]
+{
+  bfloat16_to_v4sf_split (operands[0], operands[1]);
+  DONE;
+})
+
+(define_insn_and_split "*bfloat16_as_v4sf_3"
+  [(set (match_operand:SF 0 "vsx_register_operand")
+	(match_operand:SF 1 "bfloat16_to_v4sf_operand"))]
+  "TARGET_BF_V4SF
+   && TARGET_BFLOAT16_HW
+   && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(pc)]
+{
+  bfloat16_to_v4sf_split (operands[0], operands[1]);
+  DONE;
+})
+
 (define_insn_and_split "*bfloat16_binary_op_internal1"
   [(set (match_operand:SF 0 "vsx_register_operand")
 	(match_operator:SF 1 "fp16_binary_operator"
 			   [(match_operand:SF 2 "bfloat16_v4sf_operand")
 			    (match_operand:SF 3 "bfloat16_v4sf_operand")]))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[2], SFmode)
        || bfloat16_bf_operand (operands[3], SFmode))"
   "#"
@@ -1306,7 +1349,7 @@
 	 (match_operator:SF 1 "fp16_binary_operator"
 			    [(match_operand:SF 2 "bfloat16_v4sf_operand")
 			     (match_operand:SF 3 "bfloat16_v4sf_operand")])))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[2], SFmode)
        || bfloat16_bf_operand (operands[3], SFmode))"
   "#"
@@ -1324,7 +1367,7 @@
 	 (match_operand:SF 1 "bfloat16_v4sf_operand")
 	 (match_operand:SF 2 "bfloat16_v4sf_operand")
 	 (match_operand:SF 3 "bfloat16_v4sf_operand")))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1344,7 +1387,7 @@
 	  (match_operand:SF 1 "bfloat16_v4sf_operand")
 	  (match_operand:SF 2 "bfloat16_v4sf_operand")
 	  (match_operand:SF 3 "bfloat16_v4sf_operand"))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1364,7 +1407,7 @@
 	 (match_operand:SF 2 "bfloat16_v4sf_operand")
 	 (neg:SF
 	  (match_operand:SF 3 "bfloat16_v4sf_operand"))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1385,7 +1428,7 @@
 	  (match_operand:SF 2 "bfloat16_v4sf_operand")
 	  (neg:SF
 	   (match_operand:SF 3 "bfloat16_v4sf_operand")))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1405,7 +1448,7 @@
 	  (match_operand:SF 1 "bfloat16_v4sf_operand")
 	  (match_operand:SF 2 "bfloat16_v4sf_operand")
 	  (match_operand:SF 3 "bfloat16_v4sf_operand"))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1426,7 +1469,7 @@
 	   (match_operand:SF 1 "bfloat16_v4sf_operand")
 	   (match_operand:SF 2 "bfloat16_v4sf_operand")
 	   (match_operand:SF 3 "bfloat16_v4sf_operand")))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1447,7 +1490,7 @@
 	   (match_operand:SF 1 "bfloat16_v4sf_operand")
 	   (match_operand:SF 2 "bfloat16_v4sf_operand")
 	   (match_operand:SF 3 "bfloat16_v4sf_operand")))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1468,7 +1511,7 @@
 	  (match_operand:SF 2 "bfloat16_v4sf_operand")
 	  (neg:SF
 	   (match_operand:SF 3 "bfloat16_v4sf_operand")))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1490,7 +1533,7 @@
 	   (match_operand:SF 2 "bfloat16_v4sf_operand")
 	   (neg:SF
 	    (match_operand:SF 3 "bfloat16_v4sf_operand"))))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"
@@ -1512,7 +1555,7 @@
 	   (match_operand:SF 2 "bfloat16_v4sf_operand")
 	   (neg:SF
 	    (match_operand:SF 3 "bfloat16_v4sf_operand"))))))]
-  "TARGET_BFLOAT16_HW && can_create_pseudo_p ()
+  "!TARGET_BF_V4SF && TARGET_BFLOAT16_HW && can_create_pseudo_p ()
    && (bfloat16_bf_operand (operands[1], SFmode)
        + bfloat16_bf_operand (operands[2], SFmode)
        + bfloat16_bf_operand (operands[3], SFmode) >= 2)"

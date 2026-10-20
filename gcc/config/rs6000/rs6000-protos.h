@@ -262,6 +262,7 @@ extern unsigned constant_generates_xxspltidp (vec_const_128bit_type *);
 /* From float16.cc.  */
 /* Optimize bfloat16 and float16 operations.  */
 enum fp16_operation {
+  FP16_UNARY,				/* Bfloat16/float16 unary op.  */
   FP16_BINARY,				/* Bfloat16/float16 binary op.  */
   FP16_FMA,				/* (a * b) + c.  */
   FP16_FMS,				/* (a * b) - c.  */
@@ -273,6 +274,8 @@ extern void fp16_vectorization (enum rtx_code, rtx, rtx, rtx, rtx,
 				enum fp16_operation);
 extern void bfloat16_operation_as_v4sf (enum rtx_code, rtx, rtx, rtx, rtx,
 					enum fp16_operation);
+extern bool bfloat16_to_v4sf_p (rtx, machine_mode);
+extern void bfloat16_to_v4sf_split (rtx, rtx);
 #endif /* RTX_CODE */
 
 #ifdef TREE_CODE

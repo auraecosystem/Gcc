@@ -650,6 +650,10 @@ mfloat16-gpr-convert
 Target Undocumented Var(TARGET_FLOAT16_GPR_CONVERT) Init(1) Save
 Pass/return (do not pass/return) 16-it float conversions in GPR registers.
 
+mfloat16-bf-v4sf
+Target Undocumented Var(TARGET_BF_V4SF) Init(1) Save
+Optimize bfloat16 to use float vector instructions.
+
 ; Documented parameters
 
 -param=rs6000-vect-unroll-limit=

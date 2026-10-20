@@ -2315,6 +2315,21 @@
 (define_predicate "fp16_binary_operator"
   (match_code "plus,minus,mult,smax,smin"))
 
+
+;; Match bfloat16/float operands that can be optimized to do the
+;; operation in V4SFmode.
+(define_predicate "bfloat16_to_v4sf_operand"
+  (match_code "reg,subreg,const_double,float_extend,plus,minus,mult,fma,neg,abs")
+{
+  if (mode != BFmode && mode != SFmode)
+    return false;
+
+  if (mode != GET_MODE (op))
+    return false;
+
+  return bfloat16_to_v4sf_p (op, mode);
+})
+
 ;; Match bfloat16/float operands that can be optimized to do the
 ;; operation in V4SFmode.
 (define_predicate "bfloat16_v4sf_operand"
