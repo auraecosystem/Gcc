@@ -1,5 +1,17 @@
 ==================== Branch work266-float, patch #231 ====================
 
+Rework BF to V4SF optimizaton.
+
+2026-10-20  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.cc: Rework BF to V4SF optimization.
+	* config/rs6000/float16.md (bfloat16_*_op_internal*): Delete.
+	* config/rs6000/rs6000.h (enum fp16_operation): Delete FP16_UNARY.
+	* config/rs6000/rs6000.opt (-mfloat16-debug1): New debug switch.
+	(-mfloat16-debug2): Likewise.
+
+==================== Branch work266-float, patch #231 ====================
+
 Fix typo in the last change.
 
 2026-10-20  Michael Meissner  <meissner@linux.ibm.com>
