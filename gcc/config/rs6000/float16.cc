@@ -541,11 +541,7 @@ bfloat16_to_v4sf_split_inner (rtx op)
 
       rtx tmp = ops_v4sf[i] = gen_reg_rtx (V4SFmode);
       if (op == CONST0_RTX (SFmode) || op == CONST0_RTX (BFmode))
-	{
-	  rtx zero = CONST0_RTX (V4SFmode);
-	  rtx insn = emit_insn (gen_rtx_SET (tmp, zero));
-	  set_unique_reg_note (insn, REG_EQUIV, zero);
-	}
+	emit_move_insn (tmp, CONST0_RTX (V4SFmode));
 
       else if (CONST_DOUBLE_P (op))
 	{
@@ -560,9 +556,7 @@ bfloat16_to_v4sf_split_inner (rtx op)
 	    }
 
 	  rtvec v = gen_rtvec (4, sf_op, sf_op, sf_op, sf_op);
-	  rtx cv = gen_rtx_CONST_VECTOR (V4SFmode, v);
-	  rtx insn = emit_insn (gen_rtx_SET (tmp, cv));
-	  set_unique_reg_note (insn, REG_EQUIV, cv);
+	  emit_move_insn (tmp, gen_rtx_CONST_VECTOR (V4SFmode, v));
 	}
 
       else if (GET_MODE (op) == BFmode)
