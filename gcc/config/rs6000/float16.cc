@@ -730,7 +730,7 @@ bfloat16_to_v4sf_split (rtx dest, rtx src)
 	  if (GET_CODE (op2) == NEG)
 	    {
 	      op2 = XEXP (op2, 0);
-	      bfloat16_operation_as_v4sf (code, dest,
+	      bfloat16_operation_as_v4sf (FMA, dest,
 					  op0,
 					  op1,
 					  op2,
@@ -738,7 +738,7 @@ bfloat16_to_v4sf_split (rtx dest, rtx src)
 	    }
 
 	  else
-	    bfloat16_operation_as_v4sf (code, dest,
+	    bfloat16_operation_as_v4sf (FMA, dest,
 					op0,
 					op1,
 					op2,
@@ -746,7 +746,7 @@ bfloat16_to_v4sf_split (rtx dest, rtx src)
 	}
 
       else
-	bfloat16_operation_as_v4sf (code, dest,
+	bfloat16_operation_as_v4sf (GET_CODE (arg), dest,
 				    XEXP (arg, 0),
 				    NULL_RTX,
 				    NULL_RTX,
@@ -771,17 +771,14 @@ bfloat16_to_v4sf_split (rtx dest, rtx src)
       op1 = XEXP (src, 1);
       op2 = XEXP (src, 2);
       if (GET_CODE (op2) == NEG)
-	{
-	  op2 = XEXP (op2, 0);
-	  bfloat16_operation_as_v4sf (code, dest,
-				      op0,
-				      op1,
-				      op2,
-				      FP16_FMS);
-	}
+	bfloat16_operation_as_v4sf (FMA, dest,
+				    op0,
+				    op1,
+				    XEXP (op2, 0),
+				    FP16_FMS);
 
       else
-	bfloat16_operation_as_v4sf (code, dest,
+	bfloat16_operation_as_v4sf (FMA, dest,
 				    op0,
 				    op1,
 				    op2,
