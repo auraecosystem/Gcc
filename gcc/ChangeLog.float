@@ -1,4 +1,13 @@
-==================== Branch work266-float, patch #231 ====================
+==================== Branch work266-float, patch #233 ====================
+
+Go back to using emit_move_insn to load constants.
+
+2026-10-20  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.cc (bfloat16_to_v4sf_split_inner): Go back to
+	using emit_move_insn to load constants.
+
+==================== Branch work266-float, patch #232 ====================
 
 Rework BF to V4SF optimizaton.
 
