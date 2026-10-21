@@ -263,7 +263,11 @@ fp16_vectorization (enum rtx_code icode,
 	xvcvspbf16  0,0
 	stxsihx     0,0,3
 
-  */
+   For non-vectorized power10 code, I measured that using the V4SFmode vector
+   instructions were 20-45 times faster than using the scalar conversions and
+   scalar SFmode instructions.  The HFmode code which has the appropriate
+   scalar conversions operates at roughly the same speed as the BFmode code
+   using the V4SFmode vector instructions.  */
 
 /* Stats for whole expression.  */
 
