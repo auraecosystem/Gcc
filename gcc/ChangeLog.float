@@ -1,3 +1,12 @@
+==================== Branch work266-float, patch #234 ====================
+
+Update BF to V4SF comment.
+
+2026-10-20  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/float16.cc: Update comment about the advantage of using
+	V4SFmode vector operations to do arithmetic on BFmode scalar variables.
+
 ==================== Branch work266-float, patch #233 ====================
 
 Go back to using emit_move_insn to load constants.
