@@ -1,3 +1,17 @@
+==================== Branch work268, patch #1 ====================
+
+Add -mdebug=extra1 through -mdebug=extra5
+
+We've had various -mdebug=<xxx> options for some time.  This patch adds several
+debug options that developers can use without adding their own debug options.
+
+2026-10-22  Michael Meissner  <meissner@linux.ibm.com>
+
+	* common/config/rs6000/rs6000rcommon.cc (rs6000_handle_option): Add
+	support for -mdebug=estra{1,2,3,4,5}.
+	* config/rs6000/rs6000.h (MASK_DEBUG_*): Likewise.
+	(TARGET_DEBUG_*): Likewise.
+
 ==================== Branch work268, baseline ====================
 
 2026-10-22   Michael Meissner  <meissner@linux.ibm.com>
