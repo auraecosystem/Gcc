@@ -658,6 +658,10 @@ mfloat16-debug2
 Target Undocumented Var(TARGET_FLOAT16_DEBUG2) Init(0) Save
 Turn on float16 debugging #2.
 
+mfloat16-gpr-convert
+Target Undocumented Var(TARGET_FLOAT16_GPR_CONVERT) Init(1) Save
+Pass/return (do not pass/return) 16-it float conversions in GPR registers.
+
 ; Documented parameters
 
 -param=rs6000-vect-unroll-limit=
