@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-require-effective-target powerpc_future_ok } */
+/* { dg-require-effective-target powerpc_future_assemble_ok } */
 /* { dg-options "-mdejagnu-cpu=future -O2" } */
 
 /* Test whether the xvrl (vector word rotate left using VSX registers insead of
