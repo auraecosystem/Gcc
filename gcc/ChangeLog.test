@@ -106,7 +106,7 @@ having GCC automatically recognize cases where a saturating subtract could be
 generated.  This patch generates the saturating subtract instructions in the
 appropriate context.
 
-2026-10-24   Michael Meissner  <meissner@linux.ibm.com>
+2026-10-25   Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
@@ -117,8 +117,6 @@ gcc/testsuite/
 
 	* gcc.target/powerpc/saturate-subtract-1.c: New test.
 	* gcc.target/powerpc/saturate-subtract-2.c: Likewise.
-	* lib/target-supports.exp (check_effective_target_powerpc_future_ok):
-	New target test.
 
 ==================== Branch work269-test, baseline ====================
 
