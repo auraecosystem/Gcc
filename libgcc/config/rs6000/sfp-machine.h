@@ -232,6 +232,12 @@ RETURN_FP16 (__floatuntihf, HFtype2, UTItype2);
 
 RETURN_FP16 (__truncsfhf2, HFtype2, SFtype2);
 RETURN_FP16 (__truncdfhf2, HFtype2, DFtype2);
+
+extern HFtype2 powf16 (HFtype2, HFtype2);
+extern UHItype2 powf16_gpr (UHItype2, UHItype2);
+
+extern HFtype2 __powihf2 (HFtype2, SItype2);
+extern UHItype2 __powihf2_gpr (UHItype2, SItype2);
 #endif
 
 #ifdef __BFLOAT16__
@@ -266,6 +272,12 @@ RETURN_FP16 (__floatuntibf, BFtype2, UTItype2);
 
 RETURN_FP16 (__truncsfbf2, BFtype2, SFtype2);
 RETURN_FP16 (__truncdfbf2, BFtype2, DFtype2);
+
+extern BFtype2 powbf16 (BFtype2, BFtype2);
+extern UHItype2 powbf16_gpr (UHItype2, UHItype2);
+
+extern BFtype2 __powibf2 (BFtype2, SItype2);
+extern UHItype2 __powibf2_gpr (UHItype2, SItype2);
 #endif
 
 #if defined(__FLOAT16__) && defined(__BFLOAT16__)
