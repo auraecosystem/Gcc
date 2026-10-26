@@ -1,5 +1,21 @@
 ==================== Branch work269-float, patch #211 ====================
 
+Add 16-bit floating point pow support.
+
+This patch adds simple pow and powi support functions for 16-bit floating point
+types.
+
+2026-10-26  Michael Meissner  <meissner@linux.ibm.com>
+
+libgcc/
+
+	* config/rs6000/ppc-powbf16.c: New file.
+	* config/rs6000/ppc-powf16.c: Likewise.
+	* config/rs6000/sfp-machine.h: Add 16-bit pow and powi support.
+	* config/rs6000/t-float16: Likewise.
+
+==================== Branch work269-float, patch #211 ====================
+
 Pass and return 16-bit fp library values in GPRs
 
 This patch changes all of the 16-bit floating point library functions to pass
