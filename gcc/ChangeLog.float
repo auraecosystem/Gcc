@@ -1,4 +1,16 @@
-==================== Branch work269-float, patch #211 ====================
+==================== Branch work269-float, patch #213 ====================
+
+Change how -mfloat16 is enabled by default.
+
+2026-10-26  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000-cpus.def (TARGET_16BIT_FLOATING_POINT): Delete.
+	(ISA_2_7_MASKS_SERVER): Don't set -mfloat16 here.
+	* config/rs6000/rs6000.cc (rs6000_option_override_internal): Change how
+	-mfloat16 is enabled by default.
+	* config/rs6000/rs6000.h (TARGET_FLOAT16_MIN_HARDWARE): New macro.
+
+==================== Branch work269-float, patch #212 ====================
 
 Add 16-bit floating point pow support.
 
