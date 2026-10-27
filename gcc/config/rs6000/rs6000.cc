@@ -2256,6 +2256,19 @@ rs6000_debug_print_mode (ssize_t m)
 #define DEBUG_FMT_WX  DEBUG_FMT_ID "%#.12" HOST_WIDE_INT_PRINT "x: "
 #define DEBUG_FMT_S   DEBUG_FMT_ID "%s\n"
 
+/* Print interesting floating point information.  */
+static void
+rs6000_debug_fp_mode (machine_mode m)
+{
+  fprintf (stderr,
+	   DEBUG_FMT_ID "nan: %c, snan: %c, inf: %c, -0: %c\n",
+	   GET_MODE_NAME (m),
+	   HONOR_NANS (m)         ? 'y' : 'n',
+	   HONOR_SNANS (m)        ? 'y' : 'n',
+	   HONOR_INFINITIES (m)   ? 'y' : 'n',
+	   HONOR_SIGNED_ZEROS (m) ? 'y' : 'n');
+}
+
 /* Print various interesting information with -mdebug=reg.  */
 static void
 rs6000_debug_reg_global (void)
@@ -2662,6 +2675,46 @@ rs6000_debug_reg_global (void)
     {
       fprintf (stderr, DEBUG_FMT_S, "_Float16", "disabled");
       fprintf (stderr, DEBUG_FMT_S, "__bf16", "disabled");
+    }
+
+  if (TARGET_HARD_FLOAT)
+    {
+      rs6000_debug_fp_mode (SFmode);
+      rs6000_debug_fp_mode (DFmode);
+
+      if (rs6000_long_double_type_size == 128)
+	rs6000_debug_fp_mode (TFmode);
+
+      if (TARGET_FLOAT128_TYPE)
+	{
+	  rs6000_debug_fp_mode (KFmode);
+	  rs6000_debug_fp_mode (IFmode);
+	}
+
+      if (TARGET_DFP)
+	{
+	  rs6000_debug_fp_mode (SDmode);
+	  rs6000_debug_fp_mode (DDmode);
+	  rs6000_debug_fp_mode (TDmode);
+	}
+
+      if (TARGET_FLOAT16)
+	{
+	  rs6000_debug_fp_mode (BFmode);
+	  rs6000_debug_fp_mode (HFmode);
+	}
+
+      if (TARGET_VSX)
+	{
+	  rs6000_debug_fp_mode (V4SFmode);
+	  rs6000_debug_fp_mode (V2DFmode);
+
+	  if (TARGET_FLOAT16)
+	    {
+	      rs6000_debug_fp_mode (V8BFmode);
+	      rs6000_debug_fp_mode (V8HFmode);
+	    }
+	}
     }
 }
 
