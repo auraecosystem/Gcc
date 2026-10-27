@@ -1,7 +1,7 @@
 PERL		:= perl
 
 # _Float16 library support, source files in soft-ftp
-fp16_funcs	= ppc-eqhf2 ppc-floatbitinthf ppc-fixhfbitint
+fp16_funcs	= ppc-eqhf2 ppc-floatbitinthf ppc-fixhfbitint ppc-powf16
 
 fp16_src	= $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(fp16_funcs)))
 fp16_obj	= $(addsuffix $(objext),$(fp16_funcs))
@@ -13,7 +13,7 @@ FP16_CFLAGS	= -mfloat16 -Wno-psabi \
 $(fp16_obj)	: INTERNAL_CFLAGS += $(FP16_CFLAGS)
 
 # __bf16 library support, source files in config/rs6000
-bfp16_funcs	= ppc-eqbf2 ppc-floatbitintbf ppc-fixbfbitint
+bfp16_funcs	= ppc-eqbf2 ppc-floatbitintbf ppc-fixbfbitint ppc-powbf16
 
 bfp16_src	= $(addprefix $(srcdir)/config/rs6000/,$(addsuffix .c,$(bfp16_funcs)))
 bfp16_obj	= $(addsuffix $(objext),$(bfp16_funcs))
