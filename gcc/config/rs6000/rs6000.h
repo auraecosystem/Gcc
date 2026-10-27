@@ -343,6 +343,26 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
    || ((MODE) == TDmode)						\
    || (!TARGET_FLOAT128_TYPE && FLOAT128_IEEE_P (MODE)))
 
+/* Is this a valid 16-bit scalar floating point mode?  */
+#define FP16_SCALAR_MODE_P(MODE)					\
+  (TARGET_FLOAT16 && ((MODE) == HFmode || (MODE) == BFmode))
+
+/* Is this a valid 16-bit scalar floating point mode?  */
+#define FP16_VECTOR_MODE_P(MODE)					\
+  (TARGET_FLOAT16 && ((MODE) == V8HFmode || (MODE) == V8BFmode))
+
+/* Do we have conversion support in hardware for the 16-bit floating point?  */
+#define TARGET_BFLOAT16_HW	(TARGET_FLOAT16 && TARGET_POWER10)
+#define TARGET_FLOAT16_HW	(TARGET_FLOAT16 && TARGET_P9_VECTOR)
+
+/* Do we have conversion support in hardware for the 16-bit floating point and
+   also enable the 16-bit floating point vector optimizations?  */
+#define TARGET_BFLOAT16_HW_VECTOR					\
+  (TARGET_FLOAT16 && TARGET_POWER10 && TARGET_BFLOAT16_VECTOR)
+
+#define TARGET_FLOAT16_HW_VECTOR					\
+  (TARGET_FLOAT16 && TARGET_POWER9 && TARGET_FLOAT16_VECTOR)
+
 /* Return true for floating point that does not use a vector register.  */
 #define SCALAR_FLOAT_MODE_NOT_VECTOR_P(MODE)				\
   (SCALAR_FLOAT_MODE_P (MODE) && !FLOAT128_VECTOR_P (MODE))
@@ -559,6 +579,14 @@ extern int rs6000_vector_align[];
    registers.  */
 #define TARGET_DIRECT_MOVE_64BIT	(TARGET_DIRECT_MOVE		\
 					 && TARGET_POWERPC64)
+
+/* Macro to say that we have the minimum hardware to enable 16-bit floating
+   point.  We require a little endian 64-bit machine that supports at least
+   power8 with VSX support.  */
+#define TARGET_FLOAT16_MIN_HARDWARE	(TARGET_P8_VECTOR		\
+					 && TARGET_POWERPC64		\
+					 && !BYTES_BIG_ENDIAN)
+
 
 /* Inlining allows targets to define the meanings of bits in target_info
    field of ipa_fn_summary by itself, the used bits for rs6000 are listed
