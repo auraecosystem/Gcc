@@ -595,6 +595,14 @@ extern int rs6000_vector_align[];
 #define TARGET_DIRECT_MOVE_64BIT	(TARGET_DIRECT_MOVE		\
 					 && TARGET_POWERPC64)
 
+/* Macro to say that we have the minimum hardware to enable 16-bit floating
+   point.  We require a little endian 64-bit machine that supports at least
+   power8 with VSX support.  */
+#define TARGET_FLOAT16_MIN_HARDWARE	(TARGET_P8_VECTOR		\
+					 && TARGET_POWERPC64		\
+					 && !BYTES_BIG_ENDIAN)
+
+
 /* Inlining allows targets to define the meanings of bits in target_info
    field of ipa_fn_summary by itself, the used bits for rs6000 are listed
    below.  */

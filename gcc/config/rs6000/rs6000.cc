@@ -4021,11 +4021,24 @@ rs6000_option_override_internal (bool global_init_p)
 	}
     }
 
+  /* Enable -mfloat16 if it was configured, the user did not specify -mfloat16
+     or -mno-float16, and we have the minimum hardware requirements to handle
+     16-bit floating point.  */
+  if ((rs6000_isa_flags_explicit & OPTION_MASK_FLOAT16) == 0)
+    {
+#if POWERPC_FLOAT16_DEFAULT
+      if (TARGET_FLOAT16_MIN_HARDWARE)
+	rs6000_isa_flags |= OPTION_MASK_FLOAT16;
+      else
+#endif
+	rs6000_isa_flags &= ~OPTION_MASK_FLOAT16;
+    }
+
   /* 16-bit floating point needs 64-bit power8 at a minimum in order to load up
      16-bit values into vector registers via loads/stores from GPRs and then
      using direct moves.  Don't allow 16-bit float on big endian systems at the
      current time.  */
-  if (TARGET_FLOAT16 && (!TARGET_DIRECT_MOVE_64BIT || BYTES_BIG_ENDIAN))
+  if (TARGET_FLOAT16 && !TARGET_FLOAT16_MIN_HARDWARE)
     {
       rs6000_isa_flags &= ~OPTION_MASK_FLOAT16;
       if (rs6000_isa_flags_explicit & OPTION_MASK_FLOAT16)
