@@ -1,3 +1,15 @@
+==================== Branch work270-float, patch #213 ====================
+
+Print fp debug information
+
+2026-10-27  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.cc (rs6000_debug_fp_mode): New function.
+	(rs6000_debug_reg_global): Print debug information about floating point
+	modes.
+
 ==================== Branch work270-float, patch #212 ====================
 
 Add 16-bit floating point pow support.
