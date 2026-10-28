@@ -1,3 +1,21 @@
+==================== Branch work270-float, patch #214 ====================
+
+Vectorize both V4SF to V8BF and V4SF to V8HF narrowing.
+
+2026-10-28  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000.cc (TARGET_VECTORIZE_OTHER_NARROWING_MODE): New
+	hook.
+	(rs6000_vector_other_narrowing_mode): Likewise.
+	* doc/tm.texi: Regenerate.
+	* doc/tm.texi.in (TARGET_VECTORIZE_OTHER_NARROWING_MODE): Document new
+	hook.
+	* target.def (other_narrowing_mode): New target hook.
+	* targhooks.cc (default_vectorize_other_narrowing_mode): Likewise.
+	* targhooks.h (default_vectorize_other_narrowing_mode): Likewise
+	* tree-vect-stmts.cc (supportable_narrowing_operation) Call the
+	vectorize.other_narrowing_mode hook.
+
 ==================== Branch work270-float, patch #213 ====================
 
 Print fp debug information
