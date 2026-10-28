@@ -2999,4 +2999,10 @@ default_reassociation_width (tree_code, machine_mode)
   return 1;
 }
 
+bool
+default_vectorize_other_narrowing_mode (machine_mode narrow ATTRIBUTE_UNUSED,
+					machine_mode wide ATTRIBUTE_UNUSED)
+{
+  return false;
+}
 #include "gt-targhooks.h"

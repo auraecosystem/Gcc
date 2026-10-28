@@ -1792,6 +1792,9 @@ static const scoped_attribute_specs *const rs6000_attribute_table[] =
 #undef TARGET_OVERLAP_OP_BY_PIECES_P
 #define TARGET_OVERLAP_OP_BY_PIECES_P hook_bool_void_true
 
+#undef TARGET_VECTORIZE_OTHER_NARROWING_MODE
+#define TARGET_VECTORIZE_OTHER_NARROWING_MODE \
+  rs6000_vector_other_narrowing_mode
 
 
 /* Processor table.  */
@@ -30136,6 +30139,26 @@ rs6000_opaque_type_invalid_use_p (gimple *stmt)
 		return true;
 	    }
 	}
+    }
+
+  return false;
+}
+
+/* There are 2 possible 16-bit floating point formats that a V4SFmode can be
+   converted to (i.e. V8BFmode and V8HFmode).  Unfortunately only one 16-bit
+   format can be selected via vec_pack_trunc_v4sf.  This hook returns true if
+   we can use the alterntive narrowing method.  */
+
+bool
+rs6000_vector_other_narrowing_mode (machine_mode narrow, machine_mode wide)
+{
+  if (wide == V4SFmode)
+    {
+      if (narrow == V8BFmode && TARGET_BFLOAT16_HW)
+	return true;
+
+      if (narrow == V8HFmode && TARGET_FLOAT16_HW)
+	return true;
     }
 
   return false;

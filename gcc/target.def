@@ -2113,6 +2113,20 @@ it is for the vector version.",
  (vec_info *vinfo, bool costing_for_scalar),
  default_vectorize_create_costs)
 
+/* Whether a vector mode can be narrowed to an alterntive mode.  */
+DEFHOOK
+(other_narrowing_mode,
+ "Target hook that returns true if there is an alternative way to\n\
+perform narrowing operation.  For example, on the PowerPC, there are\n\
+2 16-bit floating point types (BFmode and HFmode).  However, the\n\
+named insn @code{vec_pack_trunc_v4sf} can only indicate one vector\n\
+machine mode to return.\n\
+\n\
+This hook returns true if there is an alternative vector type to use.",
+ bool,
+ (machine_mode narrow, machine_mode wide),
+ default_vector_other_narrowing_mode)
+
 HOOK_VECTOR_END (vectorize)
 
 #undef HOOK_PREFIX
