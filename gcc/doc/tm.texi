@@ -6594,16 +6594,6 @@ number of scalar elements in each scalar loop iteration that are to be
 combined into the vector.
 @end deftypefn
 
-@deftypefn {Target Hook} bool TARGET_VECTORIZE_OTHER_NARROWING_MODE (machine_mode @var{narrow}, machine_mode @var{wide})
-Target hook that returns true if there is an alternative way to
-perform narrowing operation.  For example, on the PowerPC, there are
-2 16-bit floating point types (BFmode and HFmode).  However, the
-named insn @code{vec_pack_trunc_v4sf} can only indicate one vector
-machine mode to return.
-
-This hook returns true if there is an alternative vector type to use.
-@end deftypefn
-
 @node OpenMP and OpenACC
 @section OpenMP and OpenACC
 @cindex OpenMP and OpenACC

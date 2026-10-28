@@ -14286,16 +14286,6 @@ supportable_narrowing_operation (code_helper code,
   if (code == FLOAT_EXPR)
     return false;
 
-  /* There might be two different vector types that has a narrow conversion.
-     For example, on the PowerPC V4SFmode can be narrowed to either V8HFmode
-     (IEEE 16-bit floating point) or V8BFmode (Google 16-bit brain floating
-     point).  Unfortunately only one of these formats can be selected via
-     vec_pack_trunc_<xxx>.  This patches sees if we can use types
-     separately.  */
-  machine_mode narrow_mode = TYPE_MODE (vectype_out);
-  if (targetm.vectorize.other_narrowing_mode (narrow_mode, vec_mode))
-    return true;
-
   /* Check if it's a multi-step conversion that can be done using intermediate
      types.  */
   prev_mode = vec_mode;

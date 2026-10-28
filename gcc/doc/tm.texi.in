@@ -4353,8 +4353,6 @@ address;  but often a machine-dependent strategy can generate better code.
 
 @hook TARGET_VECTORIZE_PREFER_GATHER_SCATTER
 
-@hook TARGET_VECTORIZE_OTHER_NARROWING_MODE
-
 @node OpenMP and OpenACC
 @section OpenMP and OpenACC
 @cindex OpenMP and OpenACC
