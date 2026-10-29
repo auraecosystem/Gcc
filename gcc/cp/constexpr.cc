@@ -1242,7 +1242,16 @@ public:
 	return true;
     return false;
   }
- tree get_value (tree t)
+  /* This differs from !is_outside_lifetime in that it returns false if
+     T is not in the map.  */
+  bool in_eval_lifetime_p (tree t)
+  {
+    if (tree *p = values.get (t))
+      if (*p != void_node && *p != void_list_node)
+	return true;
+    return false;
+  }
+  tree get_value (tree t)
   {
     if (tree *p = values.get (t))
       if (*p != void_node)
@@ -1381,6 +1390,15 @@ tree
 cxx_constexpr_consteval_block (const constexpr_ctx *ctx)
 {
   return ctx->global->consteval_block;
+}
+
+/* Return true if T's lifetime began within the core constant expression
+   currently under evaluation.  */
+
+bool
+cxx_constexpr_in_eval_lifetime_p (const constexpr_ctx *ctx, tree t)
+{
+  return ctx->global->in_eval_lifetime_p (t);
 }
 
 /* Predicates for the meaning of *jump_target.  */
@@ -2844,8 +2862,12 @@ unshare_constructor (tree t MEM_STAT_DECL)
       vec<constructor_elt, va_gc> *v = CONSTRUCTOR_ELTS (n);
       constructor_elt *ce;
       for (HOST_WIDE_INT i = 0; vec_safe_iterate (v, i, &ce); ++i)
-	if (ce->value && TREE_CODE (ce->value) == CONSTRUCTOR)
-	  ptrs.safe_push (&ce->value);
+	{
+	  if (ce->index && TREE_CODE (ce->index) == RANGE_EXPR)
+	    ce->index = copy_node (ce->index PASS_MEM_STAT);
+	  if (ce->value && TREE_CODE (ce->value) == CONSTRUCTOR)
+	    ptrs.safe_push (&ce->value);
+	}
     }
   return t;
 }

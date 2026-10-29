@@ -425,6 +425,11 @@
     UNSPECV_BLOCKAGE		; Represent a blockage
     UNSPECV_PROBE_STACK_RANGE	; Represent stack range probing.
     UNSPECV_SPECULATION_BARRIER ; Represent speculation barrier.
+    UNSPECV_YIELD		; Represent yield instruction.
+    UNSPECV_WFE			; Represent wfe instruction.
+    UNSPECV_WFI			; Represent wfi instruction.
+    UNSPECV_SEV			; Represent sev instruction.
+    UNSPECV_SEVL		; Represent sevl instruction.
     UNSPECV_BTI_NOARG		; Represent BTI.
     UNSPECV_BTI_C		; Represent BTI c.
     UNSPECV_BTI_J		; Represent BTI j.
@@ -1328,6 +1333,46 @@
   [(set_attr "type" "no_insn")]
 )
 
+(define_insn "aarch64_yield"
+  [(unspec_volatile [(const_int 0)] UNSPECV_YIELD)
+   (clobber (mem:BLK (scratch)))]
+  ""
+  "yield"
+  [(set_attr "type" "nop")]
+)
+
+(define_insn "aarch64_wfe"
+  [(unspec_volatile [(const_int 0)] UNSPECV_WFE)
+   (clobber (mem:BLK (scratch)))]
+  ""
+  "wfe"
+  [(set_attr "type" "nop")]
+)
+
+(define_insn "aarch64_wfi"
+  [(unspec_volatile [(const_int 0)] UNSPECV_WFI)
+   (clobber (mem:BLK (scratch)))]
+  ""
+  "wfi"
+  [(set_attr "type" "nop")]
+)
+
+(define_insn "aarch64_sev"
+  [(unspec_volatile [(const_int 0)] UNSPECV_SEV)
+   (clobber (mem:BLK (scratch)))]
+  ""
+  "sev"
+  [(set_attr "type" "nop")]
+)
+
+(define_insn "aarch64_sevl"
+  [(unspec_volatile [(const_int 0)] UNSPECV_SEVL)
+   (clobber (mem:BLK (scratch)))]
+  ""
+  "sevl"
+  [(set_attr "type" "nop")]
+)
+
 (define_insn "prefetch"
   [(prefetch (match_operand:DI 0 "aarch64_prefetch_operand" "Dp")
             (match_operand:QI 1 "const_int_operand" "")
@@ -1889,18 +1934,27 @@
   [(set (match_operand:TI 0 "nonimmediate_operand")
 	(match_operand:TI 1 "general_operand"))]
   ""
-  "
+  {
     if (GET_CODE (operands[0]) == MEM && operands[1] != const0_rtx)
       operands[1] = force_reg (TImode, operands[1]);
 
     if (GET_CODE (operands[1]) == CONST_POLY_INT)
       {
-	emit_move_insn (gen_lowpart (DImode, operands[0]),
+	rtx op0 = operands[0];
+	/* It's not generally safe to use gen_highpart on a SUBREG, so
+	   write the initial result to a temporary.  The optimizer will
+	   simplify things later.  */
+	if (SUBREG_P (op0))
+	  op0 = gen_reg_rtx (TImode);
+
+	emit_move_insn (gen_lowpart (DImode, op0),
 			gen_lowpart (DImode, operands[1]));
-	emit_move_insn (gen_highpart (DImode, operands[0]), const0_rtx);
+	emit_move_insn (gen_highpart (DImode, op0), const0_rtx);
+	if (op0 != operands[0])
+	  emit_move_insn (operands[0], op0);
 	DONE;
       }
-  "
+  }
 )
 
 (define_insn "*movti_aarch64"
@@ -2862,7 +2916,7 @@
 })
 
 (define_expand "addti3"
-  [(set (match_operand:TI 0 "register_operand")
+  [(set (match_operand:TI 0 "pure_register_operand")
 	(plus:TI (match_operand:TI 1 "register_operand")
 		 (match_operand:TI 2 "aarch64_reg_or_imm")))]
   ""
@@ -2895,7 +2949,7 @@
 })
 
 (define_expand "addvti4"
-  [(match_operand:TI 0 "register_operand")
+  [(match_operand:TI 0 "pure_register_operand")
    (match_operand:TI 1 "register_operand")
    (match_operand:TI 2 "aarch64_reg_or_imm")
    (label_ref (match_operand 3 "" ""))]
@@ -2929,7 +2983,7 @@
 })
 
 (define_expand "uaddvti4"
-  [(match_operand:TI 0 "register_operand")
+  [(match_operand:TI 0 "pure_register_operand")
    (match_operand:TI 1 "register_operand")
    (match_operand:TI 2 "aarch64_reg_or_imm")
    (label_ref (match_operand 3 "" ""))]
@@ -3537,12 +3591,11 @@
 (define_insn "subv<GPI:mode>_insn"
   [(set (reg:CC_V CC_REGNUM)
 	(compare:CC_V
+	 (minus:<DWI>
+	  (sign_extend:<DWI> (match_operand:GPI 1 "register_operand" "rk"))
+	  (sign_extend:<DWI> (match_operand:GPI 2 "register_operand" "r")))
 	 (sign_extend:<DWI>
-	  (minus:GPI
-	   (match_operand:GPI 1 "register_operand" "rk")
-	   (match_operand:GPI 2 "register_operand" "r")))
-	 (minus:<DWI> (sign_extend:<DWI> (match_dup 1))
-		      (sign_extend:<DWI> (match_dup 2)))))
+	  (minus:GPI (match_dup 1) (match_dup 2)))))
    (set (match_operand:GPI 0 "register_operand" "=r")
 	(minus:GPI (match_dup 1) (match_dup 2)))]
   ""
@@ -3553,12 +3606,11 @@
 (define_insn "subv<GPI:mode>_imm"
   [(set (reg:CC_V CC_REGNUM)
 	(compare:CC_V
+	 (minus:<DWI>
+	  (sign_extend:<DWI> (match_operand:GPI 1 "register_operand"))
+	  (match_operand:GPI 2 "aarch64_plus_immediate"))
 	 (sign_extend:<DWI>
-	  (minus:GPI
-	   (match_operand:GPI 1 "register_operand")
-	   (match_operand:GPI 2 "aarch64_plus_immediate")))
-	 (minus:<DWI> (sign_extend:<DWI> (match_dup 1))
-		      (match_dup 2))))
+	  (minus:GPI (match_dup 1) (match_dup 2)))))
    (set (match_operand:GPI 0 "register_operand")
 	(minus:GPI (match_dup 1) (match_dup 2)))]
   ""
@@ -3585,9 +3637,10 @@
 (define_insn "negv<GPI:mode>_insn"
   [(set (reg:CC_V CC_REGNUM)
 	(compare:CC_V
+	 (neg:<DWI>
+	  (sign_extend:<DWI> (match_operand:GPI 1 "register_operand" "r")))
 	 (sign_extend:<DWI>
-	  (neg:GPI (match_operand:GPI 1 "register_operand" "r")))
-	 (neg:<DWI> (sign_extend:<DWI> (match_dup 1)))))
+	  (neg:GPI (match_dup 1)))))
    (set (match_operand:GPI 0 "register_operand" "=r")
 	(neg:GPI (match_dup 1)))]
   ""
@@ -3598,22 +3651,23 @@
 (define_insn "negv<GPI:mode>_cmp_only"
   [(set (reg:CC_V CC_REGNUM)
 	(compare:CC_V
+	 (neg:<DWI>
+	  (sign_extend:<DWI> (match_operand:GPI 0 "register_operand" "r")))
 	 (sign_extend:<DWI>
-	  (neg:GPI (match_operand:GPI 0 "register_operand" "r")))
-	 (neg:<DWI> (sign_extend:<DWI> (match_dup 0)))))]
+	  (neg:GPI (match_dup 0)))))]
   ""
-  "negs\\t%<w>zr, %<w>0"
+  "negs\\t<w>zr, %<w>0"
   [(set_attr "type" "alus_sreg")]
 )
 
 (define_insn "*cmpv<GPI:mode>_insn"
   [(set (reg:CC_V CC_REGNUM)
 	(compare:CC_V
+	 (minus:<DWI>
+	  (sign_extend:<DWI> (match_operand:GPI 0 "register_operand"))
+	  (sign_extend:<DWI> (match_operand:GPI 1 "aarch64_plus_operand")))
 	 (sign_extend:<DWI>
-	  (minus:GPI (match_operand:GPI 0 "register_operand")
-		     (match_operand:GPI 1 "aarch64_plus_operand")))
-	 (minus:<DWI> (sign_extend:<DWI> (match_dup 0))
-		    (sign_extend:<DWI> (match_dup 1)))))]
+	  (minus:GPI (match_dup 0) (match_dup 1)))))]
   ""
   {@ [ cons: 0 , 1  ]
      [ r       , r  ] cmp\t%<w>0, %<w>1
@@ -3637,7 +3691,7 @@
 })
 
 (define_expand "subti3"
-  [(set (match_operand:TI 0 "register_operand")
+  [(set (match_operand:TI 0 "pure_register_operand")
 	(minus:TI (match_operand:TI 1 "aarch64_reg_or_zero")
 		  (match_operand:TI 2 "register_operand")))]
   ""
@@ -3657,7 +3711,7 @@
 })
 
 (define_expand "subvti4"
-  [(match_operand:TI 0 "register_operand")
+  [(match_operand:TI 0 "pure_register_operand")
    (match_operand:TI 1 "register_operand")
    (match_operand:TI 2 "aarch64_reg_or_imm")
    (label_ref (match_operand 3 "" ""))]
@@ -3676,7 +3730,7 @@
 })
 
 (define_expand "usubvti4"
-  [(match_operand:TI 0 "register_operand")
+  [(match_operand:TI 0 "pure_register_operand")
    (match_operand:TI 1 "register_operand")
    (match_operand:TI 2 "aarch64_reg_or_imm")
    (label_ref (match_operand 3 "" ""))]
@@ -3695,8 +3749,8 @@
 })
 
 (define_expand "negvti3"
-  [(match_operand:TI 0 "register_operand")
-   (match_operand:TI 1 "register_operand")
+  [(match_operand:TI 0 "pure_register_operand")
+   (match_operand:TI 1 "pure_register_operand")
    (label_ref (match_operand 2 "" ""))]
   ""
   {
@@ -4458,7 +4512,7 @@
 )
 
 (define_expand "<su_optab>mulditi3"
-  [(set (match_operand:TI 0 "register_operand")
+  [(set (match_operand:TI 0 "pure_register_operand")
 	(mult:TI (ANY_EXTEND:TI (match_operand:DI 1 "register_operand"))
 		 (ANY_EXTEND:TI (match_operand:DI 2 "register_operand"))))]
   ""
@@ -4477,9 +4531,9 @@
 ;; The default expansion of multi3 using umuldi3_highpart will perform
 ;; the additions in an order that fails to combine into two madd insns.
 (define_expand "multi3"
-  [(set (match_operand:TI 0 "register_operand")
-	(mult:TI (match_operand:TI 1 "register_operand")
-		 (match_operand:TI 2 "register_operand")))]
+  [(set (match_operand:TI 0 "pure_register_operand")
+	(mult:TI (match_operand:TI 1 "pure_register_operand")
+		 (match_operand:TI 2 "pure_register_operand")))]
   ""
 {
   rtx l0 = gen_reg_rtx (DImode);

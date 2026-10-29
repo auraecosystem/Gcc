@@ -5231,6 +5231,12 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   if ((unsigned int) arg_boundary > MAX_SUPPORTED_STACK_ALIGNMENT)
     arg_boundary = MAX_SUPPORTED_STACK_ALIGNMENT;
 
+  /* ARG_BOUNDARY is computed from TYPE_MAIN_VARIANT, so it can be smaller
+     than the alignment of a variant type that carries a user-specified
+     alignment (e.g. a typedef with attribute aligned).  Do not let the
+     access claim more alignment than the argument slot is placed at.  */
+  type_align = MIN (type_align, arg_boundary);
+
   /* Care for on-stack alignment if needed.  */
   if (arg_boundary <= 64 || size == 0)
     t = ovf;
@@ -8167,13 +8173,16 @@ get_scratch_register_on_entry (struct scratch_reg *sr)
 	       && !static_chain_p
 	       && drap_regno != CX_REG)
 	regno = CX_REG;
-      else if (ix86_save_reg (BX_REG, true, false))
+      else if (ix86_save_reg (BX_REG, true, false)
+	       && drap_regno != BX_REG)
 	regno = BX_REG;
       /* esi is the static chain register.  */
       else if (!(regparm == 3 && static_chain_p)
-	       && ix86_save_reg (SI_REG, true, false))
+	       && ix86_save_reg (SI_REG, true, false)
+	       && drap_regno != SI_REG)
 	regno = SI_REG;
-      else if (ix86_save_reg (DI_REG, true, false))
+      else if (ix86_save_reg (DI_REG, true, false)
+	       && drap_regno != DI_REG)
 	regno = DI_REG;
       else
 	{
@@ -24721,7 +24730,17 @@ ix86_split_stlf_stall_load ()
 	     register.  */
 	  || GET_MODE (src) != E_V2DFmode
 	  || !MEM_EXPR (src)
-	  || TREE_CODE (get_base_address (MEM_EXPR (src))) != PARM_DECL)
+	  || TREE_CODE (get_base_address (MEM_EXPR (src))) != PARM_DECL
+	  /* Avoid invalid memory address.
+	     i.e.
+	     (mem/c:V2DF (plus:DI (reg/f:DI 7 sp)
+				  (const_int 2147483640 [0x7ffffff8])))
+	     Adjusting it by 8 puts the displacement at 0x80000000, out of
+	     range for the signed 32-bit field an x86 address can encode.  */
+	  || !memory_address_addr_space_p (DFmode,
+					   XEXP (adjust_address_nv (src, DFmode,
+								    8), 0),
+					   MEM_ADDR_SPACE (src)))
 	continue;
 
       rtx zero = CONST0_RTX (V2DFmode);

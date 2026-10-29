@@ -198,6 +198,7 @@ vect_is_simple_iv_evolution (unsigned loop_nb, tree access_fn,
 
   STMT_VINFO_LOOP_PHI_EVOLUTION_BASE_UNCHANGED (stmt_info) = init_expr;
   STMT_VINFO_LOOP_PHI_EVOLUTION_PART (stmt_info) = step_expr;
+  STMT_VINFO_LOOP_PHI_EVOLUTION_TYPE (stmt_info) = vect_step_op_add;
 
   if (TREE_CODE (step_expr) != INTEGER_CST
       && (TREE_CODE (step_expr) != SSA_NAME
@@ -5057,6 +5058,7 @@ get_initial_defs_for_reduction (loop_vec_info loop_vinfo,
 vect_reduc_info
 info_for_reduction (loop_vec_info loop_vinfo, slp_tree node)
 {
+  gcc_assert (node);
   if (node->cycle_info.id == -1)
     return NULL;
   return loop_vinfo->reduc_infos[node->cycle_info.id];
@@ -6607,7 +6609,7 @@ vectorize_fold_left_reduction (loop_vec_info loop_vinfo,
 
 /* Function is_nonwrapping_integer_induction.
 
-   Check if STMT_VINO (which is part of loop LOOP) both increments and
+   Check if STMT_VINFO (which is part of loop LOOP) both increments and
    does not cause overflow.  */
 
 static bool
@@ -6619,6 +6621,10 @@ is_nonwrapping_integer_induction (stmt_vec_info stmt_vinfo, class loop *loop)
   tree lhs_type = TREE_TYPE (gimple_phi_result (phi));
   widest_int ni, max_loop_value, lhs_max;
   wi::overflow_type overflow = wi::OVF_NONE;
+
+  /* Make sure this is a regular induction.  */
+  if (STMT_VINFO_LOOP_PHI_EVOLUTION_TYPE (stmt_vinfo) != vect_step_op_add)
+    return false;
 
   /* Make sure the loop is integer based.  */
   if (TREE_CODE (base) != INTEGER_CST

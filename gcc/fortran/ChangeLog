@@ -1,3 +1,143 @@
+2026-10-26  Harald Anlauf  <anlauf@gmx.de>
+
+	Backported from master:
+	2026-10-24  Harald Anlauf  <anlauf@gmx.de>
+
+	PR fortran/128067
+	* module.cc (load_needed): Prevent scanning of empty name for
+	prefix "__".
+
+2026-10-26  Harald Anlauf  <anlauf@gmx.de>
+
+	Backported from master:
+	2026-10-19  Harald Anlauf  <anlauf@gmx.de>
+
+	PR fortran/127881
+	* trans-expr.cc (conv_scalar_char_value): Fix passing of the case of
+	non-constant strings: always pass first first character by value.
+
+2026-10-25  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	Backported from master:
+	2026-10-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/128124
+	* gfortran.texi: Note that LEADZ, POPCNT, POPPAR and TRAILZ take
+	unsigned arguments.
+	* intrinsic.cc (add_functions): LEADZ and TRAILZ also take unsigned
+	arguments.
+	* intrinsic.texi: Document unsigned arguments for LEADZ, POPCNT, POPPAR
+	and TRAILZ.
+
+2026-10-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-10-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/110421
+	* trans-expr.cc (alloc_scalar_allocatable_subcomponent): Use
+	gfc_typenode_for_spec for BT_DERIVED values too.
+
+2026-10-14  Harald Anlauf  <anlauf@gmx.de>
+
+	Backported from master:
+	2026-10-03  Harald Anlauf  <anlauf@gmx.de>
+
+	PR fortran/127683
+	* primary.cc (gfc_match_varspec): Fix two minor frontend memleaks.
+	* symbol.cc (gfc_find_derived_types): Return 0 when sym->assoc is
+	NULL.
+
+2026-09-30  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-09-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/127187
+	* resolve.cc (resolve_assoc_var): A selector with a LEN or KIND
+	inquiry reference is not a variable.
+
+2026-09-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-09-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/127187
+	PR fortran/127187
+	* primary.cc (gfc_match_varspec): Clear the deferred flag, and
+	for KIND the charlen, of the INTEGER result of a LEN or KIND
+	inquiry.
+	* resolve.cc (resolve_variable): Do not reset the typespec of a
+	deferred-length character associate-name expression that has an
+	inquiry reference.
+
+2026-09-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-06-02  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/125324
+	* gfortranspec.cc (lang_specific_driver): Also append -lpthread
+	when need_caf_shmem is set.
+
+2026-09-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-05-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* lang.opt (fcoarray=): Add shared enum value; update help text.
+	* gfortranspec.cc (CAF_SHMEM_LIBRARY): New macro.
+	(lang_specific_driver): Detect -fcoarray=shared in first pass and
+	set need_caf_shmem flag.  In second pass, transform -fcoarray=shared
+	to -fcoarray=lib for cc1.  Append -lcaf_shmem when need_caf_shmem
+	is set and linking is active.
+
+2026-09-03  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	Backported from master:
+	2026-08-31  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/127128
+	* resolve.cc (replace_forall_var): New function.
+	(replace_in_expr_recursive): Traverse with gfc_traverse_expr
+	instead of walking the expression by hand.
+	(replace_in_code_recursive): Substitute in the whole branch chain
+	of IF and WHERE constructs, in the allocate-objects of ALLOCATE
+	and DEALLOCATE, and in SELECT TYPE and SELECT RANK case lists.
+
+2026-08-25  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-08-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/98573
+	* trans-array.cc (gfc_array_init_size): If the expr3_desc is an
+	array descriptor, use it for 'type'.
+	* trans-stmt.cc (gfc_trans_allocate): Use trans_assignment to
+	assign the source for class sources.
+
+2026-08-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-06-03  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/105594
+	* module.cc (gfc_use_module): Suppress bogus warning for a missing
+	ONLY clause on a submodule.
+
+2026-08-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	Backported from master:
+	2026-06-02  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/88632
+	PR fortran/104630
+	* module.cc (write_symtree): Do not filter out private symbols
+	when writing a submodule interface file (.smod).  Submodules are
+	descendants of their ancestor module and access private symbols
+	in the module's contains section via host association per
+	Fortran 2018 section 14.2.2.
+
 2026-08-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	Backported from master:

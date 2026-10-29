@@ -5556,7 +5556,9 @@ load_needed (pointer_info *p)
      but not used warnings; don't mark internal symbols such as __vtab,
      __def_init etc. Only mark them if they have been explicitly loaded.  */
 
-  if (only_flag && sym->name[0] != '_' && sym->name[1] != '_')
+  if (only_flag
+      && sym->name[0] != '\0'
+      && !(sym->name[0] == '_' && sym->name[1] == '_'))
     {
       gfc_use_rename *u;
 
@@ -6666,7 +6668,8 @@ write_symtree (gfc_symtree *st)
 	&& sym->ns->proc_name->attr.if_source == IFSRC_IFBODY)
     return;
 
-  if (!gfc_check_symbol_access (sym)
+  if ((!gfc_check_symbol_access (sym)
+       && (!sym->attr.public_used || submodule_name == NULL))
       || (sym->attr.flavor == FL_PROCEDURE && sym->attr.generic
 	  && !sym->attr.subroutine && !sym->attr.function))
     return;
@@ -7693,7 +7696,7 @@ gfc_use_module (gfc_use_list *module)
   only_flag = module->only_flag;
   current_intmod = INTMOD_NONE;
 
-  if (!only_flag)
+  if (!only_flag && gfc_state_stack->state != COMP_SUBMODULE)
     gfc_warning_now (OPT_Wuse_without_only,
 		     "USE statement at %C has no ONLY qualifier");
 

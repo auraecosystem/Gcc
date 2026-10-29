@@ -10183,7 +10183,7 @@ cp_parser_reflect_expression (cp_parser *parser)
 	&& !concept_check_p (t))
       t = finish_template_variable (t);
     else if (is_overloaded_fn (t))
-      t = baselink_for_fns (t);
+      t = baselink_for_fns (t, /*ignore_current_class_p=*/true);
     if (cp_parser_parse_definitely (parser))
       return get_reflection (loc, t);
   }
@@ -24592,7 +24592,7 @@ finish_using_decl (tree qscope, tree identifier, bool typename_p = false)
       finish_member_declaration (decl);
     }
   else
-    finish_nonmember_using_decl (qscope, identifier);
+    finish_nonmember_using_decl (qscope, identifier, typename_p);
   return decl;
 }
 

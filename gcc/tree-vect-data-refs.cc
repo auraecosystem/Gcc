@@ -595,6 +595,9 @@ vect_analyze_data_ref_dependence (struct data_dependence_relation *ddr,
 					       "between data-refs %T and %T\n",
 					       DR_REF (dra), DR_REF (drb));
 	    }
+	  if (!vect_preserves_scalar_order_p (dr_info_a, dr_info_b))
+	    return opt_result::failure_at (stmtinfo_a->stmt,
+					   "dependence in interleaving.\n");
 	  /* Record a negative dependence distance to later limit the
 	     amount of stmt copying / unrolling we can perform.
 	     Only need to handle read-after-write dependence.  */
@@ -5468,7 +5471,8 @@ vect_analyze_data_refs (vec_info *vinfo, bool *fatal)
 	  tree init_offset = fold_build2 (PLUS_EXPR, TREE_TYPE (offset),
 					  init, offset);
 	  tree init_addr = fold_build_pointer_plus (base, init_offset);
-	  tree init_ref = build_fold_indirect_ref (init_addr);
+	  tree init_ref = build2 (MEM_REF, TREE_TYPE (DR_REF (dr)),
+				  init_addr, build_zero_cst (ptr_type_node));
 
 	  if (dump_enabled_p ())
 	    dump_printf_loc (MSG_NOTE, vect_location,

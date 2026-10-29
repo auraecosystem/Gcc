@@ -141,7 +141,7 @@ get_reflection (location_t loc, tree t, reflect_kind kind/*=REFLECT_UNDEF*/)
 
   /* Constant template parameters and pack-index-expressions cannot
      appear as operands of the reflection operator.  */
-  if (PACK_INDEX_P (t))
+  if (TREE_CODE (t) == PACK_INDEX_EXPR)
     {
       error_at (loc, "%<^^%> cannot be applied to a pack index");
       return error_mark_node;
@@ -2674,6 +2674,8 @@ eval_source_location_of (location_t loc, tree r, reflect_kind kind,
        for now use location_t of the base parent (i.e. the derived
        class).  */
     r = direct_base_derived (r);
+  else
+    r = maybe_get_first_fn (r);
   if (OVERLOAD_TYPE_P (r) || (TYPE_P (r) && typedef_variant_p (r)))
     rloc = DECL_SOURCE_LOCATION (TYPE_NAME (r));
   else if (DECL_P (r) && r != global_namespace)
@@ -7087,16 +7089,17 @@ class_members_of (location_t loc, const constexpr_ctx *ctx, tree r,
     {
       tree m = field;
       if (TREE_CODE (field) == FIELD_DECL && DECL_ARTIFICIAL (field))
-	continue; /* Ignore bases and the vptr.  */
+	/* Ignore bases and the vptr.  */
+	continue;
+      else if (DECL_CLONED_FUNCTION_P (field))
+	/* Ignore cloned cdtors.  */
+	continue;
       else if (DECL_SELF_REFERENCE_P (field))
 	continue;
       else if (TREE_CODE (field) == TYPE_DECL)
 	m = TREE_TYPE (field);
       else if (TREE_CODE (field) == FUNCTION_DECL)
 	{
-	  /* Ignore cloned cdtors.  */
-	  if (DECL_CLONED_FUNCTION_P (field))
-	    continue;
 	  /* Ignore functions with unsatisfied constraints.  */
 	  if (!constraints_satisfied_p (field))
 	    continue;
@@ -7639,18 +7642,25 @@ extract_ref (location_t loc, const constexpr_ctx *ctx, tree T, tree r,
       if (adju != error_mark_node
 	  && adjt != error_mark_node
 	  && is_convertible (adju, adjt)
-	  && (!var_p || is_constant_expression (r)))
+	  && (!var_p
+	      || decl_constant_var_p (r)
+	      || cxx_constexpr_in_eval_lifetime_p (ctx, r)))
 	{
 	  if (TYPE_REF_P (TREE_TYPE (r)))
 	    {
-	      r = DECL_INITIAL (r);
-	      r = maybe_get_reference_referent (r);
-	      gcc_checking_assert (!TYPE_REF_P (TREE_TYPE (r)));
+	      bool nc = false, ovf = false;
+	      tree jt = NULL_TREE;
+	      r = cxx_eval_constant_expression (ctx, convert_from_reference (r),
+						vc_glvalue, &nc, &ovf, &jt);
+	      if (nc || jt)
+		goto throw_;
+	      gcc_checking_assert (!TYPE_P (r));
 	    }
-	  return build_address (r);
+	  return build_nop (T, build_address (r));
 	}
     }
 
+throw_:
   return throw_exception (loc, ctx, "value cannot be extracted", fun,
 			  non_constant_p, jump_target);
 }
@@ -8104,6 +8114,12 @@ process_metafunction (const constexpr_ctx *ctx, tree fun, tree call,
       default:
 	gcc_unreachable ();
       }
+
+  /* Some of the eval_ functions build new trees and in a template
+     that could produce template trees.  The subsequent evaluation
+     cannot process such trees, though, so force a non-template
+     context.  This assumes that the call is not instantiation-dependent.  */
+  processing_template_decl_sentinel ptds;
 
   switch (minfo->code)
     {
@@ -8778,6 +8794,11 @@ splice (tree refl)
      it comes from e.g. members_of it is not.  */
   if (DECL_FUNCTION_TEMPLATE_P (refl))
     refl = ovl_make (refl, NULL_TREE);
+  /* Also add a BASELINK so that we handle &[:R:].  Since R was already
+     resolved (e.g. via members_of), we don't want to consider the enclosing
+     class for the access path.  */
+  if (is_overloaded_fn (refl))
+    refl = baselink_for_fns (refl, /*ignore_current_class_p=*/true);
 
   return refl;
 }
