@@ -176,8 +176,10 @@ typedef int SItype2 __attribute__ ((mode (SI)));
 typedef unsigned int USItype2 __attribute__ ((mode (SI)));
 typedef int DItype2 __attribute__ ((mode (DI)));
 typedef unsigned int UDItype2 __attribute__ ((mode (DI)));
+#ifdef _ARCH_PPC64
 typedef int TItype2 __attribute__ ((mode (TI)));
 typedef unsigned int UTItype2 __attribute__ ((mode (TI)));
+#endif
 
 /* We have 2 different conversion functions.  One passes or returns the 16-bit
    floating point type in a floating point register, and the other passes or
