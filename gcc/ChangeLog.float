@@ -1,3 +1,15 @@
+==================== Branch work270-float, patch #215 ====================
+
+Fix build error on 32-bit.
+
+2026-10-29  Michael Meissner  <meissner@linux.ibm.com>
+
+libgcc/
+
+	* config/rs6000/sfp-machine.h (TItype2): Don't define when building on
+	32-bit systems.
+	(UTItype2): Likewise.
+
 ==================== Branch work270-float, patch #214 ====================
 
 Vectorize both V4SF to V8BF and V4SF to V8HF narrowing.
