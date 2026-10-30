@@ -654,6 +654,18 @@ mfloat16-libgcc-gpr
 Target Undocumented Var(TARGET_FLOAT16_LIBGCC_GPR) Init(-1) Save
 Pass/return (do not pass/return) 16-it float libgcc functions in GPR registers.
 
+mfloat16-bf-v4sf
+Target Undocumented Var(TARGET_BF_V4SF) Init(1) Save
+Optimize bfloat16 to use float vector instructions.
+
+mfloat16-debug1
+Target Undocumented Var(TARGET_FLOAT16_DEBUG1) Init(0) Save
+Turn on float16 debugging #1.
+
+mfloat16-debug2
+Target Undocumented Var(TARGET_FLOAT16_DEBUG2) Init(0) Save
+Turn on float16 debugging #2.
+
 ; Documented parameters
 
 -param=rs6000-vect-unroll-limit=
