@@ -81,10 +81,17 @@
 #define TARGET_NO_PROTOTYPE 0
 #endif
 
-/* Nonzero if we can use a floating-point register to pass this arg.  */
-#define USE_FP_FOR_ARG_P(CUM,MODE)		\
-  (SCALAR_FLOAT_MODE_NOT_VECTOR_P (MODE)		\
-   && (CUM)->fregno <= FP_ARG_MAX_REG		\
+/* Whether we pass 16-bit floating point values in GPRs for library
+   calls.  */
+#define FP16_USE_GPR(MODE, LIBCALL)					\
+  (FP16_SCALAR_MODE_P (MODE) && TARGET_FLOAT16_LIBGCC_GPR && LIBCALL)
+
+/* Nonzero if we can use a floating-point register to pass this arg.  16-bit
+   floating point arguments to library functions are passed as ints.  */
+#define USE_FP_FOR_ARG_P(CUM,MODE)					\
+  (SCALAR_FLOAT_MODE_NOT_VECTOR_P (MODE)				\
+   && !FP16_USE_GPR (MODE, (CUM)->libcall)				\
+   && (CUM)->fregno <= FP_ARG_MAX_REG					\
    && TARGET_HARD_FLOAT)
 
 /* Nonzero if we can use an AltiVec register to pass this arg.  */
@@ -590,7 +597,7 @@ call_ABI_of_interest (tree fndecl)
 
 void
 init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
-		      rtx libname ATTRIBUTE_UNUSED, int incoming,
+		      rtx libname, int incoming,
 		      int libcall, int n_named_args,
 		      tree fndecl,
 		      machine_mode return_mode ATTRIBUTE_UNUSED)
@@ -653,6 +660,12 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
       if (cum->call_cookie & CALL_LONG)
 	fprintf (stderr, " longcall,");
 
+      if (libname)
+	fprintf (stderr, " name=%s,", XSTR (libname, 0));
+
+      if (libcall)
+	fprintf (stderr, " libcall,");
+
       fprintf (stderr, " proto = %d, nargs = %d\n",
 	       cum->prototype, cum->nargs_prototype);
     }
@@ -711,6 +724,34 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
       error ("cannot return value in vector register because"
 	     " altivec instructions are disabled, use %qs"
 	     " to enable them", "-maltivec");
+    }
+
+  /* Warn that __bf16 and _Float16 might be returned differently in the
+     future.  The issue is currently 16-bit floating point is returned in
+     floating point register #1 in 16-bit format.  We may or may not want to
+     return it as a scalar 64-bit value.  */
+  if (fntype && warn_psabi && !cum->libcall
+      && TARGET_FLOAT16_WARN_CALL_RETURN)
+    {
+      static bool warned_about_HF_return = false;
+      static bool warned_about_BF_return = false;
+      machine_mode ret_mode = TYPE_MODE (TREE_TYPE (fntype));
+
+      if (ret_mode == BFmode && !warned_about_BF_return)
+	{
+	  warned_about_BF_return = true;
+	  warning (OPT_Wpsabi,
+		   "%qs might be returned differently in the future",
+		   "__bf16");
+	}
+
+      else if (ret_mode == HFmode && !warned_about_HF_return)
+	{
+	  warned_about_HF_return = true;
+	  warning (OPT_Wpsabi,
+		   "%qs might be returned differently in the future",
+		   "_Float16");
+	}
     }
 }
 
@@ -1670,6 +1711,33 @@ rs6000_function_arg (cumulative_args_t cum_v, const function_arg_info &arg)
 	     type_class,
 	     IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (type))));
       return NULL_RTX;
+    }
+
+  /* Warn that _Float16 and __bf16 might be passed differently in the
+     future.  The issue is currently 16-bit floating point values are passed in
+     floating point registers in the native 16-bit format.  We may or may not
+     want to pass the value it as a scalar 64-bit value.  */
+  if (warn_psabi && !cum->libcall && FP16_SCALAR_MODE_P (mode)
+      && TARGET_FLOAT16_WARN_CALL_RETURN)
+    {
+      static bool warned_about_HF_arg = false;
+      static bool warned_about_BF_arg = false;
+
+      if (mode == BFmode && !warned_about_BF_arg)
+	{
+	  warned_about_BF_arg = true;
+	  warning (OPT_Wpsabi,
+		   "%qs might be passed differently in the future",
+		   "__bf16");
+	}
+
+      else if (mode == HFmode && !warned_about_HF_arg)
+	{
+	  warned_about_HF_arg = true;
+	  warning (OPT_Wpsabi,
+		   "%qs might be passed differently in the future",
+		   "_Float16");
+	}
     }
 
   /* Return a marker to indicate whether CR1 needs to set or clear the
