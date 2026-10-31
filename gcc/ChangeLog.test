@@ -1,20 +1,30 @@
+==================== Branch work270-test, patch #410 ====================
+
+Add _Float16 and __bf16 tests.
+
+This patch adds various 16-bit floating point tests.
+
+2026-10-31  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/bf16-1.c: New target.
+	* gcc.target/powerpc/bf16-2.c: Likewise.
+	* gcc.target/powerpc/bf16-3.c: Likewise.
+	* gcc.target/powerpc/bf16-4.c: Likewise.
+	* gcc.target/powerpc/bf16-5.c: Likewise.
+	* gcc.target/powerpc/float16-1.c: Likewise.
+	* gcc.target/powerpc/float16-2.c: Likewise.
+	* gcc.target/powerpc/float16-3.c: Likewise.
+	* lib/target-supports.exp (check_ppc_float16_hw_available): New target
+	supports for _Float16 and __bf16 support.
+	(check_ppc_float16_runtime_available): Likewise.
+	(check_ppc_bfloat16_hw_available): Likewise.
+	(check_ppc_bfloat16_runtime_available): Likewise.
+	(is-effective-target): Add new _Float16 and __bf16 targets.
+
 ==================== Branch work270-test, patch #412 was reverted ====================
 ==================== Branch work270-test, patch #411 was reverted ====================
-
-Enable 16-bit floating point on little endian Linux.
-
-This patch enables -mfloat16 by default on little endian 64-bit Linux systems.
-It also makes the -mfloat16-libgcc-gpr and -mfloat16-warn-call-return options on
-by default.
-
-2026-10-29  Michael Meissner  <meissner@linux.ibm.com>
-
-	* config/rs6000/rs6000.cc (POWERPC_FLOAT16_DEFAULT): Set if the user did
-	not configure a specific default.
-	(POWERPC_FLOAT16_DISABLE_WARNING): Likewise.
-	(POWERPC_FLOAT16_LIBGCC_GPR): Likewise.
-	(rs6000_option_override_internal): Move defaults for POWERPC_FLOAT16* to
-	the toplevel.
 
 ==================== Branch work270-test, patch #410 ====================
 
