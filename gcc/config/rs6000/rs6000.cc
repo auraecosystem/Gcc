@@ -103,32 +103,6 @@ static tree rs6000_mangle_decl_assembler_name (tree, tree);
 #endif
 #endif
 
-/* Set up 16-bit floating point defaults if the user did not configure any
-   special options.  */
-
-/* Only enable float16 on 64-bit little endian Linux.  */
-#ifndef POWERPC_FLOAT16_DEFAULT
-#if (defined(DEFAULT_ARCH64_P)						\
-     && DEFAULT_ARCH64_P						\
-     && defined (POWERPC_LINUX)						\
-     && (TARGET_DEFAULT & MASK_LITTLE_ENDIAN))
-
-#define POWERPC_FLOAT16_DEFAULT			1
-#else
-#define POWERPC_FLOAT16_DEFAULT			0
-#endif
-#endif
-
-/* Warn when 16-bit floating point is passed or returned.  */
-#ifndef POWERPC_FLOAT16_DISABLE_WARNING
-#define POWERPC_FLOAT16_DISABLE_WARNING		0
-#endif
-
-/* Use the _gpr variant of the libgcc 16-bit floating point support.  */
-#ifndef POWERPC_FLOAT16_LIBGCC_GPR
-#define POWERPC_FLOAT16_LIBGCC_GPR		1
-#endif
-
 /* Don't enable PC-relative addressing if the target does not support it.  */
 #ifndef PCREL_SUPPORTED_BY_OS
 #define PCREL_SUPPORTED_BY_OS	0
@@ -4108,9 +4082,11 @@ rs6000_option_override_internal (bool global_init_p)
      16-bit floating point.  */
   if ((rs6000_isa_flags_explicit & OPTION_MASK_FLOAT16) == 0)
     {
-      if (POWERPC_FLOAT16_DEFAULT && TARGET_FLOAT16_MIN_HARDWARE)
+#if POWERPC_FLOAT16_DEFAULT
+      if (TARGET_FLOAT16_MIN_HARDWARE)
 	rs6000_isa_flags |= OPTION_MASK_FLOAT16;
       else
+#endif
 	rs6000_isa_flags &= ~OPTION_MASK_FLOAT16;
     }
 
@@ -4129,11 +4105,19 @@ rs6000_option_override_internal (bool global_init_p)
 
   /* Enable/disable warnings given when 16-bit floating point values
      are passed as arguments or returned from functions.  */
+#ifndef POWERPC_FLOAT16_DISABLE_WARNING
+#define POWERPC_FLOAT16_DISABLE_WARNING		0
+#endif
+
   if (TARGET_FLOAT16_WARN_CALL_RETURN < 0)
     TARGET_FLOAT16_WARN_CALL_RETURN = (POWERPC_FLOAT16_DISABLE_WARNING == 0);
 
   /* Enable or disable whether float16 values are passed and returned
      in GPR registers when calling libgcc functions.  */
+#ifndef POWERPC_FLOAT16_LIBGCC_GPR
+#define POWERPC_FLOAT16_LIBGCC_GPR		1
+#endif
+
   if (TARGET_FLOAT16_LIBGCC_GPR < 0)
     TARGET_FLOAT16_LIBGCC_GPR = POWERPC_FLOAT16_LIBGCC_GPR;
 

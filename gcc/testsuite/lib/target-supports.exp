@@ -4604,9 +4604,6 @@ proc add_options_for_float16 { flags } {
     if { [check_effective_target_x86] } {
 	return "$flags -msse2 -mfpmath=sse"
     }
-    if { [check_effective_target_powerpc_float16] } {
-	return "$flags -mfloat16 -mno-float16-warn-call-return";
-    }
     return "$flags"
 }
 
@@ -4681,9 +4678,6 @@ proc check_effective_target_bfloat16_runtime {} {
 proc add_options_for_bfloat16 { flags } {
     if { [check_effective_target_x86] } {
 	return "$flags -msse2"
-    }
-    if { [check_effective_target_powerpc_float16] } {
-	return "$flags -mfloat16 -mno-float16-warn-call-return";
     }
     return "$flags"
 }
@@ -8561,24 +8555,6 @@ proc check_effective_target_ppc_float128_insns { } {
 	}
     }]
 }
-
-# Return 1 if this is a PowerPC target supporting -mfloat16
-
-proc check_effective_target_powerpc_float16 { } {
-    if { [istarget powerpc*-*-*]
-	 || [istarget rs6000-*-*] } {
-	return [check_no_compiler_messages powerpc_float16_ok object {
-	    _Float16 a, b, c;
-	    int main (void) {
-		a = b + c;
-		return 0;
-	    }
-	} "-mfloat16 -mno-float16-warn-call-return"]
-    } else {
-	return 0
-    }
-}
-
 
 # Return 1 if current options generate VSX instructions, 0 otherwise.
 
