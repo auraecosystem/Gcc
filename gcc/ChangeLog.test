@@ -1,20 +1,5 @@
-==================== Branch work270-test, patch #412 ====================
-
-Add flags to run the _Float and __bf16 tests on PowerPC.
-
-This patch adds the -mfloat16 -mno-float16-warn-call-return to the dejagnu
-options.
-
-2026-10-30  Michael Meissner  <meissner@linux.ibm.com>
-
-gcc/testsuite/
-
-	* lib/target-supports.exp (add_options_for_float16): Add -mfloat16
-	-mno-float16-warn-call-return to tests for _Float16 and __bf16 types.
-	(add_options_for_bfloat16): Likewise.
-	(check_effective_target_powerpc_float16): Likewise.
-
-==================== Branch work270-test, patch #411 ====================
+==================== Branch work270-test, patch #412 was reverted ====================
+==================== Branch work270-test, patch #411 was reverted ====================
 
 Enable 16-bit floating point on little endian Linux.
 
