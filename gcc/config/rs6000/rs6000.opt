@@ -650,6 +650,10 @@ mfloat16-warn-call-return
 Target Var(TARGET_FLOAT16_WARN_CALL_RETURN) Init(-1) Save
 Enable or disable 16-bit floating point warning of use in function calls.
 
+mvector-pair-fp
+Target Mask(VECTOR_PAIR_FP) Var(rs6000_isa_flags)
+Enable or disable using paired vectors for floating point operations
+
 mfloat16-libgcc-gpr
 Target Undocumented Var(TARGET_FLOAT16_LIBGCC_GPR) Init(-1) Save
 Pass/return (do not pass/return) 16-it float libgcc functions in GPR registers.

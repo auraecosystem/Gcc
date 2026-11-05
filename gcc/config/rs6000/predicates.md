@@ -842,6 +842,10 @@
       if (zero_constant (op, mode) || all_ones_constant (op, mode))
 	return true;
 
+      /* Handle paired constants.  */
+      if (VPAIR_FP_P (mode))
+	return easy_vpair_fp_constant (op, mode);
+
       /* Constants that can be generated with ISA 3.1 instructions are
          easy.  */
       vec_const_128bit_type vsx_const;
@@ -925,6 +929,38 @@
        (and (match_test "TARGET_ALTIVEC")
 	    (and (match_test "easy_altivec_constant (op, mode)")
 		 (match_test "vspltis_shifted (op) != 0")))))
+
+
+;; Return 1 if the vector is a paired vector constant that can be
+;; loaded into a vector register using a combination or XXLXOR,
+;; XXSPLTIB, XXSPLTIW, or XXSPLTIDP instructions.
+(define_predicate "easy_vpair_fp_constant"
+  (match_code "const_vector,vec_duplicate")
+{
+  if (!VPAIR_FP_P (mode))
+    return false;
+
+  if (op == CONST0_RTX (mode))
+    return true;
+
+  vec_const_128bit_type hi_const;
+  vec_const_128bit_type lo_const;
+  unsigned info = 0;
+
+  /* Decode the constant into 2 128-bit parts.  */
+  if (!vec_const_256bit_to_bytes (op, mode, &hi_const, &lo_const))
+    return false;
+
+  /* Can the first 128 bits be generated without a load?  */
+  if (vect_const_can_be_generated (&hi_const, &info) == VECT_CONST_MEMORY)
+    return false;
+
+  /* Can the second 128 bits be generated without a load?  */
+  if (vect_const_can_be_generated (&lo_const, &info) == VECT_CONST_MEMORY)
+    return false;
+
+  return true;
+})
 
 ;; Return true if this is a vector constant and each byte in
 ;; it is the same.
@@ -2372,4 +2408,3 @@
 
   return bfloat16_to_v4sf_p (op, mode);
 })
-
