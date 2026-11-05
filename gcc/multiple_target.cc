@@ -202,6 +202,8 @@ create_dispatcher_calls (struct cgraph_node *node)
 		    source->remove_from_same_comdat_group ();
 		  source->add_to_same_comdat_group (inode);
 		}
+	      if (!source->ifunc_resolver)
+		source->set_ifunc_resolver ();
 	    }
 	  else
 	    gcc_unreachable ();
