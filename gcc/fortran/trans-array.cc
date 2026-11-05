@@ -8192,6 +8192,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
   stmtblock_t block;
   tree start;
   int full;
+  bool subref_array = false;
   bool subref_array_target = false;
   bool deferred_array_component = false;
   bool substr = false;
@@ -8248,7 +8249,8 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
       substr = info->ref && info->ref->next
 	       && info->ref->next->type == REF_SUBSTRING;
 
-      subref_array_target = (is_subref_array (expr)
+      subref_array = is_subref_array (expr);
+      subref_array_target = (subref_array
 			     && (se->direct_byref
 				 || se->force_no_tmp
 				 || expr->ts.type == BT_CHARACTER));
@@ -8611,7 +8613,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	  /* Otherwise make a new one.  The element type is that of the
 	     subobject for a subreference of the array.  */
 	  if (expr->ts.type == BT_CHARACTER
-	      || (subref_array_target && !se->direct_byref))
+	      || (subref_array && !se->direct_byref))
 	    {
 	      gfc_typespec *ts = &expr->ts;
 	      if (ts->type == BT_CLASS
