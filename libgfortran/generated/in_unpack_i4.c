@@ -38,6 +38,7 @@ internal_unpack_4 (gfc_array_i4 * d, const GFC_INTEGER_4 * src)
   index_type stride0;
   index_type dim;
   index_type dsize;
+  index_type span_units;
   GFC_INTEGER_4 * restrict dest;
 
   dest = d->base_addr;
@@ -46,10 +47,11 @@ internal_unpack_4 (gfc_array_i4 * d, const GFC_INTEGER_4 * src)
 
   dim = GFC_DESCRIPTOR_RANK (d);
   dsize = 1;
+  span_units = GFC_DESCRIPTOR_SPAN (d) / sizeof (GFC_INTEGER_4);
   for (index_type n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = GFC_DESCRIPTOR_STRIDE(d,n);
+      stride[n] = GFC_DESCRIPTOR_STRIDE(d,n) * span_units;
       extent[n] = GFC_DESCRIPTOR_EXTENT(d,n);
       if (extent[n] <= 0)
 	return;
