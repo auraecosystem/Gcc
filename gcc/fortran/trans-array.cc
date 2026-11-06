@@ -8807,7 +8807,7 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
       else
 	/* Point the data pointer at the 1st element in the section.  */
 	gfc_get_dataptr_offset (&loop.pre, parm, desc, base,
-				subref_array_target, expr);
+				subref_array, expr);
 
       gfc_conv_descriptor_offset_set (&loop.pre, parm, offset);
 
