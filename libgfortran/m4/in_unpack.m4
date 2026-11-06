@@ -41,6 +41,7 @@ internal_unpack_'rtype_ccode` ('rtype` * d, const 'rtype_name` * src)
   index_type stride0;
   index_type dim;
   index_type dsize;
+  index_type span_units;
   'rtype_name` * restrict dest;
 
   dest = d->base_addr;
@@ -49,10 +50,11 @@ internal_unpack_'rtype_ccode` ('rtype` * d, const 'rtype_name` * src)
 
   dim = GFC_DESCRIPTOR_RANK (d);
   dsize = 1;
+  span_units = GFC_DESCRIPTOR_SPAN (d) / sizeof ('rtype_name`);
   for (index_type n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = GFC_DESCRIPTOR_STRIDE(d,n);
+      stride[n] = GFC_DESCRIPTOR_STRIDE(d,n) * span_units;
       extent[n] = GFC_DESCRIPTOR_EXTENT(d,n);
       if (extent[n] <= 0)
 	return;
