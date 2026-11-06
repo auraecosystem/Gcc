@@ -27,18 +27,18 @@
    <https://www.gnu.org/licenses/>.  */
 
 #include "soft-fp.h"
-#include "half.h"
+#include "brain.h"
 
-HFtype
-__floattihf (TItype i)
+BFtype
+__floattibf (TItype i)
 {
   FP_DECL_EX;
-  FP_DECL_H (A);
-  HFtype a;
+  FP_DECL_B (A);
+  BFtype a;
 
   FP_INIT_ROUNDMODE;
-  FP_FROM_INT_H (A, i, TI_BITS, UTItype);
-  FP_PACK_RAW_H (a, A);
+  FP_FROM_INT_B (A, i, TI_BITS, UTItype);
+  FP_PACK_RAW_B (a, A);
   FP_HANDLE_EXCEPTIONS;
 
   return a;
