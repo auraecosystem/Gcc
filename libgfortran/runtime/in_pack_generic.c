@@ -44,128 +44,136 @@ internal_pack (gfc_array_char * source)
   int packed;
   index_type size;
   index_type type_size;
+  index_type span;
 
   if (source->base_addr == NULL)
     return NULL;
 
   type_size = GFC_DTYPE_TYPE_SIZE(source);
   size = GFC_DESCRIPTOR_SIZE (source);
-  switch (type_size)
+  span = GFC_DESCRIPTOR_SPAN (source);
+  if (span == size)
     {
-    case GFC_DTYPE_INTEGER_1:
-    case GFC_DTYPE_LOGICAL_1:
-      return internal_pack_1 ((gfc_array_i1 *) source);
+      switch (type_size)
+	{
+	case GFC_DTYPE_INTEGER_1:
+	case GFC_DTYPE_LOGICAL_1:
+	  return internal_pack_1 ((gfc_array_i1 *) source);
 
-    case GFC_DTYPE_INTEGER_2:
-    case GFC_DTYPE_LOGICAL_2:
-      return internal_pack_2 ((gfc_array_i2 *) source);
+	case GFC_DTYPE_INTEGER_2:
+	case GFC_DTYPE_LOGICAL_2:
+	  return internal_pack_2 ((gfc_array_i2 *) source);
 
-    case GFC_DTYPE_INTEGER_4:
-    case GFC_DTYPE_LOGICAL_4:
-      return internal_pack_4 ((gfc_array_i4 *) source);
-	
-    case GFC_DTYPE_INTEGER_8:
-    case GFC_DTYPE_LOGICAL_8:
-      return internal_pack_8 ((gfc_array_i8 *) source);
+	case GFC_DTYPE_INTEGER_4:
+	case GFC_DTYPE_LOGICAL_4:
+	  return internal_pack_4 ((gfc_array_i4 *) source);
+	    
+	case GFC_DTYPE_INTEGER_8:
+	case GFC_DTYPE_LOGICAL_8:
+	  return internal_pack_8 ((gfc_array_i8 *) source);
 
 #if defined(HAVE_GFC_INTEGER_16)
-    case GFC_DTYPE_INTEGER_16:
-    case GFC_DTYPE_LOGICAL_16:
-      return internal_pack_16 ((gfc_array_i16 *) source);
+	case GFC_DTYPE_INTEGER_16:
+	case GFC_DTYPE_LOGICAL_16:
+	  return internal_pack_16 ((gfc_array_i16 *) source);
 #endif
-    case GFC_DTYPE_REAL_4:
-      return internal_pack_r4 ((gfc_array_r4 *) source);
+	case GFC_DTYPE_REAL_4:
+	  return internal_pack_r4 ((gfc_array_r4 *) source);
 
-    case GFC_DTYPE_REAL_8:
-      return internal_pack_r8 ((gfc_array_r8 *) source);
+	case GFC_DTYPE_REAL_8:
+	  return internal_pack_r8 ((gfc_array_r8 *) source);
 
-/* FIXME: This here is a hack, which will have to be removed when
-   the array descriptor is reworked.  Currently, we don't store the
-   kind value for the type, but only the size.  Because on targets with
-   _Float128, we have sizeof(long double) == sizeof(_Float128),
-   we cannot discriminate here and have to fall back to the generic
-   handling (which is suboptimal).  */
+    /* FIXME: This here is a hack, which will have to be removed when
+       the array descriptor is reworked.  Currently, we don't store the
+       kind value for the type, but only the size.  Because on targets with
+       _Float128, we have sizeof(long double) == sizeof(_Float128),
+       we cannot discriminate here and have to fall back to the generic
+       handling (which is suboptimal).  */
 #if !defined(GFC_REAL_16_IS_FLOAT128)
 # if defined (HAVE_GFC_REAL_10)
-    case GFC_DTYPE_REAL_10:
-      return internal_pack_r10 ((gfc_array_r10 *) source);
+	case GFC_DTYPE_REAL_10:
+	  return internal_pack_r10 ((gfc_array_r10 *) source);
 # endif
 
 # if defined (HAVE_GFC_REAL_16)
-    case GFC_DTYPE_REAL_16:
-      return internal_pack_r16 ((gfc_array_r16 *) source);
+	case GFC_DTYPE_REAL_16:
+	  return internal_pack_r16 ((gfc_array_r16 *) source);
 # endif
 #endif
 
-    case GFC_DTYPE_COMPLEX_4:
-      return internal_pack_c4 ((gfc_array_c4 *) source);
-	
-    case GFC_DTYPE_COMPLEX_8:
-      return internal_pack_c8 ((gfc_array_c8 *) source);
+	case GFC_DTYPE_COMPLEX_4:
+	  return internal_pack_c4 ((gfc_array_c4 *) source);
+	    
+	case GFC_DTYPE_COMPLEX_8:
+	  return internal_pack_c8 ((gfc_array_c8 *) source);
 
-/* FIXME: This here is a hack, which will have to be removed when
-   the array descriptor is reworked.  Currently, we don't store the
-   kind value for the type, but only the size.  Because on targets with
-   _Float128, we have sizeof(long double) == sizeof(_Float128),
-   we cannot discriminate here and have to fall back to the generic
-   handling (which is suboptimal).  */
+    /* FIXME: This here is a hack, which will have to be removed when
+       the array descriptor is reworked.  Currently, we don't store the
+       kind value for the type, but only the size.  Because on targets with
+       _Float128, we have sizeof(long double) == sizeof(_Float128),
+       we cannot discriminate here and have to fall back to the generic
+       handling (which is suboptimal).  */
 #if !defined(GFC_REAL_16_IS_FLOAT128)
 # if defined (HAVE_GFC_COMPLEX_10)
-    case GFC_DTYPE_COMPLEX_10:
-      return internal_pack_c10 ((gfc_array_c10 *) source);
+	case GFC_DTYPE_COMPLEX_10:
+	  return internal_pack_c10 ((gfc_array_c10 *) source);
 # endif
 
 # if defined (HAVE_GFC_COMPLEX_16)
-    case GFC_DTYPE_COMPLEX_16:
-      return internal_pack_c16 ((gfc_array_c16 *) source);
+	case GFC_DTYPE_COMPLEX_16:
+	  return internal_pack_c16 ((gfc_array_c16 *) source);
 # endif
 #endif
 
-    default:
-      break;
+	default:
+	  break;
+	}
     }
 
-  switch(GFC_DESCRIPTOR_SIZE (source))
+  if (span % size == 0)
     {
-    case 1:
-      return internal_pack_1 ((gfc_array_i1 *) source);
+      switch(GFC_DESCRIPTOR_SIZE (source))
+	{
+	case 1:
+	  return internal_pack_1 ((gfc_array_i1 *) source);
 
-    case 2:
-      if (GFC_UNALIGNED_2(source->base_addr))
-	break;
-      else
-	return internal_pack_2 ((gfc_array_i2 *) source);
+	case 2:
+	  if (GFC_UNALIGNED_2(source->base_addr))
+	    break;
+	  else
+	    return internal_pack_2 ((gfc_array_i2 *) source);
 
-    case 4:
-      if (GFC_UNALIGNED_4(source->base_addr))
-	break;
-      else
-	return internal_pack_4 ((gfc_array_i4 *) source);
+	case 4:
+	  if (GFC_UNALIGNED_4(source->base_addr))
+	    break;
+	  else
+	    return internal_pack_4 ((gfc_array_i4 *) source);
 
-    case 8:
-      if (GFC_UNALIGNED_8(source->base_addr))
-	break;
-      else
-	return internal_pack_8 ((gfc_array_i8 *) source);
+	case 8:
+	  if (GFC_UNALIGNED_8(source->base_addr))
+	    break;
+	  else
+	    return internal_pack_8 ((gfc_array_i8 *) source);
 
 #ifdef HAVE_GFC_INTEGER_16
-    case 16:
-      if (GFC_UNALIGNED_16(source->base_addr))
-	break;
-      else
-	return internal_pack_16 ((gfc_array_i16 *) source);
+	case 16:
+	  if (GFC_UNALIGNED_16(source->base_addr))
+	    break;
+	  else
+	    return internal_pack_16 ((gfc_array_i16 *) source);
 #endif
-    default:
-      break;
+	default:
+	  break;
+	}
     }
   
   dim = GFC_DESCRIPTOR_RANK (source);
-  ssize = 1;
+  ssize = size;
   packed = 1;
   for (index_type n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = GFC_DESCRIPTOR_STRIDE(source,n);
+      stride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(source,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(source,n);
       if (extent[n] <= 0)
         {
@@ -184,10 +192,10 @@ internal_pack (gfc_array_char * source)
     return source->base_addr;
 
    /* Allocate storage for the destination.  */
-  destptr = xmallocarray (ssize, size);
+  destptr = xmalloc (ssize);
   dest = (char *)destptr;
   src = source->base_addr;
-  stride0 = stride[0] * size;
+  stride0 = stride[0];
 
   while (src)
     {
@@ -206,7 +214,7 @@ internal_pack (gfc_array_char * source)
           count[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          src -= stride[n] * extent[n] * size;
+          src -= stride[n] * extent[n];
           n++;
           if (n == dim)
             {
@@ -216,7 +224,7 @@ internal_pack (gfc_array_char * source)
           else
             {
               count[n]++;
-              src += stride[n] * size;
+              src += stride[n];
             }
         }
     }
