@@ -40,6 +40,7 @@ internal_pack_c4 (gfc_array_c4 * source)
   index_type stride0;
   index_type dim;
   index_type ssize;
+  index_type span_units;
   const GFC_COMPLEX_4 *src;
   GFC_COMPLEX_4 * restrict dest;
   GFC_COMPLEX_4 *destptr;
@@ -49,12 +50,13 @@ internal_pack_c4 (gfc_array_c4 * source)
      since the stride=0 thing has been removed from the frontend.  */
 
   dim = GFC_DESCRIPTOR_RANK (source);
+  span_units = GFC_DESCRIPTOR_SPAN (source) / sizeof (GFC_COMPLEX_4);
   ssize = 1;
   packed = 1;
   for (index_type n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = GFC_DESCRIPTOR_STRIDE(source,n);
+      stride[n] = GFC_DESCRIPTOR_STRIDE(source,n) * span_units;
       extent[n] = GFC_DESCRIPTOR_EXTENT(source,n);
       if (extent[n] <= 0)
         {
