@@ -34,6 +34,10 @@
 (define_mode_iterator VFP16_HW [(V8BF "TARGET_BFLOAT16_HW")
 				(V8HF "TARGET_FLOAT16_HW")])
 
+;; Mode iterator for floating point modes other than SF/DFmode that we
+;; convert to/from _Float16 (HFmode) via DFmode.
+(define_mode_iterator FP16_FLOAT_CONVERT [TF KF IF SD DD TD])
+
 ;; Mode attribute giving the instruction to convert the even
 ;; V8HFmode or V8BFmode elements to V4SFmode
 (define_mode_attr cvt_fp16_to_v4sf [(BF   "xvcvbf16spn")
@@ -356,6 +360,127 @@
   [(set_attr "type" "fp")])
 
 
+;; Convert 128-bit integers to 16-bit floating point if IEEE 128-bit
+;; floating point is available by first using a conversion to IEEE
+;; 128-bit, then converting that to double, and finally converting it
+;; to 16-bit floating point.
+
+(define_expand "floatti<mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
+   (use (match_operand:TI 1 "altivec_register_operand"))]
+  "TARGET_POWER10 && TARGET_FLOAT128_HW && can_create_pseudo_p ()"
+{
+  rtx tmp_df = gen_reg_rtx (DFmode);
+
+  if (FLOAT128_IEEE_P (TFmode))
+    {
+      rtx tmp_tf = gen_reg_rtx (TFmode);
+      emit_insn (gen_floattitf2 (tmp_tf, operands[1]));
+      emit_insn (gen_trunctfdf2 (tmp_df, tmp_tf));
+    }
+
+  else if (FLOAT128_IEEE_P (KFmode))
+    {
+      rtx tmp_kf = gen_reg_rtx (KFmode);
+      emit_insn (gen_floattikf2 (tmp_kf, operands[1]));
+      emit_insn (gen_trunckfdf2 (tmp_df, tmp_kf));
+    }
+
+  else
+    gcc_unreachable ();
+
+  emit_insn (gen_truncdf<mode>2 (operands[0], tmp_df));
+  DONE;
+})
+
+(define_expand "floatunsti<mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
+   (use (match_operand:TI 1 "altivec_register_operand"))]
+  "TARGET_POWER10 && TARGET_FLOAT128_HW && can_create_pseudo_p ()"
+{
+  rtx tmp_df = gen_reg_rtx (DFmode);
+
+  if (FLOAT128_IEEE_P (TFmode))
+    {
+      rtx tmp_tf = gen_reg_rtx (TFmode);
+      emit_insn (gen_floatunstitf2 (tmp_tf, operands[1]));
+      emit_insn (gen_trunctfdf2 (tmp_df, tmp_tf));
+    }
+
+  else if (FLOAT128_IEEE_P (KFmode))
+    {
+      rtx tmp_kf = gen_reg_rtx (KFmode);
+      emit_insn (gen_floatunstikf2 (tmp_kf, operands[1]));
+      emit_insn (gen_trunckfdf2 (tmp_df, tmp_kf));
+    }
+
+  else
+    gcc_unreachable ();
+
+  emit_insn (gen_truncdf<mode>2 (operands[0], tmp_df));
+  DONE;
+})
+
+;; Convert 16-bit floating point to 128-bit integers if IEEE 128-bit
+;; floating point is available by first using a conversion to double,
+;; then to IEEE 128-bit, and finally to 128-bit integers.
+
+(define_expand "fix_trunc<mode>ti2"
+  [(use (match_operand:TI 0 "altivec_register_operand"))
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
+  "TARGET_POWER10 && TARGET_FLOAT128_HW && can_create_pseudo_p ()"
+{
+  rtx tmp_df = gen_reg_rtx (DFmode);
+
+  emit_insn (gen_extend<mode>df2 (tmp_df, operands[1]));
+  if (FLOAT128_IEEE_P (TFmode))
+    {
+      rtx tmp_tf = gen_reg_rtx (TFmode);
+      emit_insn (gen_extenddftf2 (tmp_tf, tmp_df));
+      emit_insn (gen_fix_trunctfti2 (operands[0], tmp_tf));
+    }
+
+  else if (FLOAT128_IEEE_P (KFmode))
+    {
+      rtx tmp_kf = gen_reg_rtx (KFmode);
+      emit_insn (gen_extenddfkf2 (tmp_kf, tmp_df));
+      emit_insn (gen_fix_trunckfti2 (operands[0], tmp_kf));
+    }
+
+  else
+    gcc_unreachable ();
+
+  DONE;
+})
+
+(define_expand "fixuns_trunc<mode>ti2"
+  [(use (match_operand:TI 0 "altivec_register_operand"))
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
+  "TARGET_POWER10 && TARGET_FLOAT128_HW && can_create_pseudo_p ()"
+{
+  rtx tmp_df = gen_reg_rtx (DFmode);
+
+  emit_insn (gen_extend<mode>df2 (tmp_df, operands[1]));
+  if (FLOAT128_IEEE_P (TFmode))
+    {
+      rtx tmp_tf = gen_reg_rtx (TFmode);
+      emit_insn (gen_extenddftf2 (tmp_tf, tmp_df));
+      emit_insn (gen_fixuns_trunctfti2 (operands[0], tmp_tf));
+    }
+
+  else if (FLOAT128_IEEE_P (KFmode))
+    {
+      rtx tmp_kf = gen_reg_rtx (KFmode);
+      emit_insn (gen_extenddfkf2 (tmp_kf, tmp_df));
+      emit_insn (gen_fixuns_trunckfti2 (operands[0], tmp_kf));
+    }
+
+  else
+    gcc_unreachable ();
+
+  DONE;
+})
+
 ;; Convert the even elements of a vector 16-bit floating point to
 ;; V4SFmode.  Deal with little endian vs. big endian element ordering
 ;; in identifying which elements are converted.
@@ -582,3 +707,83 @@
 }
   [(set_attr "length" "12")
    (set_attr "type" "vecfloat")])
+
+;; Convert between HFmode/BFmode and 128-bit binary floating point and
+;; decimal floating point types.  We use convert_move since some of the
+;; types might not have valid RTX expanders.  We use DFmode as the
+;; intermediate conversion destination.
+
+(define_expand "extend<FP16_HW:mode><FP16_FLOAT_CONVERT:mode>2"
+  [(use (match_operand:FP16_FLOAT_CONVERT 0 "vsx_register_operand"))
+   (use (match_operand:FP16_HW 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
+
+(define_expand "trunc<FP16_FLOAT_CONVERT:mode><FP16_HW:mode>2"
+  [(use (match_operand:FP16_HW 0 "vsx_register_operand"))
+   (use (match_operand:FP16_FLOAT_CONVERT 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
+
+;; Convert 16-bit floating point to integers
+(define_expand "fix_trunc<FP16:mode><GPR:mode>2"
+  [(use (match_operand:GPR 0 "vsx_register_operand"))
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  emit_insn (gen_fix_truncdf<GPR:mode>2 (operands[0], df_tmp));
+
+  DONE;
+})
+
+(define_expand "fixuns_trunc<FP16:mode><GPR:mode>2"
+  [(use (match_operand:GPR 0 "vsx_register_operand"))
+   (use (match_operand:FP16 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  convert_move (df_tmp, operands[1], 0);
+  emit_insn (gen_fixuns_truncdf<GPR:mode>2 (operands[0], df_tmp));
+
+  DONE;
+})
+
+;; Convert integers to 16-bit floating point
+(define_expand "float<GPR:mode><FP16:mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
+   (use (match_operand:GPR 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+
+  emit_insn (gen_float<GPR:mode>df2 (df_tmp, operands[1]));
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
+
+(define_expand "floatuns<GPR:mode><FP16:mode>2"
+  [(use (match_operand:FP16 0 "vsx_register_operand"))
+   (use (match_operand:GPR 1 "vsx_register_operand"))]
+  "can_create_pseudo_p ()"
+{
+  rtx df_tmp = gen_reg_rtx (DFmode);
+  emit_insn (gen_floatuns<GPR:mode>df2 (df_tmp, operands[1]));
+  convert_move (operands[0], df_tmp, 0);
+  DONE;
+})
