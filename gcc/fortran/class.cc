@@ -1080,6 +1080,7 @@ prepare_scalarization (gfc_expr *array, gfc_namespace *sub_ns,
 
   scalarizable_array sa;
 
+  sa.array = array;
   sa.ns = sub_ns;
 
   /* Local variables.  */
