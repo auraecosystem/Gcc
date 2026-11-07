@@ -590,7 +590,7 @@ call_ABI_of_interest (tree fndecl)
 
 void
 init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
-		      rtx libname, int incoming,
+		      rtx libname ATTRIBUTE_UNUSED, int incoming,
 		      int libcall, int n_named_args,
 		      tree fndecl,
 		      machine_mode return_mode ATTRIBUTE_UNUSED)
@@ -652,12 +652,6 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
 
       if (cum->call_cookie & CALL_LONG)
 	fprintf (stderr, " longcall,");
-
-      if (libname)
-	fprintf (stderr, " name=%s,", XSTR (libname, 0));
-
-      if (libcall)
-	fprintf (stderr, " libcall,");
 
       fprintf (stderr, " proto = %d, nargs = %d\n",
 	       cum->prototype, cum->nargs_prototype);
