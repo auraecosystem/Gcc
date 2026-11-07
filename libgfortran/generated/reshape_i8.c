@@ -109,6 +109,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
 	  rs *= rex;
 	}
       ret->offset = 0;
+      ret->span = sizeof (GFC_INTEGER_8);
 
       if (unlikely (rs < 1))
         alloc_size = 0;

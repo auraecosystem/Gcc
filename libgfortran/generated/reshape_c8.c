@@ -109,6 +109,7 @@ reshape_c8 (gfc_array_c8 * const restrict ret,
 	  rs *= rex;
 	}
       ret->offset = 0;
+      ret->span = sizeof (GFC_COMPLEX_8);
 
       if (unlikely (rs < 1))
         alloc_size = 0;
