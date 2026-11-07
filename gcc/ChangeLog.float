@@ -1,3 +1,16 @@
+==================== Branch work273-float, patch #210 ====================
+
+Make -mfloat16 default on little endian 64-bit Linux.
+
+This patch changes the default for 16-bit floating point on 64-bit little endian
+Linux server systems.  During development, _Float16 and __bf16 were disabled by
+default.
+
+2026-11-06  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000.cc (POWERPC_FLOAT16_DEFAULT): Enable by default
+	on 64-bit little endian Linux systems.
+
 ==================== Branch work273-float, patch #209 ====================
 
 Add _Float16 and __bf16 tests.
