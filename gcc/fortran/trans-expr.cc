@@ -12723,11 +12723,15 @@ fcncall_realloc_result (gfc_se *se, int rank, tree dtype)
   /* Check that the shapes are the same between lhs and expression.
      The evaluation of the shape is done in 'shape_block' to avoid
      uninitialized warnings from the lhs bounds. */
-  not_same_shape = boolean_false_node;
+  tree tmp1;
+  tmp = gfc_conv_descriptor_span_get (desc);
+  tmp1 = gfc_conv_descriptor_span_get (res_desc);
+  tmp = fold_build2_loc (input_location, NE_EXPR,
+			 gfc_array_index_type, tmp, tmp1);
   gfc_start_block (&shape_block);
+  not_same_shape = gfc_evaluate_now (tmp, &shape_block);
   for (n = 0 ; n < rank; n++)
     {
-      tree tmp1;
       tmp = gfc_conv_descriptor_lbound_get (desc, gfc_rank_cst[n]);
       tmp1 = gfc_conv_descriptor_lbound_get (res_desc, gfc_rank_cst[n]);
       tmp = fold_build2_loc (input_location, MINUS_EXPR,
@@ -12742,12 +12746,9 @@ fcncall_realloc_result (gfc_se *se, int rank, tree dtype)
 			     logical_type_node, tmp,
 			     gfc_index_zero_node);
       tmp = gfc_evaluate_now (tmp, &shape_block);
-      if (n == 0)
-	not_same_shape = tmp;
-      else
-	not_same_shape = fold_build2_loc (input_location, TRUTH_OR_EXPR,
-					  logical_type_node, tmp,
-					  not_same_shape);
+      not_same_shape = fold_build2_loc (input_location, TRUTH_OR_EXPR,
+					logical_type_node, tmp,
+					not_same_shape);
     }
 
   /* 'zero_cond' being true is equal to lhs not being allocated or the
@@ -12794,6 +12795,8 @@ fcncall_realloc_result (gfc_se *se, int rank, tree dtype)
     }
 
   gfc_conv_descriptor_offset_set (&se->post, desc, offset);
+  gfc_conv_descriptor_span_set (&se->post, desc,
+				gfc_conv_descriptor_span_get (res_desc));
 }
 
 

@@ -99,6 +99,7 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
 	  rs *= rex;
 	}
       ret->offset = 0;
+      ret->span = size;
 
       if (unlikely (rs < 1))
 	alloc_size = 0; /* xmalloc will allocate 1 byte.  */

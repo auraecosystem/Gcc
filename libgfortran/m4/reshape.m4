@@ -113,6 +113,7 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
 	  rs *= rex;
 	}
       ret->offset = 0;
+      ret->span = sizeof ('rtype_name`);
 
       if (unlikely (rs < 1))
         alloc_size = 0;
