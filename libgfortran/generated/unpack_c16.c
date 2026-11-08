@@ -232,6 +232,7 @@ unpack1_c16 (gfc_array_c16 *ret, const gfc_array_c16 *vector,
       /* The front end has signalled that we need to populate the
 	 return array descriptor.  */
       dim = GFC_DESCRIPTOR_RANK (mask);
+      ret->span = sizeof (GFC_COMPLEX_16);
       rs = 1;
       for (n = 0; n < dim; n++)
 	{
