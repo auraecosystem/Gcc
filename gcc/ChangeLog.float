@@ -1,3 +1,67 @@
+==================== Branch work273-float, patch #220 ====================
+
+Add -mvector-pair-fp
+
+2026-11-08  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/constraints.md (eF): New constraint.
+	* config/rs6000/float16.md (truncv8sfv8hf2): New insn.
+	(truncv8sfv8bf2): Likewise.
+	* config/rs6000/predicates.md (easy_vector_constant): Add support for
+	vector pair constants.
+	(easy_vpair_fp_constant): New insn.
+	* config/rs6000/rs6000-cpus.def (POWERPC_MASKS): Add -mvector-pair-fp.
+	* config/rs6000/rs6000-protos.h (vec_const_256bit_to_bytes): New
+	declaration.
+	(vect_const_method); New enum typedef.
+	(vect_const_can_be_generated): New declaration.
+	* config/rs6000/rs6000.cc (rs6000_hard_regno_mode_ok_uncached): Add
+	support for -mvector-pair-fp.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_option_override_internal): Likewise.
+	(rs6000_builtin_vectorization_cost): Likewise.
+	(rs6000_expand_vector_init): Likewise.
+	(rs6000_expand_vector_set): Likewise.
+	(rs6000_expand_vector_extract): Likewise.
+	(reg_offset_addressing_ok_p): Likewise.
+	(rs6000_emit_move): Likewise.
+	(rs6000_handle_altivec_attribute): Likewise.
+	(rs6000_load_constant_and_splat): Likewise.
+	(opt_masks): Likewise.
+	(rs6000_split_multireg_move): Likewise.
+	(vec_const_256bit_to_bytes): New function.
+	(vect_const_can_be_generated): Likewise.
+	* config/rs6000/rs6000.h (VPAIR_FP_P): New macro.
+	* config/rs6000/rs6000.md (isa attribute): Add p10l and p10s.
+	(RELOAD): Add V8SF and V4DF.
+	* config/rs6000/rs6000.opt (-mvector-pair-fp): New option.
+	(-mvector-pair-fp-load): Likewise.
+	(-mvector-pair-fp-store): Likewise.
+	(-mvector-pair-float): Likewise.
+	(-mvector-pair-double): Likewise.
+	* config/rs6000/vector.md (VEC_E): Add V8SF and V4DF.
+	(VEC_base): Likewise.
+	(VEC_base_l): Likewise.
+	* config/rs6000/vsx.md (VStype_simple): Likewise.
+	(VPAIR_FP): New mode iterator.
+	(mov<mode>): New define_expands and define_insn_and_splits for V8SFmode
+	and V4DFmode.
+	(VPAIR_FP_unary): New code iterator.
+	(VPAIR_FP_binary): Likewise.
+	(VPAIR_FP_name): New code attribute.
+	(VPAIR_FP_BASE): Likewise.
+	(VPAIR_FP_SINGLE): Likewise.
+	(*dup): New insns.
+	(<VPAIR_FP_name><mode>2): Likewise.
+	(nabs<mode>2): Likewise.
+	(<VPAIR_FP_name><mode>3): Likewise.
+	(fma<mode>4): Likewise.
+	(fms<mode>4): Likewise.
+	(nfma<mode>4): Likewise.
+	(nfms<mode>4): Likewise.
+
 ==================== Branch work273-float, patch #210 ====================
 
 Make -mfloat16 default on little endian 64-bit Linux.

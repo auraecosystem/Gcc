@@ -338,6 +338,10 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 					 && !BYTES_BIG_ENDIAN		\
 					 && TARGET_HARD_FLOAT)
 
+/* Whether a given mode represents a paired vector used for floating point
+   arithmetic operations.  */
+#define VPAIR_FP_P(MODE)	((MODE) == V8SFmode || (MODE) == V4DFmode)
+
 /* Helper macros for TFmode.  Quad floating point (TFmode) can be either IBM
    long double format that uses a pair of doubles, or IEEE 128-bit floating
    point.  KFmode was added as a way to represent IEEE 128-bit floating point,

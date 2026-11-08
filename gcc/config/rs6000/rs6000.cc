@@ -1899,6 +1899,9 @@ rs6000_hard_regno_mode_ok_uncached (int regno, machine_mode mode)
   if (mode == OOmode)
     return ((TARGET_MMA || TARGET_DMF) && VSX_REGNO_P (regno) && (regno & 1) == 0);
 
+  if (VPAIR_FP_P (mode))
+    return (TARGET_P9_VECTOR && VSX_REGNO_P (regno) && (regno & 1) == 0);
+
   /* MMA accumulator modes need FPR registers divisible by 4.
      If TARGET_DMF is true, XOmode value can be held in a DMR register.  */
   if (mode == XOmode)
@@ -2712,6 +2715,12 @@ rs6000_debug_reg_global (void)
 	      rs6000_debug_fp_mode (V8HFmode);
 	    }
 	}
+
+      if (TARGET_P9_VECTOR)
+	{
+	  rs6000_debug_fp_mode (V8SFmode);
+	  rs6000_debug_fp_mode (V4DFmode);
+	}
     }
 }
 
@@ -2882,6 +2891,15 @@ rs6000_setup_reg_addr_masks (void)
 		  if (m2 == OOmode)
 		    addr_mask |= RELOAD_REG_INDEXED;
 		}
+	    }
+
+	  else if ((addr_mask != 0) && TARGET_P9_VECTOR && VPAIR_FP_P (m2))
+	    {
+	      addr_mask |= RELOAD_REG_OFFSET;
+	      if (TARGET_POWER10
+		  && TARGET_VECTOR_PAIR_FP_LOAD
+		  && TARGET_VECTOR_PAIR_FP_STORE)
+		addr_mask |= RELOAD_REG_INDEXED;
 	    }
 
 	  /* VMX registers can do (REG & -16) and ((REG+REG) & -16)
@@ -3088,6 +3106,18 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	rs6000_vector_unit[V8BFmode] = VECTOR_VSX;
     }
 
+  /* paired floating point vector mode.  */
+  if (TARGET_P9_VECTOR)
+    {
+      rs6000_vector_unit[V8SFmode] = VECTOR_VSX;
+      rs6000_vector_mem[V8SFmode] = VECTOR_VSX;
+      rs6000_vector_align[V8SFmode] = align32;
+
+      rs6000_vector_unit[V4DFmode] = VECTOR_VSX;
+      rs6000_vector_mem[V4DFmode] = VECTOR_VSX;
+      rs6000_vector_align[V4DFmode] = align32;
+    }
+
   /* DFmode, see if we want to use the VSX unit.  Memory is handled
      differently, so don't set rs6000_vector_mem.  */
   if (TARGET_VSX)
@@ -3213,6 +3243,14 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	      reg_addr[BFmode].reload_store = CODE_FOR_reload_bf_di_store;
 	      reg_addr[HFmode].reload_load  = CODE_FOR_reload_hf_di_load;
 	      reg_addr[BFmode].reload_load  = CODE_FOR_reload_bf_di_load;
+	    }
+
+	  if (TARGET_P9_VECTOR)
+	    {
+	      reg_addr[V8SFmode].reload_store = CODE_FOR_reload_v8sf_di_store;
+	      reg_addr[V4DFmode].reload_store = CODE_FOR_reload_v4df_di_store;
+	      reg_addr[V8SFmode].reload_load  = CODE_FOR_reload_v8sf_di_load;
+	      reg_addr[V4DFmode].reload_load  = CODE_FOR_reload_v4df_di_load;
 	    }
 
 	  /* Only provide a reload handler for SDmode if lfiwzx/stfiwx are
@@ -4105,6 +4143,20 @@ rs6000_option_override_internal (bool global_init_p)
 				       | OPTION_MASK_VSX)) != 0)
     rs6000_isa_flags &= ~((OPTION_MASK_P8_VECTOR | OPTION_MASK_CRYPTO)
 		         & ~rs6000_isa_flags_explicit);
+
+  /* See if -mvector-pair-fp can be used.  On power10 systems, we use the
+     load/store vector pair instructions.  On power9 systems, we limit the
+     addresses to offsettable instructions so we can do 2 loads or stores.
+     Don't allow the option on power8 or before.  */
+  if (TARGET_VECTOR_PAIR_FP
+      && (!TARGET_P9_VECTOR || BYTES_BIG_ENDIAN || !TARGET_POWERPC64))
+    {
+      rs6000_isa_flags &= ~OPTION_MASK_VECTOR_PAIR_FP;
+      if (rs6000_isa_flags_explicit & OPTION_MASK_VECTOR_PAIR_FP)
+	error ("%qs is only available on 64-bit little endian systems "
+	       "that use at least %qs",
+	       "-mvector-pair-fp", "-mcpu=power9");
+    }
 
   if (TARGET_DEBUG_REG || TARGET_DEBUG_TARGET)
     rs6000_print_isa_options (stderr, 0, "before defaults", rs6000_isa_flags);
@@ -5403,6 +5455,15 @@ rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
 static machine_mode
 rs6000_preferred_simd_mode (scalar_mode mode)
 {
+  if (TARGET_VECTOR_PAIR_FP)
+    {
+      if (mode == SFmode && TARGET_VECTOR_PAIR_FLOAT)
+	return V8SFmode;
+
+      if (mode == DFmode && TARGET_VECTOR_PAIR_DOUBLE)
+	return V4DFmode;
+    }
+
   opt_machine_mode vmode = mode_for_vector (mode, 16 / GET_MODE_SIZE (mode));
 
   if (vmode.exists () && !VECTOR_MEM_NONE_P (vmode.require ()))
@@ -7110,6 +7171,66 @@ rs6000_expand_vector_init (rtx target, rtx vals)
 	all_same = false;
     }
 
+  /* Expand vector pairs into separate initializations.  */
+  if (mode == V4DFmode)
+    {
+      rtx target_hi = gen_rtx_SUBREG (V2DFmode, target, BYTES_BIG_ENDIAN ? 0 : 16);
+      rtvec rtvec_hi = gen_rtvec (2,
+				  XVECEXP (vals, 0, 0),
+				  XVECEXP (vals, 0, 1));
+      rtx vals_hi = gen_rtx_PARALLEL (V2DFmode, rtvec_hi);
+
+      rs6000_expand_vector_init (target_hi, vals_hi);
+
+      rtx target_lo = gen_rtx_SUBREG (V2DFmode, target, BYTES_BIG_ENDIAN ? 16 : 0);
+      if (all_same)
+	emit_move_insn (target_lo, target_hi);
+
+      else
+	{
+	  rtvec rtvec_lo = gen_rtvec (2,
+				      XVECEXP (vals, 0, 2),
+				      XVECEXP (vals, 0, 3));
+	  rtx vals_lo = gen_rtx_PARALLEL (V2DFmode, rtvec_lo);
+
+	  rs6000_expand_vector_init (target_lo, vals_lo);
+	}
+
+      return;
+    }
+
+  else if (mode == V8SFmode)
+    {
+      rtx target_hi = gen_rtx_SUBREG (V4SFmode, target, BYTES_BIG_ENDIAN ? 0 : 16);
+      rtvec rtvec_hi = gen_rtvec (4,
+				  XVECEXP (vals, 0, 0),
+				  XVECEXP (vals, 0, 1),
+				  XVECEXP (vals, 0, 2),
+				  XVECEXP (vals, 0, 3));
+      rtx vals_hi = gen_rtx_PARALLEL (V4SFmode, rtvec_hi);
+
+      rs6000_expand_vector_init (target_hi, vals_hi);
+
+      rtx target_lo = gen_rtx_SUBREG (V4SFmode, target, BYTES_BIG_ENDIAN ? 16 : 0);
+
+      if (all_same)
+	emit_move_insn (target_lo, target_hi);
+
+      else
+	{
+	  rtvec rtvec_lo = gen_rtvec (4,
+				      XVECEXP (vals, 0, 4),
+				      XVECEXP (vals, 0, 5),
+				      XVECEXP (vals, 0, 6),
+				      XVECEXP (vals, 0, 7));
+	  rtx vals_lo = gen_rtx_PARALLEL (V4SFmode, rtvec_lo);
+
+	  rs6000_expand_vector_init (target_lo, vals_lo);
+	}
+
+      return;
+    }
+
   if (n_var == 0)
     {
       rtx const_vec = gen_rtx_CONST_VECTOR (mode, XVEC (vals, 0));
@@ -7767,6 +7888,35 @@ rs6000_expand_vector_set (rtx target, rtx val, rtx elt_rtx)
   int width = GET_MODE_SIZE (inner_mode);
   int i;
 
+  /* For vector pairs with constant elements, change it into a vector set of
+     the single register.  */
+  if (VPAIR_FP_P (mode))
+    {
+      if (!CONST_INT_P (elt_rtx))
+	gcc_unreachable ();
+
+      size_t nunits = GET_MODE_NUNITS (mode);
+      size_t elt = (size_t) UINTVAL (elt_rtx);
+      size_t vnum;
+      machine_mode vmode;
+
+      if (BYTES_BIG_ENDIAN)
+	vnum = (elt >= nunits) ? 16 : 0;
+      else
+	vnum = (elt < nunits) ? 16 : 0;
+
+      if (mode == V4DFmode)
+	vmode = V2DFmode;
+      else if (mode == V8SFmode)
+	vmode = V4SFmode;
+      else
+	gcc_unreachable ();
+
+      rtx vtarget = gen_rtx_SUBREG (vmode, target, vnum);
+      rs6000_expand_vector_set (vtarget, val, GEN_INT (elt % nunits));
+      return;
+    }
+
   val = force_reg (GET_MODE (val), val);
 
   if (VECTOR_MEM_VSX_P (mode))
@@ -7889,6 +8039,36 @@ rs6000_expand_vector_extract (rtx target, rtx vec, rtx elt)
   machine_mode mode = GET_MODE (vec);
   machine_mode inner_mode = GET_MODE_INNER (mode);
   rtx mem;
+
+  /* For vector pairs with constant elements, change it into a vector extract
+     of the single register.  */
+  if (VPAIR_FP_P (mode))
+    {
+      if (!CONST_INT_P (elt))
+	gcc_unreachable ();
+
+      size_t nunits = GET_MODE_NUNITS (mode);
+      size_t elt_num = (size_t) UINTVAL (elt);
+      size_t vnum;
+      machine_mode vmode;
+
+      if (BYTES_BIG_ENDIAN)
+	vnum = (elt_num >= nunits) ? 16 : 0;
+      else
+	vnum = (elt_num < nunits) ? 16 : 0;
+
+      if (mode == V4DFmode)
+	vmode = V2DFmode;
+      else if (mode == V8SFmode)
+	vmode = V4SFmode;
+      else
+	gcc_unreachable ();
+
+      rtx v_vec = gen_rtx_SUBREG (vmode, vec, vnum);
+      rs6000_expand_vector_extract (target, v_vec,
+				    GEN_INT (elt_num % nunits));
+      return;
+    }
 
   if (VECTOR_MEM_VSX_P (mode) && CONST_INT_P (elt))
     {
@@ -8990,6 +9170,8 @@ reg_offset_addressing_ok_p (machine_mode mode)
     case E_TImode:
     case E_TFmode:
     case E_KFmode:
+    case E_V8SFmode:
+    case E_V4DFmode:
       /* AltiVec/VSX vector modes.  Only reg+reg addressing was valid until the
 	 ISA 3.0 vector d-form addressing mode was added.  While TImode is not
 	 a vector mode, if we want to use the VSX registers to move it around,
@@ -11106,11 +11288,13 @@ rs6000_const_vec (machine_mode mode)
       break;
     case E_V4SFmode:
     case E_V4SImode:
+    case E_V4DFmode:
       subparts = 4;
       break;
     case E_V8HImode:
     case E_V8HFmode:
     case E_V8BFmode:
+    case E_V8SFmode:
       subparts = 8;
       break;
     case E_V16QImode:
@@ -11573,6 +11757,8 @@ rs6000_emit_move (rtx dest, rtx source, machine_mode mode)
     case E_V2DFmode:
     case E_V2DImode:
     case E_V1TImode:
+    case E_V8SFmode:
+    case E_V4DFmode:
       if (CONSTANT_P (operands[1])
 	  && !easy_vector_constant (operands[1], mode))
 	operands[1] = force_const_mem (mode, operands[1]);
@@ -21046,6 +21232,7 @@ rs6000_handle_altivec_attribute (tree *node,
 	     proper type in the 'b' case below.  */
 	case E_V4SImode: case E_V8HImode: case E_V16QImode: case E_V4SFmode:
 	case E_V2DImode: case E_V2DFmode:
+	case E_V8SFmode: case E_V4DFmode:
 	  result = type;
 	default: break;
 	}
@@ -23476,14 +23663,14 @@ rs6000_load_constant_and_splat (machine_mode mode, REAL_VALUE_TYPE dconst)
       rtx d = const_double_from_real_value (dconst, mode);
       reg = force_reg (mode, d);
     }
-  else if (mode == V4SFmode)
+  else if (mode == V4SFmode || mode == V8SFmode)
     {
       rtx d = const_double_from_real_value (dconst, SFmode);
       rtvec v = gen_rtvec (4, d, d, d, d);
       reg = gen_reg_rtx (mode);
       rs6000_expand_vector_init (reg, gen_rtx_PARALLEL (mode, v));
     }
-  else if (mode == V2DFmode)
+  else if (mode == V2DFmode || mode == V4DFmode)
     {
       rtx d = const_double_from_real_value (dconst, DFmode);
       rtvec v = gen_rtvec (2, d, d);
@@ -25089,6 +25276,7 @@ static struct rs6000_opt_mask const rs6000_opt_masks[] =
   { "save-toc-indirect",	OPTION_MASK_SAVE_TOC_INDIRECT,	false, true  },
   { "string",			0,				false, true  },
   { "update",			OPTION_MASK_NO_UPDATE,		true , true  },
+  { "vector-pair-fp",		OPTION_MASK_VECTOR_PAIR_FP,	false, true  },
   { "vsx",			OPTION_MASK_VSX,		false, true  },
 #ifdef OPTION_MASK_64BIT
 #if TARGET_AIX_OS
@@ -28009,6 +28197,10 @@ rs6000_split_multireg_move (rtx dst, rtx src)
      vectors.  */
   else if (mode == OOmode || mode == XOmode || mode == TDOmode)
     reg_mode = V1TImode;
+  else if (mode == V8SFmode)
+    reg_mode = V4SFmode;
+  else if (mode == V4DFmode)
+    reg_mode = V2DFmode;
   else if (FP_REGNO_P (reg))
     reg_mode = DECIMAL_FLOAT_MODE_P (mode) ? DDmode :
 	(TARGET_HARD_FLOAT ? DFmode : SFmode);
@@ -28059,7 +28251,7 @@ rs6000_split_multireg_move (rtx dst, rtx src)
      below.  This means the last register gets the first memory
      location.  We also need to be careful of using the right register
      numbers if we are splitting XO to OO.  */
-  if (mode == OOmode || mode == XOmode || mode == TDOmode)
+  if (mode == OOmode || mode == XOmode || mode == TDOmode || VPAIR_FP_P (mode))
     {
       nregs = hard_regno_nregs (reg, mode);
       int reg_mode_nregs = hard_regno_nregs (reg, reg_mode);
@@ -29732,6 +29924,113 @@ vec_const_128bit_to_bytes (rtx op,
   return true;
 }
 
+/* Convert a vector constant OP with mode MODE to a pair of vector 128-bit
+   constant structures INFO similar to vec_const_256bit_to_bytes.  This is to
+   handle constants of paired vectors such as V8SFmode and V4DFmode.
+
+   Break out the constant out to bytes, half words, words, and double words.
+   Return true if we have successfully converted the constant.  We use the
+   128-bit constant infrastructure, returning two separate structures.
+
+   We handle CONST_VECTOR and VEC_DUPLICATE of constants.  */
+
+bool
+vec_const_256bit_to_bytes (rtx op,
+			   machine_mode mode,
+			   vec_const_128bit_type *info_hi,
+			   vec_const_128bit_type *info_lo)
+{
+  /* Initialize the constant structures.  */
+  memset ((void *)info_hi, 0, sizeof (vec_const_128bit_type));
+  memset ((void *)info_lo, 0, sizeof (vec_const_128bit_type));
+
+  machine_mode vmode;			/* single vector mode.  */
+
+  if (mode == V8SFmode)
+    vmode = V4SFmode;
+
+  else if (mode == V4DFmode)
+    vmode = V2DFmode;
+
+  else
+    return false;
+
+  switch (GET_CODE (op))
+    {
+      /* Treat VEC_DUPLICATE of a constant just like a vector constant.
+	 Since we are duplicating the element, we don't have to worry about
+	 endian issues.  */
+    case VEC_DUPLICATE:
+      {
+	rtx vdup = gen_rtx_VEC_DUPLICATE (vmode, XEXP (op, 0));
+	if (vec_const_128bit_to_bytes (vdup, vmode, info_hi))
+	  {
+	    *info_lo = *info_hi;
+	    return true;
+	  }
+      }
+      break;
+
+      /* Vector constants, use vec_const_128bit_to_bytes to handle each
+	 vector's worth.  On little endian systems, we have to reverse the
+	 vectors, and vec_const_128bit_to_bytes will reverse the elements
+	 within that vector.  */
+    case CONST_VECTOR:
+      {
+	if (!BYTES_BIG_ENDIAN)
+	  std::swap (info_hi, info_lo);
+
+	size_t nunits = GET_MODE_NUNITS (vmode);
+
+      /* Split V4DFmode/V4DImode into 2 V2DFmode/V2DImode tests.  */
+	if (nunits == 2)
+	  {
+	    /* Validate the first 2 elements.  */
+	    rtvec v = gen_rtvec (2,
+				 CONST_VECTOR_ELT (op, 0),
+				 CONST_VECTOR_ELT (op, 1));
+
+	    rtx cv = gen_rtx_CONST_VECTOR (V2DFmode, v);
+	    if (!vec_const_128bit_to_bytes (cv, vmode, info_hi))
+	      return false;
+
+	    /* Validate the last 2 elements.  */
+	    RTVEC_ELT (v, 0) = CONST_VECTOR_ELT (op, 2);
+	    RTVEC_ELT (v, 1) = CONST_VECTOR_ELT (op, 3);
+	    return vec_const_128bit_to_bytes (cv, vmode, info_lo);
+	  }
+
+	/* Split V8SFmode/V8SImode into 2 V4SFmode/V4SImode tests.  */
+	else if (nunits == 4)
+	  {
+	    /* Validate the first 4 elements.  */
+	    rtvec v = gen_rtvec (4,
+				 CONST_VECTOR_ELT (op, 0),
+				 CONST_VECTOR_ELT (op, 1),
+				 CONST_VECTOR_ELT (op, 2),
+				 CONST_VECTOR_ELT (op, 3));
+
+	    rtx cv = gen_rtx_CONST_VECTOR (vmode, v);
+	    if (!vec_const_128bit_to_bytes (cv, vmode, info_hi))
+	      return false;
+
+	    /* Validate the last 4 elements.  */
+	    RTVEC_ELT (v, 0) = CONST_VECTOR_ELT (op, 4);
+	    RTVEC_ELT (v, 1) = CONST_VECTOR_ELT (op, 5);
+	    RTVEC_ELT (v, 2) = CONST_VECTOR_ELT (op, 6);
+	    RTVEC_ELT (v, 3) = CONST_VECTOR_ELT (op, 7);
+	    return vec_const_128bit_to_bytes (cv, vmode, info_lo);
+	  }
+      }
+      break;
+
+    default:
+      break;
+    }
+
+  return false;
+}
+
 /* Determine if an IEEE 128-bit constant can be loaded with LXVKQ.  Return zero
    if the LXVKQ instruction cannot be used.  Otherwise return the immediate
    value to be used with the LXVKQ instruction.  */
@@ -29914,6 +30213,59 @@ constant_generates_xxspltidp (vec_const_128bit_type *vsx_const)
 
   /* Return the immediate to be used.  */
   return sf_value;
+}
+
+/* Return how to generate a vector constant if it can be loaded into a vector
+   register via any means without doing a load.  INFO returns the value that
+   the constant_generate_<xxx> instructions return.  */
+
+vect_const_method
+vect_const_can_be_generated (vec_const_128bit_type *vect_const,
+			     unsigned *info)
+{
+  if (vect_const->all_bytes_same)
+    {
+      unsigned char value = vect_const->bytes[0];
+      *info = value;
+      if (value == 0)
+	return VECT_CONST_ZERO;		/* XXLXOR.  */
+
+      if (TARGET_P9_VECTOR)
+	return VECT_CONST_XXSPLTIB;
+
+      if (value == 0xff && TARGET_P8_VECTOR)
+	return VECT_CONST_ONES;		/* XXLORC.  */
+    }
+
+  if (TARGET_POWER10)
+    {
+      unsigned info2;
+
+      info2 = constant_generates_xxspltiw (vect_const);
+      if (info2 != 0)
+	{
+	  *info = info2;
+	  return VECT_CONST_XXSPLTIW;
+	}
+
+      info2 = constant_generates_xxspltidp (vect_const);
+      if (info2 != 0)
+	{
+	  *info = info2;
+	  return VECT_CONST_XXSPLTIDP;
+	}
+
+      info2 = constant_generates_lxvkq (vect_const);
+      if (info2 != 0)
+	{
+	  *info = info2;
+	  return VECT_CONST_LXVKG;
+	}
+    }
+
+  /* Constant can't be loaded.  */
+  *info = 0;
+  return VECT_CONST_MEMORY;
 }
 
 /* Now we have three opaque types: the __vector_quad, __vector_pair and
