@@ -85,6 +85,7 @@ eoshift0 (gfc_array_char * ret, const gfc_array_char * array,
 
       /* xmallocarray allocates a single byte for zero size.  */
       ret->base_addr = xmallocarray (arraysize, size);
+      ret->span = size;
     }
   else if (unlikely (compile_options.bounds_check))
     {
