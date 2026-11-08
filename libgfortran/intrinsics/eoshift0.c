@@ -108,7 +108,8 @@ eoshift0 (gfc_array_char * ret, const gfc_array_char * array,
       index_type r_ex, a_ex;
       r_ex = 1;
       a_ex = 1;
-      do_blocked = true;
+      do_blocked = GFC_DESCRIPTOR_SPAN (array) == size
+		   && GFC_DESCRIPTOR_SPAN (ret) == size;
       dim = GFC_DESCRIPTOR_RANK (array);
       for (n = 0; n < dim; n ++)
 	{

@@ -233,6 +233,7 @@ unpack1_'rtype_code` ('rtype` *ret, const 'rtype` *vector,
       /* The front end has signalled that we need to populate the
 	 return array descriptor.  */
       dim = GFC_DESCRIPTOR_RANK (mask);
+      ret->span = sizeof ('rtype_name`);
       rs = 1;
       for (n = 0; n < dim; n++)
 	{

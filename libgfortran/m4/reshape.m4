@@ -121,6 +121,7 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
 
       ret->base_addr = xmallocarray (alloc_size, sizeof ('rtype_name`));
       ret->dtype.rank = rdim;
+      ret->span = sizeof ('rtype_name`);
     }
 
   if (shape_empty)
@@ -129,12 +130,12 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
   if (pad)
     {
       pdim = GFC_DESCRIPTOR_RANK (pad);
-      psize = 1;
+      psize = sizeof ('rtype_name`);
       pempty = 0;
       for (index_type n = 0; n < pdim; n++)
         {
           pcount[n] = 0;
-          pstride[n] = GFC_DESCRIPTOR_STRIDE(pad,n);
+          pstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(pad,n);
           pextent[n] = GFC_DESCRIPTOR_EXTENT(pad,n);
           if (pextent[n] <= 0)
 	    {
@@ -212,7 +213,7 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
 	}
     }
 
-  rsize = 1;
+  rsize = sizeof ('rtype_name`);
   for (index_type n = 0; n < rdim; n++)
     {
       index_type dim;
@@ -222,7 +223,7 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
         dim = n;
 
       rcount[n] = 0;
-      rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,dim);
+      rstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(ret,dim);
       rextent[n] = GFC_DESCRIPTOR_EXTENT(ret,dim);
       if (rextent[n] < 0)
         rextent[n] = 0;
@@ -244,12 +245,12 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
    avoids a warning.  */
   GFC_ASSERT(sdim>0);
 
-  ssize = 1;
+  ssize = sizeof ('rtype_name`);
   sempty = 0;
   for (index_type n = 0; n < sdim; n++)
     {
       scount[n] = 0;
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(source,n);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(source,n);
       sextent[n] = GFC_DESCRIPTOR_EXTENT(source,n);
       if (sextent[n] <= 0)
 	{
@@ -265,9 +266,6 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
 
   if (rsize != 0 && ssize != 0 && psize != 0)
     {
-      rsize *= sizeof ('rtype_name`);
-      ssize *= sizeof ('rtype_name`);
-      psize *= sizeof ('rtype_name`);
       reshape_packed ((char *)ret->base_addr, rsize, (char *)source->base_addr,
 		      ssize, pad ? (char *)pad->base_addr : NULL, psize);
       return;
