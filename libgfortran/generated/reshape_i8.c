@@ -54,7 +54,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
   index_type rsize;
   index_type rs;
   index_type rex;
-  GFC_INTEGER_8 *rptr;
+  char *rptr;
   /* s.* indicates the source array.  */
   index_type scount[GFC_MAX_DIMENSIONS];
   index_type sextent[GFC_MAX_DIMENSIONS];
@@ -62,16 +62,16 @@ reshape_8 (gfc_array_i8 * const restrict ret,
   index_type sstride0;
   index_type sdim;
   index_type ssize;
-  const GFC_INTEGER_8 *sptr;
+  const char *sptr;
   /* p.* indicates the pad array.  */
   index_type pcount[GFC_MAX_DIMENSIONS];
   index_type pextent[GFC_MAX_DIMENSIONS];
   index_type pstride[GFC_MAX_DIMENSIONS];
   index_type pdim;
   index_type psize;
-  const GFC_INTEGER_8 *pptr;
+  const char *pptr;
 
-  const GFC_INTEGER_8 *src;
+  const char *src;
   int sempty, pempty, shape_empty;
   index_type shape_data[GFC_MAX_DIMENSIONS];
 
@@ -144,7 +144,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
           else
             psize = 0;
         }
-      pptr = pad->base_addr;
+      pptr = (char*) pad->base_addr;
     }
   else
     {
@@ -266,8 +266,8 @@ reshape_8 (gfc_array_i8 * const restrict ret,
 		      ssize, pad ? (char *)pad->base_addr : NULL, psize);
       return;
     }
-  rptr = ret->base_addr;
-  src = sptr = source->base_addr;
+  rptr = (char*) ret->base_addr;
+  src = sptr = (char*) source->base_addr;
   rstride0 = rstride[0];
   sstride0 = sstride[0];
 
