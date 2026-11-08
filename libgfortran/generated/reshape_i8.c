@@ -54,7 +54,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
   index_type rsize;
   index_type rs;
   index_type rex;
-  char *rptr;
+  GFC_INTEGER_8 *rptr;
   /* s.* indicates the source array.  */
   index_type scount[GFC_MAX_DIMENSIONS];
   index_type sextent[GFC_MAX_DIMENSIONS];
@@ -62,16 +62,16 @@ reshape_8 (gfc_array_i8 * const restrict ret,
   index_type sstride0;
   index_type sdim;
   index_type ssize;
-  const char *sptr;
+  const GFC_INTEGER_8 *sptr;
   /* p.* indicates the pad array.  */
   index_type pcount[GFC_MAX_DIMENSIONS];
   index_type pextent[GFC_MAX_DIMENSIONS];
   index_type pstride[GFC_MAX_DIMENSIONS];
   index_type pdim;
   index_type psize;
-  const char *pptr;
+  const GFC_INTEGER_8 *pptr;
 
-  const char *src;
+  const GFC_INTEGER_8 *src;
   int sempty, pempty, shape_empty;
   index_type shape_data[GFC_MAX_DIMENSIONS];
 
@@ -144,7 +144,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
           else
             psize = 0;
         }
-      pptr = (char*) pad->base_addr;
+      pptr = pad->base_addr;
     }
   else
     {
@@ -266,8 +266,8 @@ reshape_8 (gfc_array_i8 * const restrict ret,
 		      ssize, pad ? (char *)pad->base_addr : NULL, psize);
       return;
     }
-  rptr = (char*) ret->base_addr;
-  src = sptr = (char*) source->base_addr;
+  rptr = ret->base_addr;
+  src = sptr = source->base_addr;
   rstride0 = rstride[0];
   sstride0 = sstride[0];
 
@@ -292,10 +292,10 @@ reshape_8 (gfc_array_i8 * const restrict ret,
   while (rptr)
     {
       /* Select between the source and pad arrays.  */
-      *rptr = *src;
+      *((GFC_INTEGER_8*)rptr) = *((GFC_INTEGER_8*)src);
       /* Advance to the next element.  */
-      rptr += rstride0;
-      src += sstride0;
+      rptr = (GFC_INTEGER_8 *) (((char*)rptr) + rstride0);
+      src = (const GFC_INTEGER_8 *) (((const char*)src) + sstride0);
       rcount[0]++;
       scount[0]++;
 
@@ -308,7 +308,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
           rcount[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          rptr -= rstride[n] * rextent[n];
+          rptr = (GFC_INTEGER_8 *) (((char*) rptr) + rstride[n] * rextent[n]);
           n++;
           if (n == rdim)
             {
@@ -319,7 +319,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
           else
             {
               rcount[n]++;
-              rptr += rstride[n];
+              rptr = (GFC_INTEGER_8 *) (((char*) rptr) + rstride[n]);
             }
         }
       /* Advance to the next source element.  */
@@ -331,7 +331,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
           scount[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          src -= sstride[n] * sextent[n];
+          src = (const GFC_INTEGER_8 *) (((const char*) src) + sstride[n] * sextent[n]);
           n++;
           if (n == sdim)
             {
@@ -355,7 +355,7 @@ reshape_8 (gfc_array_i8 * const restrict ret,
           else
             {
               scount[n]++;
-              src += sstride[n];
+              src = (const GFC_INTEGER_8 *) (((const char*) src) + sstride[n]);
             }
         }
     }
