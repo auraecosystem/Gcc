@@ -34,9 +34,9 @@ contains
       integer, target, intent(in) :: x(:), y(:)
       integer, intent(in) :: e
       if (size(x, 1) /= size(y, 1)) error stop e*10+8
-      do i = 1, n
-         print *, e*10+i, (x(i) == y(i) ? "PASS" : "FAIL"), x(i), y(i)
-      end do
-      !if (any(x /= y)) error stop e*10+9
+      !do i = 1, n
+      !   print *, e*10+i, (x(i) == y(i) ? "PASS" : "FAIL"), x(i), y(i)
+      !end do
+      if (any(x /= y)) error stop e*10+9
    end subroutine
 end program
