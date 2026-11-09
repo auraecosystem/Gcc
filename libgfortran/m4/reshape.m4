@@ -312,7 +312,7 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
           rcount[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          rptr = ('rtype_name` *) (((char*) rptr) + rstride[n] * rextent[n]);
+          rptr = ('rtype_name` *) (((char*) rptr) - rstride[n] * rextent[n]);
           n++;
           if (n == rdim)
             {
@@ -335,7 +335,7 @@ reshape_'rtype_ccode` ('rtype` * const restrict ret,
           scount[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          src = (const 'rtype_name` *) (((const char*) src) + sstride[n] * sextent[n]);
+          src = (const 'rtype_name` *) (((const char*) src) - sstride[n] * sextent[n]);
           n++;
           if (n == sdim)
             {
