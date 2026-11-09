@@ -308,7 +308,7 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
           rcount[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          rptr = (GFC_COMPLEX_16 *) (((char*) rptr) + rstride[n] * rextent[n]);
+          rptr = (GFC_COMPLEX_16 *) (((char*) rptr) - rstride[n] * rextent[n]);
           n++;
           if (n == rdim)
             {
@@ -331,7 +331,7 @@ reshape_c16 (gfc_array_c16 * const restrict ret,
           scount[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          src = (const GFC_COMPLEX_16 *) (((const char*) src) + sstride[n] * sextent[n]);
+          src = (const GFC_COMPLEX_16 *) (((const char*) src) - sstride[n] * sextent[n]);
           n++;
           if (n == sdim)
             {

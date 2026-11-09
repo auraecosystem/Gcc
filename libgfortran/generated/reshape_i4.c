@@ -308,7 +308,7 @@ reshape_4 (gfc_array_i4 * const restrict ret,
           rcount[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          rptr = (GFC_INTEGER_4 *) (((char*) rptr) + rstride[n] * rextent[n]);
+          rptr = (GFC_INTEGER_4 *) (((char*) rptr) - rstride[n] * rextent[n]);
           n++;
           if (n == rdim)
             {
@@ -331,7 +331,7 @@ reshape_4 (gfc_array_i4 * const restrict ret,
           scount[n] = 0;
           /* We could precalculate these products, but this is a less
              frequently used path so probably not worth it.  */
-          src = (const GFC_INTEGER_4 *) (((const char*) src) + sstride[n] * sextent[n]);
+          src = (const GFC_INTEGER_4 *) (((const char*) src) - sstride[n] * sextent[n]);
           n++;
           if (n == sdim)
             {
