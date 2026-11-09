@@ -11271,6 +11271,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl, tree dest,
 		tmp = strlen;
 	      else
 		tmp = TYPE_SIZE_UNIT (gfc_get_element_type (ctype));
+	      tree elem_len = tmp;
 	      tmp = fold_convert (gfc_array_index_type, tmp);
 	      size = fold_build2_loc (input_location, MULT_EXPR,
 				      gfc_array_index_type, size, tmp);
@@ -11279,12 +11280,8 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl, tree dest,
 	      gfc_conv_descriptor_data_set (&fnblock, comp, tmp);
 	      gfc_conv_descriptor_dtype_set (&fnblock, comp,
 					     gfc_get_dtype (ctype));
-	      if (strlen != NULL_TREE)
-		{
-		  tmp = gfc_conv_descriptor_elem_len_get (comp);
-		  gfc_add_modify (&fnblock, tmp, fold_convert (TREE_TYPE (tmp), strlen));
-		  gfc_conv_descriptor_span_set (&fnblock, comp, strlen);
-		}
+	      gfc_conv_descriptor_elem_len_set (&fnblock, comp, elem_len);
+	      gfc_conv_descriptor_span_set (&fnblock, comp, elem_len);
 
 	      if (c->initializer && c->initializer->rank)
 		{
