@@ -51,7 +51,7 @@ reduce (parray *ret,
   void *res;
   index_type ext0, ext1, ext2;
   index_type str0, str1, str2;
-  index_type mstr0 = 0, mstr1, mstr2;
+  index_type mstr0 = 0, mstr1 = 0, mstr2 = 0;
   index_type idx0, idx1, idx2;
   index_type dimen, dimen_m1, ext, str;
   bool started;
@@ -137,16 +137,19 @@ reduce (parray *ret,
   if (!scalar_result)
     {
       str1 = GFC_DESCRIPTOR_STRIDE_BYTES (array, dimen_m1);
-      mstr1 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, dimen_m1);
+      if (mask_present)
+	mstr1 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, dimen_m1);
       if (dimen < array_rank)
 	{
 	  str2 = GFC_DESCRIPTOR_STRIDE_BYTES (array, dimen);
-	  mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, dimen);
+	  if (mask_present)
+	    mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, dimen);
 	}
       else
 	{
 	  str2 = elem_len;
-	  mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, 0);
+	  if (mask_present)
+	    mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, 0);
 	}
     }
 
