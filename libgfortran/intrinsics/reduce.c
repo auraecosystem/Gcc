@@ -51,7 +51,7 @@ reduce (parray *ret,
   void *res;
   index_type ext0, ext1, ext2;
   index_type str0, str1, str2;
-  index_type mstr0, mstr1, mstr2;
+  index_type mstr0 = 0, mstr1, mstr2;
   index_type idx0, idx1, idx2;
   index_type dimen, dimen_m1, ext, str;
   bool started;
@@ -95,7 +95,8 @@ reduce (parray *ret,
      painless by the use of pointer arithmetic throughout.  */
   ext0 = ext1 = ext2 = 1;
   str0 = str1 = str2 = elem_len;
-  mstr0 = mstr1 = mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, 0);
+  if (mask_present)
+    mstr0 = mstr1 = mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, 0);
 
   scalar_result = (!dim_present && array_rank > 1) || array_rank == 1;
 
