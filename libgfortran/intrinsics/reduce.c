@@ -51,6 +51,7 @@ reduce (parray *ret,
   void *res;
   index_type ext0, ext1, ext2;
   index_type str0, str1, str2;
+  index_type mstr0, mstr1, mstr2;
   index_type idx0, idx1, idx2;
   index_type dimen, dimen_m1, ext, str;
   bool started;
@@ -94,6 +95,7 @@ reduce (parray *ret,
      painless by the use of pointer arithmetic throughout.  */
   ext0 = ext1 = ext2 = 1;
   str0 = str1 = str2 = elem_len;
+  mstr0 = mstr1 = mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, 0);
 
   scalar_result = (!dim_present && array_rank > 1) || array_rank == 1;
 
@@ -134,10 +136,17 @@ reduce (parray *ret,
   if (!scalar_result)
     {
       str1 = GFC_DESCRIPTOR_STRIDE_BYTES (array, dimen_m1);
+      mstr1 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, dimen_m1);
       if (dimen < array_rank)
-	str2 = GFC_DESCRIPTOR_STRIDE_BYTES (array, dimen);
+	{
+	  str2 = GFC_DESCRIPTOR_STRIDE_BYTES (array, dimen);
+	  mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, dimen);
+	}
       else
-	str2 = elem_len;
+	{
+	  str2 = elem_len;
+	  mstr2 = GFC_DESCRIPTOR_STRIDE_BYTES (mask, 0);
+	}
     }
 
   /* Allocate the result data, the result buffer and zero.  */
@@ -152,10 +161,8 @@ reduce (parray *ret,
       for (idx2 = 0; idx2 < ext2; idx2++)
 	{
 	  if (mask_present)
-	    maskR = *((const GFC_LOGICAL_4 *)
-		      (((char*) mask->base_addr)
-		       + (idx0 * GFC_DESCRIPTOR_STRIDE (mask, 0)
-			  + idx2 * GFC_DESCRIPTOR_STRIDE (mask, dimen))));
+	    maskR = *((const GFC_LOGICAL_4 *) (((char*) mask->base_addr)
+					       + idx0 * mstr0 + idx2 * mstr1));
 
 	  started = (mask_present && maskR) || !mask_present;
 
@@ -171,9 +178,7 @@ reduce (parray *ret,
 	      if (mask_present)
 		maskR = *((const GFC_LOGICAL_4 *)
 			  (((char*) mask->base_addr)
-			   + (idx0 * GFC_DESCRIPTOR_STRIDE (mask, 0)
-			      + idx1 * GFC_DESCRIPTOR_STRIDE (mask, 1)
-			      + idx2 * GFC_DESCRIPTOR_STRIDE (mask, 2))));
+			   + (idx0 * mstr0 + idx1 * mstr1 + idx2 * mstr2)));
 
 	      array_ptr = array->base_addr
 			  + (size_t)((idx0 * str0 + idx1 * str1
