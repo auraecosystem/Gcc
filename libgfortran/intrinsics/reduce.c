@@ -52,7 +52,7 @@ reduce (parray *ret,
   index_type ext0, ext1, ext2;
   index_type str0, str1, str2;
   index_type idx0, idx1, idx2;
-  index_type dimen, dimen_m1, ldx, ext, str;
+  index_type dimen, dimen_m1, ext, str;
   bool started;
   bool dim_present = dim != NULL;
   bool mask_present = mask != NULL;
@@ -91,8 +91,7 @@ reduce (parray *ret,
   dimen_m1 = dimen -1;
 
   /* Set up the shape and strides for the reduction. This is made relatively
-     painless by the use of pointer arithmetic throughout (except for MASK,
-     whose type is known.  */
+     painless by the use of pointer arithmetic throughout.  */
   ext0 = ext1 = ext2 = 1;
   str0 = str1 = str2 = elem_len;
 
@@ -152,9 +151,11 @@ reduce (parray *ret,
     {
       for (idx2 = 0; idx2 < ext2; idx2++)
 	{
-	  ldx = idx0 * str0  + idx2 * str2;
 	  if (mask_present)
-	    maskR = *((const GFC_LOGICAL_4 *) (((char*) mask->base_addr) + ldx));
+	    maskR = *((const GFC_LOGICAL_4 *)
+		      (((char*) mask->base_addr)
+		       + (idx0 * GFC_DESCRIPTOR_STRIDE (mask, 0)
+			  + idx2 * GFC_DESCRIPTOR_STRIDE (mask, dimen))));
 
 	  started = (mask_present && maskR) || !mask_present;
 
@@ -167,9 +168,12 @@ reduce (parray *ret,
 	      /* If masked, cycle until after first element that is not masked
 		 out. Then set 'started' and cycle so that this becomes the
 		 first element in the reduction.  */
-	      ldx = idx0 * str0 + idx1 * str1 + idx2 * str2;
 	      if (mask_present)
-		maskR = *((const GFC_LOGICAL_4 *) (((char*) mask->base_addr) + ldx));
+		maskR = *((const GFC_LOGICAL_4 *)
+			  (((char*) mask->base_addr)
+			   + (idx0 * GFC_DESCRIPTOR_STRIDE (mask, 0)
+			      + idx1 * GFC_DESCRIPTOR_STRIDE (mask, 1)
+			      + idx2 * GFC_DESCRIPTOR_STRIDE (mask, 2))));
 
 	      array_ptr = array->base_addr
 			  + (size_t)((idx0 * str0 + idx1 * str1
