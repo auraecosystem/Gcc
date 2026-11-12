@@ -1,3 +1,13 @@
+==================== Branch work273-float, patch #222 ====================
+
+Fix thinko in rs6000_expand_vector_*
+
+2026-11-12  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000.cc (rs6000_expand_vector_set): Fix thinko in
+	vector set and extract for vector pairs.
+	(rs6000_expand_vector_extract): Likewise.
+
 ==================== Branch work273-float, patch #221 ====================
 
 Add -mvector-pair-fp support for sqrt
