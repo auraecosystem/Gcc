@@ -908,11 +908,17 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree scalar)
 
 /* Return true if EXPR is a polymorphic reference; otherwise return false.  If
    CLASS_REF isn't nullptr, set its target to a reference to the class container
-   in the true case, and leave it unmodified in the false case.  */
+   in the true case, and leave it unmodified in the false case.  If VAL_PTR
+   isn't nullptr, set it to a pointer to the actual data wrapped by the class
+   container similarly.  */
 
 static bool
-is_polymorphic_ref (tree expr, tree *class_ref = nullptr)
+is_polymorphic_ref (tree expr, tree *class_ref = nullptr,
+		    tree *val_ptr = nullptr)
 {
+  tree valptr_candidate = NULL_TREE;
+  tree class_container = NULL_TREE;
+
   tree e = expr;
   while (true)
     {
@@ -923,14 +929,14 @@ is_polymorphic_ref (tree expr, tree *class_ref = nullptr)
 	       && GFC_CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (e))))
 	{
 	  if (class_ref != nullptr)
-	    *class_ref = build_fold_indirect_ref_loc (input_location, e);
-	  return true;
+	    class_container = build_fold_indirect_ref_loc (input_location, e);
+	  break;
 	}
       else if (GFC_CLASS_TYPE_P (TREE_TYPE (e)))
 	{
 	  if (class_ref != nullptr)
-	    *class_ref = e;
-	  return true;
+	    class_container = e;
+	  break;
 	}
       else if (TREE_CODE (e) == COMPONENT_REF)
 	{
@@ -948,8 +954,30 @@ is_polymorphic_ref (tree expr, tree *class_ref = nullptr)
 		 || TREE_CODE (e) == POINTER_PLUS_EXPR))
 	return false;
 
+      if (valptr_candidate == nullptr
+	  && !(TREE_CODE (e) == INDIRECT_REF
+	       || TREE_CODE (e) == ARRAY_REF)
+	  && !(GFC_CLASS_TYPE_P (TREE_TYPE (e))
+	       || (POINTER_TYPE_P (TREE_TYPE (e))
+		   && GFC_CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (e))))))
+	valptr_candidate = e;
+
       e = TREE_OPERAND (e, 0);
     }
+
+  gcc_assert (class_container != nullptr);
+  if (class_ref != nullptr)
+    *class_ref = class_container;
+
+  if (val_ptr != nullptr)
+    {
+      if (valptr_candidate != nullptr)
+	*val_ptr = valptr_candidate;
+      else
+	*val_ptr = gfc_class_data_get (class_container);
+    }
+
+  return true;
 }
 
 
@@ -964,16 +992,13 @@ gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
 				      tree scalar)
 {
   tree class_ref = nullptr;
-  bool is_class = is_polymorphic_ref (scalar, &class_ref);
+  tree val_ptr = nullptr;
+  bool is_class = is_polymorphic_ref (scalar, &class_ref, &val_ptr);
   gcc_assert (is_class);
   tree dtype_val = gfc_get_dtype_rank_type (0, TREE_TYPE (class_ref));
   gfc_conv_descriptor_dtype_set (block, descr, dtype_val);
 
-  tree tmp = scalar;
-  if (GFC_CLASS_TYPE_P (TREE_TYPE (tmp))
-      || (POINTER_TYPE_P (TREE_TYPE (tmp))
-	  && GFC_CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (tmp)))))
-    tmp = gfc_class_data_get (tmp);
+  tree tmp = val_ptr;
   if (!POINTER_TYPE_P (TREE_TYPE (tmp)))
     tmp = gfc_build_addr_expr (NULL_TREE, tmp);
 
