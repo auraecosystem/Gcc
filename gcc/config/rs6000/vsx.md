@@ -7453,15 +7453,7 @@
    (set (match_dup 4)
 	(VPAIR_FP_unary:<VPAIR_FP_SINGLE> (match_dup 5)))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-
-  operands[2] = gen_rtx_REG (mode, r0);
-  operands[3] = gen_rtx_REG (mode, r1);
-
-  operands[4] = gen_rtx_REG (mode, r0 + 1);
-  operands[5] = gen_rtx_REG (mode, r1 + 1);
+  split_vector_pair_operands (2, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7482,15 +7474,7 @@
 	 (abs:<VPAIR_FP_SINGLE>
 	  (match_dup 5))))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-
-  operands[2] = gen_rtx_REG (mode, r0);
-  operands[3] = gen_rtx_REG (mode, r1);
-
-  operands[4] = gen_rtx_REG (mode, r0 + 1);
-  operands[5] = gen_rtx_REG (mode, r1 + 1);
+  split_vector_pair_operands (2, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7521,15 +7505,7 @@
    (set (match_dup 4)
 	(sqrt:<VPAIR_FP_SINGLE> (match_dup 5)))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-
-  operands[2] = gen_rtx_REG (mode, r0);
-  operands[3] = gen_rtx_REG (mode, r1);
-
-  operands[4] = gen_rtx_REG (mode, r0 + 1);
-  operands[5] = gen_rtx_REG (mode, r1 + 1);
+  split_vector_pair_operands (2, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<sd>sqrt")
    (set_attr "length" "8")])
@@ -7547,15 +7523,7 @@
    (set (match_dup 4)
 	(unspec:<VPAIR_FP_SINGLE> [(match_dup 5)] UNSPEC_RSQRT))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-
-  operands[2] = gen_rtx_REG (mode, r0);
-  operands[3] = gen_rtx_REG (mode, r1);
-
-  operands[4] = gen_rtx_REG (mode, r0 + 1);
-  operands[5] = gen_rtx_REG (mode, r1 + 1);
+  split_vector_pair_operands (2, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7572,15 +7540,7 @@
    (set (match_dup 4)
 	(unspec:<VPAIR_FP_SINGLE> [(match_dup 5)] UNSPEC_FRES))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-
-  operands[2] = gen_rtx_REG (mode, r0);
-  operands[3] = gen_rtx_REG (mode, r1);
-
-  operands[4] = gen_rtx_REG (mode, r0 + 1);
-  operands[5] = gen_rtx_REG (mode, r1 + 1);
+  split_vector_pair_operands (2, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7602,18 +7562,7 @@
 	 (match_dup 7)
 	 (match_dup 8)))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-
-  operands[3] = gen_rtx_REG (mode, r0);
-  operands[4] = gen_rtx_REG (mode, r1);
-  operands[5] = gen_rtx_REG (mode, r2);
-
-  operands[6] = gen_rtx_REG (mode, r0 + 1);
-  operands[7] = gen_rtx_REG (mode, r1 + 1);
-  operands[8] = gen_rtx_REG (mode, r2 + 1);
+  split_vector_pair_operands (3, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7650,18 +7599,7 @@
 	 (match_dup 7)
 	 (match_dup 8)))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-
-  operands[3] = gen_rtx_REG (mode, r0);
-  operands[4] = gen_rtx_REG (mode, r1);
-  operands[5] = gen_rtx_REG (mode, r2);
-
-  operands[6] = gen_rtx_REG (mode, r0 + 1);
-  operands[7] = gen_rtx_REG (mode, r1 + 1);
-  operands[8] = gen_rtx_REG (mode, r2 + 1);
+  split_vector_pair_operands (3, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_div>")
    (set_attr "length" "8")])
@@ -7686,21 +7624,7 @@
 	 (match_dup 10)
 	 (match_dup 11)))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-  unsigned r3 = reg_or_subregno (operands[3]);
-
-  operands[4] = gen_rtx_REG (mode, r0);
-  operands[5] = gen_rtx_REG (mode, r1);
-  operands[6] = gen_rtx_REG (mode, r2);
-  operands[7] = gen_rtx_REG (mode, r3);
-
-  operands[8] = gen_rtx_REG (mode, r0 + 1);
-  operands[9] = gen_rtx_REG (mode, r1 + 1);
-  operands[10] = gen_rtx_REG (mode, r2 + 1);
-  operands[11] = gen_rtx_REG (mode, r3 + 1);
+  split_vector_pair_operands (4, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7728,21 +7652,7 @@
 	 (neg:<VPAIR_FP_SINGLE>
 	  (match_dup 11))))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-  unsigned r3 = reg_or_subregno (operands[3]);
-
-  operands[4] = gen_rtx_REG (mode, r0);
-  operands[5] = gen_rtx_REG (mode, r1);
-  operands[6] = gen_rtx_REG (mode, r2);
-  operands[7] = gen_rtx_REG (mode, r3);
-
-  operands[8] = gen_rtx_REG (mode, r0 + 1);
-  operands[9] = gen_rtx_REG (mode, r1 + 1);
-  operands[10] = gen_rtx_REG (mode, r2 + 1);
-  operands[11] = gen_rtx_REG (mode, r3 + 1);
+  split_vector_pair_operands (4, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7770,21 +7680,7 @@
 	  (match_dup 10)
 	  (match_dup 11))))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-  unsigned r3 = reg_or_subregno (operands[3]);
-
-  operands[4] = gen_rtx_REG (mode, r0);
-  operands[5] = gen_rtx_REG (mode, r1);
-  operands[6] = gen_rtx_REG (mode, r2);
-  operands[7] = gen_rtx_REG (mode, r3);
-
-  operands[8] = gen_rtx_REG (mode, r0 + 1);
-  operands[9] = gen_rtx_REG (mode, r1 + 1);
-  operands[10] = gen_rtx_REG (mode, r2 + 1);
-  operands[11] = gen_rtx_REG (mode, r3 + 1);
+  split_vector_pair_operands (4, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7815,21 +7711,7 @@
 	  (neg:<VPAIR_FP_SINGLE>
 	   (match_dup 11)))))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-  unsigned r3 = reg_or_subregno (operands[3]);
-
-  operands[4] = gen_rtx_REG (mode, r0);
-  operands[5] = gen_rtx_REG (mode, r1);
-  operands[6] = gen_rtx_REG (mode, r2);
-  operands[7] = gen_rtx_REG (mode, r3);
-
-  operands[8] = gen_rtx_REG (mode, r0 + 1);
-  operands[9] = gen_rtx_REG (mode, r1 + 1);
-  operands[10] = gen_rtx_REG (mode, r2 + 1);
-  operands[11] = gen_rtx_REG (mode, r3 + 1);
+  split_vector_pair_operands (4, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "<VStype_simple>")
    (set_attr "length" "8")])
@@ -7861,21 +7743,7 @@
 	 (and:<VPAIR_FP_SINGLE> (match_dup 9)
 				(match_dup 11))))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-  unsigned r3 = reg_or_subregno (operands[3]);
-
-  operands[4] = gen_rtx_REG (mode, r0);
-  operands[5] = gen_rtx_REG (mode, r1);
-  operands[6] = gen_rtx_REG (mode, r2);
-  operands[7] = gen_rtx_REG (mode, r3);
-
-  operands[8] = gen_rtx_REG (mode, r0 + 1);
-  operands[9] = gen_rtx_REG (mode, r1 + 1);
-  operands[10] = gen_rtx_REG (mode, r2 + 1);
-  operands[11] = gen_rtx_REG (mode, r3 + 1);
+  split_vector_pair_operands (4, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "vecmove")
    (set_attr "length" "8")])
@@ -7906,21 +7774,7 @@
 	 (and:<VPAIR_FP_SINGLE> (match_dup 11)
 				(match_dup 9))))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-  unsigned r3 = reg_or_subregno (operands[3]);
-
-  operands[4] = gen_rtx_REG (mode, r0);
-  operands[5] = gen_rtx_REG (mode, r1);
-  operands[6] = gen_rtx_REG (mode, r2);
-  operands[7] = gen_rtx_REG (mode, r3);
-
-  operands[8] = gen_rtx_REG (mode, r0 + 1);
-  operands[9] = gen_rtx_REG (mode, r1 + 1);
-  operands[10] = gen_rtx_REG (mode, r2 + 1);
-  operands[11] = gen_rtx_REG (mode, r3 + 1);
+  split_vector_pair_operands (4, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "vecmove")
    (set_attr "length" "8")])
@@ -7951,21 +7805,7 @@
 	 (and:<VPAIR_FP_SINGLE> (not:<VPAIR_FP_SINGLE> (match_dup 9))
 				(match_dup 11))))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-  unsigned r3 = reg_or_subregno (operands[3]);
-
-  operands[4] = gen_rtx_REG (mode, r0);
-  operands[5] = gen_rtx_REG (mode, r1);
-  operands[6] = gen_rtx_REG (mode, r2);
-  operands[7] = gen_rtx_REG (mode, r3);
-
-  operands[8] = gen_rtx_REG (mode, r0 + 1);
-  operands[9] = gen_rtx_REG (mode, r1 + 1);
-  operands[10] = gen_rtx_REG (mode, r2 + 1);
-  operands[11] = gen_rtx_REG (mode, r3 + 1);
+  split_vector_pair_operands (4, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "vecmove")
    (set_attr "length" "8")])
@@ -7996,21 +7836,7 @@
 	 (and:<VPAIR_FP_SINGLE> (not:<VPAIR_FP_SINGLE> (match_dup 10))
 				(match_dup 11))))]
 {
-  machine_mode mode = <VPAIR_FP_SINGLE>mode;
-  unsigned r0 = reg_or_subregno (operands[0]);
-  unsigned r1 = reg_or_subregno (operands[1]);
-  unsigned r2 = reg_or_subregno (operands[2]);
-  unsigned r3 = reg_or_subregno (operands[3]);
-
-  operands[4] = gen_rtx_REG (mode, r0);
-  operands[5] = gen_rtx_REG (mode, r1);
-  operands[6] = gen_rtx_REG (mode, r2);
-  operands[7] = gen_rtx_REG (mode, r3);
-
-  operands[8] = gen_rtx_REG (mode, r0 + 1);
-  operands[9] = gen_rtx_REG (mode, r1 + 1);
-  operands[10] = gen_rtx_REG (mode, r2 + 1);
-  operands[11] = gen_rtx_REG (mode, r3 + 1);
+  split_vector_pair_operands (4, operands, <VPAIR_FP_SINGLE>mode);
 }
   [(set_attr "type" "vecmove")
    (set_attr "length" "8")])

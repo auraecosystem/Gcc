@@ -274,6 +274,7 @@ typedef enum {
 
 extern vect_const_method vect_const_can_be_generated (vec_const_128bit_type *,
 						      unsigned *);
+extern void split_vector_pair_operands (size_t, rtx [], machine_mode);
 
 /* From float16.cc.  */
 /* Optimize bfloat16 and float16 operations.  */

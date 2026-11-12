@@ -7916,38 +7916,29 @@ rs6000_expand_vector_set (rtx target, rtx val, rtx elt_rtx)
 {
   machine_mode mode = GET_MODE (target);
   machine_mode inner_mode = GET_MODE_INNER (mode);
-  rtx reg = gen_reg_rtx (mode);
   rtx mask, mem, x;
-  int width = GET_MODE_SIZE (inner_mode);
   int i;
 
-  if (VPAIR_FP_P (mode) && CONST_INT_P (elt_rtx))
+  val = force_reg (GET_MODE (val), val);
+
+  /* Vectors that take more than one register like vector pairs need to store
+     the whole vector, store the value and then reload.  */
+  if (GET_MODE_SIZE (mode) > 16)
     {
-      size_t nunits = GET_MODE_NUNITS (mode);
-      size_t elt = (size_t) UINTVAL (elt_rtx);
-      size_t v_num;
-      machine_mode v_mode;
+      mem = assign_stack_temp (mode, GET_MODE_SIZE (mode));
+      emit_move_insn (mem, target);
 
-      if (BYTES_BIG_ENDIAN)
-	v_num = (elt >= nunits) ? 16 : 0;
-      else
-	v_num = (elt < nunits) ? 16 : 0;
+      rtx addr = copy_to_mode_reg (Pmode, XEXP (mem, 0));
+      if (elt_rtx != const0_rtx)
+	emit_insn (gen_add2_insn (addr, elt_rtx));
 
-      if (mode == V4DFmode)
-	v_mode = V2DFmode;
-      else if (mode == V8SFmode)
-	v_mode = V4SFmode;
-      else
-	gcc_unreachable ();
-
-      rtx v_target = gen_rtx_SUBREG (v_mode, target, v_num);
-      size_t v_nunits = GET_MODE_NUNITS (v_mode);
-      rs6000_expand_vector_set (v_target, val,
-				GEN_INT (elt % v_nunits));
+      emit_move_insn (change_address (mem, inner_mode, addr), val);
+      emit_move_insn (target, mem);
       return;
     }
 
-  val = force_reg (GET_MODE (val), val);
+  rtx reg = gen_reg_rtx (mode);
+  int width = GET_MODE_SIZE (inner_mode);
 
   if (VECTOR_MEM_VSX_P (mode))
     {
@@ -30384,7 +30375,40 @@ rs6000_opaque_type_invalid_use_p (gimple *stmt)
 
   return false;
 }
+
+/* Split up the operands for vector pair operation into separate operations on
+   each vector register.  Take the first N_OPERANDS from the OPERANDS array and
+   adjust the next n_operands to have the high register and the following
+   n_operands will have the low register.  Each single register operands will
+   use MODE for the machine mode.
 
+   Because vector pair registers are required to be even/odd regiters, we don't
+   have to worry about registers overlapping.
+
+   Unary operations have 2 operands, binary operations have 3 operands, and
+   fma/xxsel operation have 4 operands.  */
+
+void
+split_vector_pair_operands (size_t n_operands,
+			    rtx operands[],
+			    machine_mode mode)
+{
+  size_t hi_regs = n_operands;
+  size_t lo_regs = n_operands * 2;
+
+  gcc_assert (IN_RANGE (n_operands, 2, 4));
+
+  for (size_t i = 0; i < n_operands; i++)
+    {
+      unsigned r = reg_or_subregno (operands[i]);
+      operands[ hi_regs+i ] = gen_rtx_REG (mode, r);
+      operands[ lo_regs+i ] = gen_rtx_REG (mode, r+1);
+    }
+
+  return;
+}
+
+
 #undef TARGET_DOCUMENTATION_NAME
 #define TARGET_DOCUMENTATION_NAME "PowerPC"
 
