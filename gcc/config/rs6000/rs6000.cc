@@ -7921,32 +7921,29 @@ rs6000_expand_vector_set (rtx target, rtx val, rtx elt_rtx)
   int width = GET_MODE_SIZE (inner_mode);
   int i;
 
-  /* For vector pairs with constant elements, change it into a vector set of
-     the single register.  */
-  if (VPAIR_FP_P (mode))
+  if (VPAIR_FP_P (mode) && CONST_INT_P (elt_rtx))
     {
-      if (!CONST_INT_P (elt_rtx))
-	gcc_unreachable ();
-
       size_t nunits = GET_MODE_NUNITS (mode);
       size_t elt = (size_t) UINTVAL (elt_rtx);
-      size_t vnum;
-      machine_mode vmode;
+      size_t v_num;
+      machine_mode v_mode;
 
       if (BYTES_BIG_ENDIAN)
-	vnum = (elt >= nunits) ? 16 : 0;
+	v_num = (elt >= nunits) ? 16 : 0;
       else
-	vnum = (elt < nunits) ? 16 : 0;
+	v_num = (elt < nunits) ? 16 : 0;
 
       if (mode == V4DFmode)
-	vmode = V2DFmode;
+	v_mode = V2DFmode;
       else if (mode == V8SFmode)
-	vmode = V4SFmode;
+	v_mode = V4SFmode;
       else
 	gcc_unreachable ();
 
-      rtx vtarget = gen_rtx_SUBREG (vmode, target, vnum);
-      rs6000_expand_vector_set (vtarget, val, GEN_INT (elt % nunits));
+      rtx v_target = gen_rtx_SUBREG (v_mode, target, v_num);
+      size_t v_nunits = GET_MODE_NUNITS (v_mode);
+      rs6000_expand_vector_set (v_target, val,
+				GEN_INT (elt % v_nunits));
       return;
     }
 
@@ -8075,31 +8072,29 @@ rs6000_expand_vector_extract (rtx target, rtx vec, rtx elt)
 
   /* For vector pairs with constant elements, change it into a vector extract
      of the single register.  */
-  if (VPAIR_FP_P (mode))
+  if (VPAIR_FP_P (mode) && CONST_INT_P (elt))
     {
-      if (!CONST_INT_P (elt))
-	gcc_unreachable ();
-
       size_t nunits = GET_MODE_NUNITS (mode);
       size_t elt_num = (size_t) UINTVAL (elt);
-      size_t vnum;
-      machine_mode vmode;
+      size_t v_num;
+      machine_mode v_mode;
 
       if (BYTES_BIG_ENDIAN)
-	vnum = (elt_num >= nunits) ? 16 : 0;
+	v_num = (elt_num >= nunits) ? 16 : 0;
       else
-	vnum = (elt_num < nunits) ? 16 : 0;
+	v_num = (elt_num < nunits) ? 16 : 0;
 
       if (mode == V4DFmode)
-	vmode = V2DFmode;
+	v_mode = V2DFmode;
       else if (mode == V8SFmode)
-	vmode = V4SFmode;
+	v_mode = V4SFmode;
       else
 	gcc_unreachable ();
 
-      rtx v_vec = gen_rtx_SUBREG (vmode, vec, vnum);
+      rtx v_vec = gen_rtx_SUBREG (v_mode, vec, v_num);
+      size_t v_nunits = GET_MODE_NUNITS (v_mode);
       rs6000_expand_vector_extract (target, v_vec,
-				    GEN_INT (elt_num % nunits));
+				    GEN_INT (elt_num % v_nunits));
       return;
     }
 
