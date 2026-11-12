@@ -223,6 +223,13 @@ enum rs6000_recip_mask {
   RECIP_LOW_PRECISION	= (RECIP_ALL & ~(RECIP_DF_RSQRT | RECIP_V2DF_RSQRT))
 };
 
+/* For reciprocal optimization, treat the vector pair modes the same as
+   as the normal vector modes.  */
+#define RECIP_V8SF_DIV		RECIP_V4SF_DIV
+#define RECIP_V4DF_DIV		RECIP_V2DF_DIV
+#define RECIP_V8SF_RSQRT	RECIP_V4SF_DIV
+#define RECIP_V4DF_RSQRT	RECIP_V2DF_DIV
+
 /* -mrecip options.  */
 static struct
 {
@@ -3466,6 +3473,11 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
     rs6000_recip_bits[V4SFmode] = RS6000_RECIP_MASK_HAVE_RE;
   if (VECTOR_UNIT_VSX_P (V2DFmode))
     rs6000_recip_bits[V2DFmode] = RS6000_RECIP_MASK_HAVE_RE;
+  if (TARGET_VECTOR_PAIR_FP)
+    {
+      rs6000_recip_bits[V8SFmode] = RS6000_RECIP_MASK_HAVE_RE;
+      rs6000_recip_bits[V4DFmode] = RS6000_RECIP_MASK_HAVE_RE;
+    }
 
   if (TARGET_FRSQRTES)
     rs6000_recip_bits[SFmode] |= RS6000_RECIP_MASK_HAVE_RSQRTE;
@@ -3475,6 +3487,11 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
     rs6000_recip_bits[V4SFmode] |= RS6000_RECIP_MASK_HAVE_RSQRTE;
   if (VECTOR_UNIT_VSX_P (V2DFmode))
     rs6000_recip_bits[V2DFmode] |= RS6000_RECIP_MASK_HAVE_RSQRTE;
+  if (TARGET_VECTOR_PAIR_FP)
+    {
+      rs6000_recip_bits[V8SFmode] |= RS6000_RECIP_MASK_HAVE_RSQRTE;
+      rs6000_recip_bits[V4DFmode] |= RS6000_RECIP_MASK_HAVE_RSQRTE;
+    }
 
   if (rs6000_recip_control)
     {
@@ -3501,9 +3518,17 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	      && (rs6000_recip_control & RECIP_V4SF_DIV) != 0)
 	    rs6000_recip_bits[V4SFmode] |= RS6000_RECIP_MASK_AUTO_RE;
 
+	  if (RS6000_RECIP_HAVE_RE_P (V8SFmode)
+	      && (rs6000_recip_control & RECIP_V8SF_DIV) != 0)
+	    rs6000_recip_bits[V8SFmode] |= RS6000_RECIP_MASK_AUTO_RE;
+
 	  if (RS6000_RECIP_HAVE_RE_P (V2DFmode)
 	      && (rs6000_recip_control & RECIP_V2DF_DIV) != 0)
 	    rs6000_recip_bits[V2DFmode] |= RS6000_RECIP_MASK_AUTO_RE;
+
+	  if (RS6000_RECIP_HAVE_RE_P (V4DFmode)
+	      && (rs6000_recip_control & RECIP_V4DF_DIV) != 0)
+	    rs6000_recip_bits[V4DFmode] |= RS6000_RECIP_MASK_AUTO_RE;
 
 	  if (RS6000_RECIP_HAVE_RSQRTE_P (SFmode)
 	      && (rs6000_recip_control & RECIP_SF_RSQRT) != 0)
@@ -3517,9 +3542,17 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	      && (rs6000_recip_control & RECIP_V4SF_RSQRT) != 0)
 	    rs6000_recip_bits[V4SFmode] |= RS6000_RECIP_MASK_AUTO_RSQRTE;
 
+	  if (RS6000_RECIP_HAVE_RSQRTE_P (V8SFmode)
+	      && (rs6000_recip_control & RECIP_V8SF_RSQRT) != 0)
+	    rs6000_recip_bits[V8SFmode] |= RS6000_RECIP_MASK_AUTO_RSQRTE;
+
 	  if (RS6000_RECIP_HAVE_RSQRTE_P (V2DFmode)
 	      && (rs6000_recip_control & RECIP_V2DF_RSQRT) != 0)
 	    rs6000_recip_bits[V2DFmode] |= RS6000_RECIP_MASK_AUTO_RSQRTE;
+
+	  if (RS6000_RECIP_HAVE_RSQRTE_P (V4DFmode)
+	      && (rs6000_recip_control & RECIP_V4DF_RSQRT) != 0)
+	    rs6000_recip_bits[V4DFmode] |= RS6000_RECIP_MASK_AUTO_RSQRTE;
 	}
     }
 
@@ -23656,29 +23689,27 @@ rs6000_ira_change_pseudo_allocno_class (int regno ATTRIBUTE_UNUSED,
 static rtx
 rs6000_load_constant_and_splat (machine_mode mode, REAL_VALUE_TYPE dconst)
 {
-  rtx reg;
-
   if (mode == SFmode || mode == DFmode || FP16_SCALAR_MODE_P (mode))
     {
       rtx d = const_double_from_real_value (dconst, mode);
-      reg = force_reg (mode, d);
+      return force_reg (mode, d);
     }
-  else if (mode == V4SFmode || mode == V8SFmode)
-    {
-      rtx d = const_double_from_real_value (dconst, SFmode);
-      rtvec v = gen_rtvec (4, d, d, d, d);
-      reg = gen_reg_rtx (mode);
-      rs6000_expand_vector_init (reg, gen_rtx_PARALLEL (mode, v));
-    }
-  else if (mode == V2DFmode || mode == V4DFmode)
-    {
-      rtx d = const_double_from_real_value (dconst, DFmode);
-      rtvec v = gen_rtvec (2, d, d);
-      reg = gen_reg_rtx (mode);
-      rs6000_expand_vector_init (reg, gen_rtx_PARALLEL (mode, v));
-    }
-  else
-    gcc_unreachable ();
+
+  gcc_assert (VECTOR_MODE_P (mode));
+
+  rtx reg = gen_reg_rtx (mode);
+  rtx d = const_double_from_real_value (dconst, GET_MODE_INNER (mode));
+  size_t nunits = GET_MODE_NUNITS (mode);
+  rtx dup_d[16];
+
+  gcc_assert (nunits <= ARRAY_SIZE (dup_d));
+
+  for (size_t i = 0; i < nunits; i++)
+    dup_d[i] = d;
+
+  rs6000_expand_vector_init (reg,
+			     gen_rtx_PARALLEL (mode,
+					       gen_rtvec_v (nunits, dup_d)));
 
   return reg;
 }
@@ -23738,7 +23769,7 @@ rs6000_emit_swdiv (rtx dst, rtx n, rtx d, bool note_p)
      accuracy.  Each pass at least doubles the accuracy, leading
      to the following.  */
   int passes = (TARGET_RECIP_PRECISION) ? 1 : 3;
-  if (mode == DFmode || mode == V2DFmode)
+  if (mode == DFmode || mode == V2DFmode || mode == V4DFmode)
     passes++;
 
   enum insn_code code = optab_handler (smul_optab, mode);
@@ -23813,7 +23844,7 @@ rs6000_emit_swsqrt (rtx dst, rtx src, bool recip)
      accuracy.  Each pass at least doubles the accuracy, leading
      to the following.  */
   int passes = (TARGET_RECIP_PRECISION) ? 1 : 3;
-  if (mode == DFmode || mode == V2DFmode)
+  if (mode == DFmode || mode == V2DFmode || mode == V4DFmode)
     passes++;
 
   int i;

@@ -340,7 +340,9 @@ enum basetype
   BT_IBM128,
   BT_VPAIR,
   BT_VQUAD,
-  BT_DMR
+  BT_DMR,
+  BT_FLOAT_VP,
+  BT_DOUBLE_VP
 };
 
 /* Ways in which a const int value can be restricted.  RES_BITS indicates
@@ -593,13 +595,17 @@ static typemap type_map[] =
     { "v16qi",		"V16QI" },
     { "v1poi",		"vector_pair" },
     { "v1pxi",		"vector_quad" },
-    { "v1tdoi",	"dmr1024" },
+    { "v1tdoi",		"dmr1024" },
     { "v1ti",		"V1TI" },
     { "v2df",		"V2DF" },
     { "v2di",		"V2DI" },
+    { "v4df",		"V4DF" },
     { "v4sf",		"V4SF" },
     { "v4si",		"V4SI" },
+    { "v8bf",		"V8BF" },
+    { "v8hf",		"V8HF" },
     { "v8hi",		"V8HI" },
+    { "v8sf",		"V8SF" },
     { "vp8hi",		"pixel_V8HI" },
   };
 
@@ -881,8 +887,12 @@ match_basetype (typeinfo *typedata)
     }
   else if (!strcmp (token, "float"))
     typedata->base = BT_FLOAT;
+  else if (!strcmp (token, "float_vp"))
+    typedata->base = BT_FLOAT_VP;
   else if (!strcmp (token, "double"))
     typedata->base = BT_DOUBLE;
+  else if (!strcmp (token, "double_vp"))
+    typedata->base = BT_DOUBLE_VP;
   else if (!strcmp (token, "__int128"))
     typedata->base = BT_INT128;
   else if (!strcmp (token, "_Float128"))
@@ -1240,10 +1250,24 @@ match_type (typeinfo *typedata, int voidok)
       handle_pointer (typedata);
       return 1;
     }
+  else if (!strcmp (token, "vf_vp"))
+    {
+      typedata->isvector = 1;
+      typedata->base = BT_FLOAT_VP;
+      handle_pointer (typedata);
+      return 1;
+    }
   else if (!strcmp (token, "vd"))
     {
       typedata->isvector = 1;
       typedata->base = BT_DOUBLE;
+      handle_pointer (typedata);
+      return 1;
+    }
+  else if (!strcmp (token, "vd_vp"))
+    {
+      typedata->isvector = 1;
+      typedata->base = BT_DOUBLE_VP;
       handle_pointer (typedata);
       return 1;
     }
@@ -1554,8 +1578,16 @@ complete_vector_type (typeinfo *typeptr, char *buf, int *bufi)
       memcpy (&buf[*bufi], "4sf", 3);
       *bufi += 3;
       break;
+    case BT_FLOAT_VP:
+      memcpy (&buf[*bufi], "8sf", 3);
+      *bufi += 3;
+      break;
     case BT_DOUBLE:
       memcpy (&buf[*bufi], "2df", 3);
+      *bufi += 3;
+      break;
+    case BT_DOUBLE_VP:
+      memcpy (&buf[*bufi], "4df", 3);
       *bufi += 3;
       break;
     case BT_INT128:
@@ -1606,9 +1638,11 @@ complete_base_type (typeinfo *typeptr, char *buf, int *bufi)
       memcpy (&buf[*bufi], "di", 2);
       break;
     case BT_FLOAT:
+    case BT_FLOAT_VP:
       memcpy (&buf[*bufi], "sf", 2);
       break;
     case BT_DOUBLE:
+    case BT_DOUBLE_VP:
       memcpy (&buf[*bufi], "df", 2);
       break;
     case BT_LONGDOUBLE:
