@@ -1,3 +1,60 @@
+==================== Branch work273-float, patch #221 ====================
+
+Add -mvector-pair-fp support for sqrt
+
+2026-11-11  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000-builtin.cc
+	(rs6000_builtin_md_vectorized_function): Add support for vector pair
+	reciprocal optimizations.
+	* config/rs6000/rs6000-builtins.def (__builtin_vsx_xvrecipdivdp): New
+	vector pair built-in functions.
+	(__builtin_vsx_xvrecipdivsp_vp): Likewise.
+	(__builtin_vsx_xvredp_vp): Likewise.
+	(__builtin_vsx_xvresp_vp): Likewise.
+	(__builtin_vsx_xvrsqrtdp_vp): Likewise.
+	(__builtin_vsx_xvrsqrtsp_vp): Likewise.
+	(__builtin_vsx_xvsqrtdp_vp): Likewise.
+	(__builtin_vsx_xvsqrtsp_vp): Likewise.
+	* config/rs6000/rs6000-gen-builtins.cc (enum basetype): Add support for
+	vector pair built-in functions.
+	(type_map): Likewise.
+	(match_basetype): Likewise.
+	(match_type): Likewise.
+	(complete_vector_type): Likewise.
+	(complete_base_type): Likewise.
+	* config/rs6000/rs6000.cc (RECIP_V8SF_DIV): Likewise.
+	(RECIP_V4DF_DIV): Likewise.
+	(RECIP_V8SF_RSQRT): Likewise.
+	(RECIP_V4DF_RSQRT): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_load_constant_and_splat): Likewise.
+	(rs6000_emit_swdiv): Likewise.
+	(rs6000_emit_swsqrt): Likewise.
+	* config/rs6000/rs6000.h (RS6000_BTI_V4DF): Likewise.
+	(RS6000_BTI_V8SF): Likewise.
+	(RS6000_BTI_ptr_V4DF): Likewise.
+	(RS6000_BTI_ptr_V8SF): Likewise.
+	(V4DF_type_node): Likewise.
+	(V8SF_type_node): Likewise.
+	(ptr_V4DF_type_node): Likewise.
+	(ptr_V8SF_type_node): Likewise.
+	* config/rs6000/rs6000.md (RECIPF): Likewise.
+	(sd attribute): Likewise.
+	(VStype_div): Likewise.
+	(VPAIR_FP_binary): Likewise.
+	(VPAIR_FP_name): Likewise.
+	(<VPAIR_FP_name><mode>2, VPAIR_FP_unary:VPAIR iterator): Reformat.
+	(sqrt<mode>2, VPAIR_FP iterator): Add support for vector pair built-in
+	functions.
+	(rsqrte<mode>2, VPAIR_FP iterator): Likewise.
+	(fre<mode>2, VPAIR_FP iterator): Likewise.
+	(div<mode>3, VPAIR_FP iterator): Likewise.
+	(*vpair_xxsel<mode>_1): Likewise.
+	(*vpair_xxsel<mode>_2): Likewise.
+	(*vpair_xxsel<mode>_3): Likewise.
+	(*vpair_xxsel<mode>_4): Likewise.
+
 ==================== Branch work273-float, patch #220 ====================
 
 Add -mvector-pair-fp
