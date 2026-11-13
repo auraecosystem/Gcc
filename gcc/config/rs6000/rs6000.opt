@@ -662,13 +662,17 @@ mvector-pair-fp
 Target Mask(VECTOR_PAIR_FP) Var(rs6000_isa_flags)
 Enable or disable using paired vectors for floating point operations
 
-mvector-pair-fp-load
-Target Undocumented Var(TARGET_VECTOR_PAIR_FP_LOAD) Init(1) Save
-Generate/do not generate lxvp if -mvector-pair-fp.
+mvector-pair-memory
+Target Undocumented Var(TARGET_VECTOR_PAIR_MEMORY) Init(-1) Save
+Generate/do not generate lxvp/stxvp for vector pairs.
 
-mvector-pair-fp-store
-Target Undocumented Var(TARGET_VECTOR_PAIR_FP_STORE) Init(1) Save
-Generate/do not generate stxvp if -mvector-pair-fp.
+mvector-pair-load
+Target Undocumented Var(TARGET_VECTOR_PAIR_LOAD) Init(-1) Save
+Generate/do not generate lxvp for vector pairs.
+
+mvector-pair-store
+Target Undocumented Var(TARGET_VECTOR_PAIR_STORE) Init(-1) Save
+Generate/do not generate stxvp for vector pairs.
 
 mvector-pair-float
 Target Undocumented Var(TARGET_VECTOR_PAIR_FLOAT) Init(1) Save

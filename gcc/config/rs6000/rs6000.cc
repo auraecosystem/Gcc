@@ -2684,6 +2684,19 @@ rs6000_debug_reg_global (void)
       fprintf (stderr, DEBUG_FMT_S, "__bf16", "disabled");
     }
 
+  fprintf (stderr, DEBUG_FMT_S, "VECTOR_PAIR_FP",
+	   TARGET_VECTOR_PAIR_FP ? "yes" : "no");
+  fprintf (stderr, DEBUG_FMT_D, "VECTOR_PAIR_MEMORY",
+	   TARGET_VECTOR_PAIR_MEMORY);
+  fprintf (stderr, DEBUG_FMT_D, "VECTOR_PAIR_LOAD",
+	   TARGET_VECTOR_PAIR_LOAD);
+  fprintf (stderr, DEBUG_FMT_D, "VECTOR_PAIR_STORE",
+	   TARGET_VECTOR_PAIR_STORE);
+  fprintf (stderr, DEBUG_FMT_D, "VECTOR_PAIR_FLOAT",
+	   TARGET_VECTOR_PAIR_FLOAT);
+  fprintf (stderr, DEBUG_FMT_D, "VECTOR_PAIR_DOUBLE",
+	   TARGET_VECTOR_PAIR_DOUBLE);
+
   if (TARGET_HARD_FLOAT)
     {
       rs6000_debug_fp_mode (SFmode);
@@ -2723,7 +2736,7 @@ rs6000_debug_reg_global (void)
 	    }
 	}
 
-      if (TARGET_P9_VECTOR)
+      if (TARGET_VECTOR_PAIR_FP)
 	{
 	  rs6000_debug_fp_mode (V8SFmode);
 	  rs6000_debug_fp_mode (V4DFmode);
@@ -2902,10 +2915,13 @@ rs6000_setup_reg_addr_masks (void)
 
 	  else if ((addr_mask != 0) && TARGET_P9_VECTOR && VPAIR_FP_P (m2))
 	    {
-	      addr_mask |= RELOAD_REG_OFFSET;
-	      if (TARGET_POWER10
-		  && TARGET_VECTOR_PAIR_FP_LOAD
-		  && TARGET_VECTOR_PAIR_FP_STORE)
+	      /* For vector pairs, we can do offset addressing, even if we
+		 split the loads/stores into 2 operations.  Allow indexed on
+		 power10, even if we are splitting lxvp to 2 lxv's or stxvp
+		 into 2 stxv's.  The constraints used will restrict the
+		 addressing mode when we are doing the splitting.  */
+	      addr_mask |= RELOAD_REG_OFFSET | RELOAD_REG_QUAD_OFFSET;
+	      if (TARGET_POWER10)
 		addr_mask |= RELOAD_REG_INDEXED;
 	    }
 
@@ -3114,15 +3130,20 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
     }
 
   /* paired floating point vector mode.  */
-  if (TARGET_P9_VECTOR)
+  if (TARGET_P9_VECTOR
+      && (TARGET_VECTOR_PAIR_FP || TARGET_VECTOR_PAIR_MEMORY))
     {
-      rs6000_vector_unit[V8SFmode] = VECTOR_VSX;
       rs6000_vector_mem[V8SFmode] = VECTOR_VSX;
       rs6000_vector_align[V8SFmode] = align32;
 
-      rs6000_vector_unit[V4DFmode] = VECTOR_VSX;
       rs6000_vector_mem[V4DFmode] = VECTOR_VSX;
       rs6000_vector_align[V4DFmode] = align32;
+
+      if (TARGET_VECTOR_PAIR_FP)
+	{
+	  rs6000_vector_unit[V8SFmode] = VECTOR_VSX;
+	  rs6000_vector_unit[V4DFmode] = VECTOR_VSX;
+	}
     }
 
   /* DFmode, see if we want to use the VSX unit.  Memory is handled
@@ -4189,6 +4210,34 @@ rs6000_option_override_internal (bool global_init_p)
 	error ("%qs is only available on 64-bit little endian systems "
 	       "that use at least %qs",
 	       "-mvector-pair-fp", "-mcpu=power9");
+    }
+
+  /* Determine the defaults for vector pair.  There 3 options for using vector
+     pair memory:
+
+	-mvector-pair-memory	-- use both lxvp and stxvp
+	-mvector-pair-load	-- use lxvp
+	-mvector-pair-store	-- use stxvp.
+
+     Setting -mvector-pair-memory, overrides both -mvector-pair-load and
+     -mvector-pair-store.  Setting -mvector-pair-fp enables any memory
+     operation that wasn't explicitly set.  */
+
+  if (TARGET_VECTOR_PAIR_MEMORY >= 0)
+    TARGET_VECTOR_PAIR_LOAD = TARGET_VECTOR_PAIR_STORE = TARGET_VECTOR_PAIR_MEMORY;
+
+  else
+    {
+      int vp_default = TARGET_VECTOR_PAIR_FP ? 1 : 0;
+
+      if (TARGET_VECTOR_PAIR_LOAD < 0)
+	TARGET_VECTOR_PAIR_LOAD = vp_default;
+
+      if (TARGET_VECTOR_PAIR_STORE < 0)
+	TARGET_VECTOR_PAIR_STORE = vp_default;
+
+      TARGET_VECTOR_PAIR_MEMORY = (TARGET_VECTOR_PAIR_LOAD
+				   | TARGET_VECTOR_PAIR_STORE);
     }
 
   if (TARGET_DEBUG_REG || TARGET_DEBUG_TARGET)
@@ -14081,7 +14130,7 @@ rs6000_preferred_reload_class (rtx x, enum reg_class rclass)
      the GPR registers.  */
   if (rclass == GEN_OR_FLOAT_REGS)
     {
-      if (mode == OOmode)
+      if (mode == OOmode || VPAIR_FP_P (mode))
 	return VSX_REGS;
 
       if (mode == XOmode)
@@ -25365,6 +25414,21 @@ static struct rs6000_opt_var const rs6000_opt_vars[] =
   { "speculate-indirect-jumps",
     offsetof (struct gcc_options, x_rs6000_speculate_indirect_jumps),
     offsetof (struct cl_target_option, x_rs6000_speculate_indirect_jumps), },
+  { "vector-pair-memory",
+    offsetof (struct gcc_options, x_TARGET_VECTOR_PAIR_MEMORY),
+    offsetof (struct cl_target_option, x_TARGET_VECTOR_PAIR_MEMORY), },
+  { "vector-pair-load",
+    offsetof (struct gcc_options, x_TARGET_VECTOR_PAIR_LOAD),
+    offsetof (struct cl_target_option, x_TARGET_VECTOR_PAIR_LOAD), },
+  { "vector-pairstore",
+    offsetof (struct gcc_options, x_TARGET_VECTOR_PAIR_STORE),
+    offsetof (struct cl_target_option, x_TARGET_VECTOR_PAIR_STORE), },
+  { "vector-pair-float",
+    offsetof (struct gcc_options, x_TARGET_VECTOR_PAIR_FLOAT),
+    offsetof (struct cl_target_option, x_TARGET_VECTOR_PAIR_FLOAT), },
+  { "vector-pair-double",
+    offsetof (struct gcc_options, x_TARGET_VECTOR_PAIR_DOUBLE),
+    offsetof (struct cl_target_option, x_TARGET_VECTOR_PAIR_DOUBLE), },
 };
 
 /* Inner function to handle attribute((target("..."))) and #pragma GCC target
@@ -28268,7 +28332,7 @@ rs6000_split_multireg_move (rtx dst, rtx src)
      below.  This means the last register gets the first memory
      location.  We also need to be careful of using the right register
      numbers if we are splitting XO to OO.  */
-  if (mode == OOmode || mode == XOmode || mode == TDOmode || VPAIR_FP_P (mode))
+  if (mode == OOmode || mode == XOmode || mode == TDOmode)
     {
       nregs = hard_regno_nregs (reg, mode);
       int reg_mode_nregs = hard_regno_nregs (reg, reg_mode);

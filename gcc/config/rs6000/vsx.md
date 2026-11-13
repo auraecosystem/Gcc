@@ -7349,49 +7349,86 @@
 (define_expand "mov<mode>"
   [(set (match_operand:VPAIR_FP 0 "nonimmediate_operand")
         (match_operand:VPAIR_FP 1 "input_operand"))]
-  "TARGET_P9_VECTOR")
-
-(define_insn_and_split "*mov<mode>"
-  [(set (match_operand:VPAIR_FP 0 "nonimmediate_operand"
-		"=wa,  Z, wa, wO, wa, wa")
-	(match_operand:VPAIR_FP 1 "any_operand"
-		  "Z, wa, wO, wa, wa, eF"))]
   "TARGET_P9_VECTOR
-   && ((!MEM_P (operands[0]) || !MEM_P (operands[1]))
-       || (MEM_P (operands[0])
-           && ((TARGET_POWER10 && TARGET_VECTOR_PAIR_FP_STORE)
-               || vsx_quad_dform_memory_operand (operands[0], <MODE>mode)))
-       || (MEM_P (operands[1])
-           && ((TARGET_POWER10 && TARGET_VECTOR_PAIR_FP_LOAD)
-                || vsx_quad_dform_memory_operand (operands[1], <MODE>mode))))"
+   && (TARGET_VECTOR_PAIR_FP || TARGET_VECTOR_PAIR_MEMORY)")
+
+(define_insn_and_split "*mov<mode>_p10"
+  [(set (match_operand:VPAIR_FP 0 "nonimmediate_operand" "=wa,ZwO,wa,wa")
+	(match_operand:VPAIR_FP 1 "any_operand"          "ZwO, wa,wa,eF"))]
+  "TARGET_POWER10 && TARGET_VECTOR_PAIR_LOAD && TARGET_VECTOR_PAIR_STORE"
   "@
    lxvp%X1 %x0,%1
    stxvp%X0 %x1,%0
    #
-   #
-   #
    #"
-  "&& reload_completed
-   && ((!MEM_P (operands[0]) && !MEM_P (operands[1]))
-       || (MEM_P (operands[0])
-           && (!TARGET_POWER10
-               || !TARGET_VECTOR_PAIR_FP_STORE
-               || !indexed_or_indirect_operand (operands[0], <MODE>mode)))
-       || (MEM_P (operands[1])
-           && (!TARGET_POWER10
-               || !TARGET_VECTOR_PAIR_FP_LOAD
-               || !indexed_or_indirect_operand (operands[1], <MODE>mode))))"
+  "&& reload_completed && !MEM_P (operands[0]) && !MEM_P (operands[1])"
   [(const_int 0)]
 {
   rs6000_split_multireg_move (operands[0], operands[1]);
   DONE;
 }
-  [(set_attr "type"   "vecload,   vecstore,  vecload, vecstore, veclogical,
-                       veclogical")
-   (set_attr "isa"    "p10l,      p10s,      *,       *,        *,
-                       *")
-   (set_attr "length" "*,         *,         8,       8,        8,
-                       16")])
+  [(set_attr "type" "vecload,vecstore,veclogical,veclogical")
+   (set_attr "length" "*,*,8,16")
+   (set_attr "num_insns" "*,*,2,2")
+   (set_attr "max_prefixed_insns" "*,*,*,2")])
+
+(define_insn_and_split "*mov<mode>_p10_lxvp"
+  [(set (match_operand:VPAIR_FP 0 "nonimmediate_operand" "=wa,wO,wa,wa")
+	(match_operand:VPAIR_FP 1 "any_operand"          "ZwO,wa,wa,eF"))]
+  "TARGET_POWER10 && TARGET_VECTOR_PAIR_LOAD && !TARGET_VECTOR_PAIR_STORE"
+  "@
+   lxvp%X1 %x0,%1
+   #
+   #
+   #"
+  "&& reload_completed && !MEM_P (operands[1])"
+  [(const_int 0)]
+{
+  rs6000_split_multireg_move (operands[0], operands[1]);
+  DONE;
+}
+  [(set_attr "type" "vecload,vecstore,veclogical,veclogical")
+   (set_attr "length" "*,8,8,16")
+   (set_attr "num_insns" "*,2,2,2")
+   (set_attr "max_prefixed_insns" "*,2,*,2")])
+
+(define_insn_and_split "*mov<mode>_p10_stxvp"
+  [(set (match_operand:VPAIR_FP 0 "nonimmediate_operand" "=wa,ZwO,wa,wa")
+	(match_operand:VPAIR_FP 1 "any_operand"           "wO, wa,wa,eF"))]
+  "TARGET_POWER10 && !TARGET_VECTOR_PAIR_LOAD && TARGET_VECTOR_PAIR_STORE"
+  "@
+   #
+   stxvp%X0 %x1,%0
+   #
+   #"
+  "&& reload_completed && !MEM_P (operands[0])"
+  [(const_int 0)]
+{
+  rs6000_split_multireg_move (operands[0], operands[1]);
+  DONE;
+}
+  [(set_attr "type" "vecload,vecstore,veclogical,veclogical")
+   (set_attr "length" "8,*,8,16")
+   (set_attr "num_insns" "2,*,2,2")
+   (set_attr "max_prefixed_insns" "2,*,*,2")])
+
+(define_insn_and_split "*mov<mode>_p9"
+  [(set (match_operand:VPAIR_FP 0 "nonimmediate_operand" "=wa,wO,wa,wa")
+	(match_operand:VPAIR_FP 1 "any_operand"           "wO,wa,wa, j"))]
+  "TARGET_P9_VECTOR
+   && (TARGET_VECTOR_PAIR_FP || TARGET_VECTOR_PAIR_MEMORY)"
+  "#"
+  "&& reload_completed
+   && (!TARGET_POWER10
+       || (!TARGET_VECTOR_PAIR_LOAD && !TARGET_VECTOR_PAIR_STORE))"
+  [(const_int 0)]
+{
+  rs6000_split_multireg_move (operands[0], operands[1]);
+  DONE;
+}
+  [(set_attr "type" "vecload,vecstore,veclogical,veclogical")
+   (set_attr "length" "8,8,8,32")
+   (set_attr "num_insns" "2,2,2,2")])
 
 ;; Unary/binary operators supporting vector pair splits
 (define_code_iterator VPAIR_FP_unary [abs neg])
