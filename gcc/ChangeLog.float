@@ -1,3 +1,64 @@
+==================== Branch work273-float, patch #224 ====================
+
+Work on -mvector-pair-fp; Add -mvector-pair-memory.
+
+2026-11-12  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000.cc (rs6000_debug_reg_global): Print vector pair
+	debug information.
+	(rs6000_setup_reg_addr_masks): Set up quad addressing for vector pairs,
+	and allow indexed addressing, even we are spliting the load or store
+	since the constraints for the split load/store will not allow indexed
+	addressing.
+	(rs6000_init_hard_regno_mode_ok): Do not set rs6000_vector_unit to VSX
+	for vector pair modes, unless we have -mvector-pair-fp, but do set the
+	defaults for memory addressing if we have -mvector-pair-memory.
+	(rs6000_option_override_internal): Add support for -mvector-pair-memory.
+	(rs6000_preferred_reload_class): Vector pair modes prefer VSX registers.
+	(opt_vars): Add the various TARGET_VECTOR_PAIR_* debug options.
+	(rs6000_split_multireg_move): Treat vector pair arithmetic modes like
+	OOmode.
+	* config/rs6000/rs6000.md (isa attribute): Delete p10l and p10s
+	attributes.
+	* config/rs6000/rs6000.opt (-mvector-pair-memory): New option.
+	(-mvector-pair-load): Rename from -mvector-pair-fp-load.  Initialize to
+	-1 to add support for -mvector-pair-memory.
+	(-mvector-pair-store): Rename from -mvector-pair-fp-store.  Initialize
+	to -1 to add support for -mvector-pair-memory.
+	* config/rs6000/vsx.md (mov<mode>*, VPAIR_FP iterator).  Rewrite move
+	patterns, splitting up p10 with both vector pair insns, p10 with just
+	vector pair load, p10 with just vector pair store, and p9 versions.  Set
+	num_insns and max_prefixed_insns support.
+
+==================== Branch work273-float, patch #223 ====================
+
+Fix rs6000_expand_vector_set and simplify vpair splitting.
+
+2026-11-12  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000-protos.h (split_vector_pair_operands): New
+	declaration.
+	(rs6000_expand_vector_set): For vector pairs, do the set operation by
+	storing the vector pair, storing the value to be set, and then reloading
+	the vector pair.
+	(split_vector_pair_operands): New function.
+	* config/rs6000/vsx.md (<VPAIR_FP_name><mode>2): Use
+	split_vector_pair_operands to split up the operands.
+	(nabs<mode>2): Likewise.
+	(sqrt<mode>2): Likewise.
+	(rsqrte<mode>): Likewise.
+	(fre<mode>2): Likewise.
+	(<VPAIR_FP_name><mode>3): Likewise.
+	(div<mode>3): Likewise.
+	(fma<mode>4): Likewise.
+	(fms<mode>4): Likewise.
+	(nfma<mode>4): Likewise.
+	(nfms<mode>4): Likewise.
+	(vpair_xxsel<mode>_1): Likewise.
+	(vpair_xxsel<mode>_2): Likewise.
+	(vpair_xxsel<mode>_3): Likewise.
+	(vpair_xxsel<mode>_4): Likewise.
+
 ==================== Branch work273-float, patch #222 ====================
 
 Fix thinko in rs6000_expand_vector_*
