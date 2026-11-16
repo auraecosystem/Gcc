@@ -6271,14 +6271,63 @@ gfc_emit_parameter_debug_info (gfc_symbol *sym)
 }
 
 
+/* Create an array descriptor suitable for coarray initialization.  We only set
+   the dtype based on the variable type, and the data to nullptr so that the
+   initialization function allocates new memory.  The rest (bounds, strides)
+   isn't used.  */
+
+static tree
+create_coarray_temp_descriptor (stmtblock_t *block, gfc_symbol *sym)
+{
+  symbol_attribute attr;
+
+  /* Compile the symbol attribute.  */
+  if (sym->ts.type == BT_CLASS)
+    {
+      attr = CLASS_DATA (sym)->attr;
+      /* The pointer attribute is always set on classes, overwrite it with the
+	 class_pointer attribute, which denotes the pointer for classes.  */
+      attr.pointer = attr.class_pointer;
+    }
+  else
+    attr = sym->attr;
+
+  tree decl = sym->backend_decl;
+
+  gcc_assert (!(attr.pointer || attr.allocatable));
+  enum gfc_array_kind akind = GFC_ARRAY_ASSUMED_SHAPE_CONT;
+
+  tree data_type = TREE_TYPE (decl);
+  gcc_assert (POINTER_TYPE_P (data_type));
+  data_type = TREE_TYPE (data_type);
+
+  struct lang_type *lang_specific = TYPE_LANG_SPECIFIC (data_type);
+  gcc_assert (lang_specific != nullptr);
+  int dim = lang_specific->rank;
+  int codim = lang_specific->corank;
+  tree *lbound = lang_specific->lbound;
+  tree *ubound = lang_specific->ubound;
+  tree type = gfc_get_array_type_bounds (data_type, dim, codim,
+					 lbound, ubound, 1, akind,
+					 !(attr.pointer || attr.target));
+
+  tree desc = gfc_create_var (type, "desc");
+  DECL_ARTIFICIAL (desc) = 1;
+
+  gfc_conv_descriptor_dtype_set (block, desc,
+				 gfc_get_dtype_rank_type (dim, data_type));
+  gfc_conv_descriptor_data_set (block, desc, null_pointer_node);
+
+  return desc;
+}
+
+
 static void
 generate_coarray_sym_init (gfc_symbol *sym)
 {
-  tree tmp, size, decl, token, desc;
+  tree tmp, size, decl, token;
   bool is_lock_type, is_event_type;
   int reg_type;
-  gfc_se se;
-  symbol_attribute attr;
 
   if (sym->attr.dummy || sym->attr.allocatable || !sym->attr.codimension
       || sym->attr.use_assoc || !sym->attr.referenced
@@ -6331,19 +6380,7 @@ generate_coarray_sym_init (gfc_symbol *sym)
   else
     reg_type = GFC_CAF_COARRAY_STATIC;
 
-  /* Compile the symbol attribute.  */
-  if (sym->ts.type == BT_CLASS)
-    {
-      attr = CLASS_DATA (sym)->attr;
-      /* The pointer attribute is always set on classes, overwrite it with the
-	 class_pointer attribute, which denotes the pointer for classes.  */
-      attr.pointer = attr.class_pointer;
-    }
-  else
-    attr = sym->attr;
-  gfc_init_se (&se, NULL);
-  desc = gfc_conv_scalar_to_descriptor (&se, decl, attr);
-  gfc_add_block_to_block (&caf_init_block, &se.pre);
+  tree desc = create_coarray_temp_descriptor (&caf_init_block, sym);
 
   tmp = build_call_expr_loc (input_location, gfor_fndecl_caf_register, 7, size,
 			     build_int_cst (integer_type_node, reg_type),
