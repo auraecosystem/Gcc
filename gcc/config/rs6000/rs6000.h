@@ -334,6 +334,26 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define TARGET_DEBUG_TARGET	((rs6000_debug & MASK_DEBUG_TARGET)  != 0)
 #define TARGET_DEBUG_BUILTIN	((rs6000_debug & MASK_DEBUG_BUILTIN) != 0)
 
+/* Is this a valid 16-bit scalar floating point mode?  */
+#define FP16_SCALAR_MODE_P(MODE)					\
+  (TARGET_FLOAT16 && ((MODE) == HFmode || (MODE) == BFmode))
+
+/* Is this a valid 16-bit scalar floating point mode?  */
+#define FP16_VECTOR_MODE_P(MODE)					\
+  (TARGET_FLOAT16 && ((MODE) == V8HFmode || (MODE) == V8BFmode))
+
+/* Do we have conversion support in hardware for the 16-bit floating point?  */
+#define TARGET_BFLOAT16_HW	(TARGET_FLOAT16 && TARGET_POWER10)
+#define TARGET_FLOAT16_HW	(TARGET_FLOAT16 && TARGET_P9_VECTOR)
+
+/* Macro to say that we have the minimum hardware to enable 16-bit floating
+   point.  We require a little endian 64-bit machine that supports at least
+   power8 with VSX support.  */
+#define TARGET_FLOAT16_MIN_HARDWARE	(TARGET_P8_VECTOR		\
+					 && TARGET_POWERPC64		\
+					 && !BYTES_BIG_ENDIAN		\
+					 && TARGET_HARD_FLOAT)
+
 /* Helper macros for TFmode.  Quad floating point (TFmode) can be either IBM
    long double format that uses a pair of doubles, or IEEE 128-bit floating
    point.  KFmode was added as a way to represent IEEE 128-bit floating point,
