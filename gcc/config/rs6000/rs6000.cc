@@ -103,6 +103,12 @@ static tree rs6000_mangle_decl_assembler_name (tree, tree);
 #endif
 #endif
 
+/* Enable 16-bit floating point by default on little endian 64-bit Linux
+   systems.  */
+#if !defined(POWERPC_FLOAT16_DEFAULT) && defined(LINUX64_DEFAULT_ABI_ELFv2)
+#define POWERPC_FLOAT16_DEFAULT	1
+#endif
+
 /* Don't enable PC-relative addressing if the target does not support it.  */
 #ifndef PCREL_SUPPORTED_BY_OS
 #define PCREL_SUPPORTED_BY_OS	0
