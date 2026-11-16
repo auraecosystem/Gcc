@@ -911,6 +911,7 @@ gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree scalar)
 
   gfc_conv_descriptor_dtype_set (block, descr,
 				 gfc_get_dtype_rank_type (0, etype));
+  gfc_copy_coarray_desc_part (block, descr, scalar);
   gfc_conv_descriptor_data_set (block, descr, scalar);
   gfc_conv_descriptor_span_set (block, descr,
 				gfc_conv_descriptor_elem_len_get (descr));
