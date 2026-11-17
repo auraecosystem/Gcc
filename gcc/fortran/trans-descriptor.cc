@@ -955,18 +955,18 @@ is_polymorphic_ref (tree expr, tree *class_ref = nullptr,
 		|| (GFC_CLASS_TYPE_P (TREE_TYPE (base_obj))
 		    && strcmp (IDENTIFIER_POINTER (field_name), "_data") == 0)))
 	    return false;
-
-	  if (valptr_candidate == nullptr)
-	    valptr_candidate = e;
 	}
       else if (!(TREE_CODE (e) == INDIRECT_REF
 		 || TREE_CODE (e) == ARRAY_REF
 		 || TREE_CODE (e) == POINTER_PLUS_EXPR))
 	return false;
 
-      if (!(TREE_CODE (e) == INDIRECT_REF
-	    || TREE_CODE (e) == ARRAY_REF)
-	  && valptr_candidate == nullptr)
+      if (valptr_candidate == nullptr
+	  && !(TREE_CODE (e) == INDIRECT_REF
+	       || TREE_CODE (e) == ARRAY_REF)
+	  && !(GFC_CLASS_TYPE_P (TREE_TYPE (e))
+	       || (POINTER_TYPE_P (TREE_TYPE (e))
+		   && GFC_CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (e))))))
 	valptr_candidate = e;
 
       e = TREE_OPERAND (e, 0);
