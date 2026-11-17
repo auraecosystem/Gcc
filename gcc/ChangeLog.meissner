@@ -1,23 +1,30 @@
-==================== Branch work275, patch #1 ====================
+==================== Branch work275, patch #2 ====================
 
 Add extra debug support.
 
-This patch adds debug switches -mdebug=extra1 through -mdebug=extra5.
+This patch adds debug switches -mdebug=extra1 through -mdebug=extra4.
+
+This patch also adds the ability to provide a number in the range of -128
+through 127 as a debug argument.
 
 The patch also prints additional information about the various floating
 point formats used for the different modes.
 
-2026-11-16  Michael Meissner  <meissner@linux.ibm.com>
+2026-11-17  Michael Meissner  <meissner@linux.ibm.com>
 
 gcc/
 
 	* gcc/common/config/rs6000/rs6000-common.cc (rs6000_handle_option): Add
-	-mdebug=extra{1,2,3,4,5}.
-	* config/rs6000/rs6000.h (MASK_DEBUG_*): Likewise.
+	-mdebug=extra{1,2,3,4} and -mdebug=<n>.
+	* config/rs6000/rs6000.cc (DEBUG_FMT_ID): New macro.
+	(rs6000_debug_fp_mode): New debug function.
+	(rs6000_debug_reg_global): If -mdebug=reg, print which -mdebug options
+	are set and print extra information about the various floating point
+	formats used.
+	* config/rs6000/rs6000.h (MASK_DEBUG_*): Add -mdebug=<xxx> options.
 	(TARGET_DEBUG_*): Likewise.
-	* config/rs6000/rs6000.cc (rs6000_debug_fp_mode): New debug function.
-	(rs6000_debug_reg_global): If -mdebug=reg, print extra information about
-	the various floating point formats used.
+
+==================== Branch work275, patch #1 was revoked ====================
 
 ==================== Branch work275, baseline ====================
 
