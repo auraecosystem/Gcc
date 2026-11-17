@@ -171,16 +171,6 @@ rs6000_handle_option (struct gcc_options *opts, struct gcc_options *opts_set,
 	    mask = MASK_DEBUG_TARGET;
 	  else if (! strcmp (q, "builtin"))
 	    mask = MASK_DEBUG_BUILTIN;
-	  else if (! strcmp (q, "extra1"))
-	    mask = MASK_DEBUG_EXTRA1;
-	  else if (! strcmp (q, "extra2"))
-	    mask = MASK_DEBUG_EXTRA2;
-	  else if (! strcmp (q, "extra3"))
-	    mask = MASK_DEBUG_EXTRA3;
-	  else if (! strcmp (q, "extra4"))
-	    mask = MASK_DEBUG_EXTRA4;
-	  else if (! strcmp (q, "extra5"))
-	    mask = MASK_DEBUG_EXTRA5;
 	  else
 	    error_at (loc, "unknown %<-mdebug-%s%> switch", q);
 

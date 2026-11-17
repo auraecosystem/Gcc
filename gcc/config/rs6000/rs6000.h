@@ -295,30 +295,20 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define ASSEMBLER_DIALECT 1
 
 /* Debug support */
-#define MASK_DEBUG_STACK	0x001	/* debug stack applications */
-#define	MASK_DEBUG_ARG		0x002	/* debug argument handling */
-#define MASK_DEBUG_REG		0x004	/* debug register handling */
-#define MASK_DEBUG_ADDR		0x008	/* debug memory addressing */
-#define MASK_DEBUG_COST		0x010	/* debug rtx codes */
-#define MASK_DEBUG_TARGET	0x020	/* debug target attribute/pragma */
-#define MASK_DEBUG_BUILTIN	0x040	/* debug builtins */
-#define MASK_DEBUG_EXTRA1	0x080	/* random debug testing #1.  */
-#define MASK_DEBUG_EXTRA2	0x100	/* random debug testing #2.  */
-#define MASK_DEBUG_EXTRA3	0x200	/* random debug testing #3.  */
-#define MASK_DEBUG_EXTRA4	0x400	/* random debug testing #4.  */
-#define MASK_DEBUG_EXTRA5	0x800	/* random debug testing #5.  */
-#define MASK_DEBUG_ALL		(MASK_DEBUG_STACK			\
-				 | MASK_DEBUG_ARG			\
-				 | MASK_DEBUG_REG			\
-				 | MASK_DEBUG_ADDR			\
-				 | MASK_DEBUG_COST			\
-				 | MASK_DEBUG_TARGET			\
-				 | MASK_DEBUG_BUILTIN			\
-				 | MASK_DEBUG_EXTRA1			\
-				 | MASK_DEBUG_EXTRA2			\
-				 | MASK_DEBUG_EXTRA3			\
-				 | MASK_DEBUG_EXTRA4			\
-				 | MASK_DEBUG_EXTRA5)
+#define MASK_DEBUG_STACK	0x01	/* debug stack applications */
+#define	MASK_DEBUG_ARG		0x02	/* debug argument handling */
+#define MASK_DEBUG_REG		0x04	/* debug register handling */
+#define MASK_DEBUG_ADDR		0x08	/* debug memory addressing */
+#define MASK_DEBUG_COST		0x10	/* debug rtx codes */
+#define MASK_DEBUG_TARGET	0x20	/* debug target attribute/pragma */
+#define MASK_DEBUG_BUILTIN	0x40	/* debug builtins */
+#define MASK_DEBUG_ALL		(MASK_DEBUG_STACK \
+				 | MASK_DEBUG_ARG \
+				 | MASK_DEBUG_REG \
+				 | MASK_DEBUG_ADDR \
+				 | MASK_DEBUG_COST \
+				 | MASK_DEBUG_TARGET \
+				 | MASK_DEBUG_BUILTIN)
 
 #define	TARGET_DEBUG_STACK	(rs6000_debug & MASK_DEBUG_STACK)
 #define	TARGET_DEBUG_ARG	(rs6000_debug & MASK_DEBUG_ARG)
@@ -327,11 +317,6 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define TARGET_DEBUG_COST	(rs6000_debug & MASK_DEBUG_COST)
 #define TARGET_DEBUG_TARGET	(rs6000_debug & MASK_DEBUG_TARGET)
 #define TARGET_DEBUG_BUILTIN	(rs6000_debug & MASK_DEBUG_BUILTIN)
-#define TARGET_DEBUG_EXTRA1	(rs6000_debug & MASK_DEBUG_EXTRA1)
-#define TARGET_DEBUG_EXTRA2	(rs6000_debug & MASK_DEBUG_EXTRA2)
-#define TARGET_DEBUG_EXTRA3	(rs6000_debug & MASK_DEBUG_EXTRA3)
-#define TARGET_DEBUG_EXTRA4	(rs6000_debug & MASK_DEBUG_EXTRA4)
-#define TARGET_DEBUG_EXTRA5	(rs6000_debug & MASK_DEBUG_EXTRA5)
 
 /* Helper macros for TFmode.  Quad floating point (TFmode) can be either IBM
    long double format that uses a pair of doubles, or IEEE 128-bit floating
