@@ -1708,14 +1708,26 @@
   fpmath vd __builtin_vsx_xvrecipdivdp (vd, vd);
     RECIP_V2DF recipv2df3 {}
 
+  fpmath vd __builtin_vsx_xvrecipdivdp_vp (vd_vp, vd_vp);
+    RECIP_V4DF recipv4df3 {}
+
   fpmath vf __builtin_vsx_xvrecipdivsp (vf, vf);
     RECIP_V4SF recipv4sf3 {}
+
+  fpmath vf __builtin_vsx_xvrecipdivsp_vp (vf_vp, vf_vp);
+    RECIP_V8SF recipv8sf3 {}
 
   const vd __builtin_vsx_xvredp (vd);
     XVREDP vsx_frev2df2 {}
 
+  const vd __builtin_vsx_xvredp_vp (vd_vp);
+    XVREDP_V4DF frev4df2 {}
+
   const vf __builtin_vsx_xvresp (vf);
     XVRESP vsx_frev4sf2 {}
+
+  const vf __builtin_vsx_xvresp_vp (vf_vp);
+    XVRESP_V8SF frev8sf2 {}
 
   const vf __builtin_vsx_xvrspi (vf);
     XVRSPI vsx_xvrspi {}
@@ -1735,8 +1747,14 @@
   const vd __builtin_vsx_xvrsqrtdp (vd);
     RSQRT_2DF rsqrtv2df2 {}
 
+  const vd __builtin_vsx_xvrsqrtdp_vp (vd_vp);
+    RSQRT_4DF rsqrtv4df2 {}
+
   const vf __builtin_vsx_xvrsqrtsp (vf);
     RSQRT_4SF rsqrtv4sf2 {}
+
+  const vf __builtin_vsx_xvrsqrtsp_vp (vf_vp);
+    RSQRT_8SF rsqrtv8sf2 {}
 
   const vd __builtin_vsx_xvrsqrtedp (vd);
     XVRSQRTEDP rsqrtev2df2 {}
@@ -1747,8 +1765,14 @@
   const vd __builtin_vsx_xvsqrtdp (vd);
     XVSQRTDP sqrtv2df2 {}
 
+  const vd __builtin_vsx_xvsqrtdp_vp (vd_vp);
+    XVSQRTDP_4DF sqrtv4df2 {}
+
   const vf __builtin_vsx_xvsqrtsp (vf);
     XVSQRTSP sqrtv4sf2 {}
+
+  const vf __builtin_vsx_xvsqrtsp_vp (vf_vp);
+    XVSQRTSP_8SF sqrtv8sf2 {}
 
   fpmath vd __builtin_vsx_xvsubdp (vd, vd);
     XVSUBDP subv2df3 {}

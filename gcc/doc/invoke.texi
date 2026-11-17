@@ -1411,7 +1411,8 @@ See RS/6000 and PowerPC Options.
 -mstack-protector-guard-offset=@var{offset}  -mprefixed
 -mpcrel  -mmma  -mdense-math  -mrop-protect  -mprivileged
 -mno-splat-word-constant  -mno-splat-float-constant
--mno-ieee128-constant  -mno-warn-altivec-long}
+-mno-ieee128-constant  -mno-warn-altivec-long
+-mvector-pair-fp}
 
 @emph{RX Options} (@ref{RX Options})
 @gccoptlist{-m64bit-doubles  -m32bit-doubles  -fpu  -nofpu
@@ -33165,6 +33166,16 @@ This option is enabled by default.
 Enable or disable warnings about deprecated @samp{vector long ...} Altivec
 type usage.  This option is enabled by default.
 
+@opindex mvector-pair-fp
+@opindex mno-vector-pair-fp
+@item -mvector-pair-fp
+@itemx -mno-vector-pair-fp
+Enable or disable generation of vector pair load and vectore pair
+store instructions when generating code for @code{-mcpu=power10} or
+later systems.
+
+At present, this is an experimental option.  It is not on by default,
+and it may change in the future.
 @end table
 
 @node RX Options
