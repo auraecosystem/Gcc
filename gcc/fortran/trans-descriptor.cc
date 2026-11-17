@@ -950,24 +950,24 @@ is_polymorphic_ref (tree expr, tree *class_ref = nullptr,
 	  tree base_obj = TREE_OPERAND (e, 0);
 	  tree field_decl = TREE_OPERAND (e, 1);
 	  tree field_name = DECL_NAME (field_decl);
-	  bool array_data = GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base_obj))
-			    && strcmp (IDENTIFIER_POINTER (field_name), "data")
-			       == 0;
-	  bool class_data = GFC_CLASS_TYPE_P (TREE_TYPE (base_obj))
-			    && strcmp (IDENTIFIER_POINTER (field_name), "_data")
-			       == 0;
-	  if (!(array_data || class_data))
+	  if (!((GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (base_obj))
+		 && strcmp (IDENTIFIER_POINTER (field_name), "data") == 0)
+		|| (GFC_CLASS_TYPE_P (TREE_TYPE (base_obj))
+		    && strcmp (IDENTIFIER_POINTER (field_name), "_data") == 0)))
 	    return false;
 
-	  if (array_data || (class_data && !valptr_candidate))
+	  if (valptr_candidate == nullptr)
 	    valptr_candidate = e;
-	  else
-	    valptr_candidate = nullptr;
 	}
       else if (!(TREE_CODE (e) == INDIRECT_REF
 		 || TREE_CODE (e) == ARRAY_REF
 		 || TREE_CODE (e) == POINTER_PLUS_EXPR))
 	return false;
+
+      if (!(TREE_CODE (e) == INDIRECT_REF
+	    || TREE_CODE (e) == ARRAY_REF)
+	  && valptr_candidate == nullptr)
+	valptr_candidate = e;
 
       e = TREE_OPERAND (e, 0);
     }
