@@ -90,7 +90,9 @@
 			     V8BF
 			     V8HF
 			     V4SF
-			     V2DF])
+			     V2DF
+			     V8SF
+			     V4DF])
 
 ;; Vector modes for 64-bit base types
 (define_mode_iterator VEC_64 [V2DI V2DF])
@@ -107,6 +109,8 @@
 			    (V8HF  "HF")
 			    (V4SF  "SF")
 			    (V2DF  "DF")
+			    (V8SF  "SF")
+			    (V4DF  "DF")
 			    (V1TI  "TI")
 			    (TI    "TI")])
 
@@ -119,6 +123,8 @@
 			      (V8HF  "hf")
 			      (V4SF  "sf")
 			      (V2DF  "df")
+			      (V8SF  "sf")
+			      (V4DF  "df")
 			      (V1TI  "ti")
 			      (TI    "ti")])
 
