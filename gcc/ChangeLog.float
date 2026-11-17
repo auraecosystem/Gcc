@@ -1,3 +1,123 @@
+==================== Branch work275-float, patch #220 ====================
+
+Add -mvector-pair-fp
+
+This is an experimental patch that adds an option (-mvector-pair-fp) that
+generates vector pair load/stores during vectorization for float and double
+operations.
+
+2026-11-17  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/constraints.md (eF constraint): New constraint for
+	V8SFmode and V4DFmode constants.
+	* config/rs6000/float16.md (truncv8sfv8hf2): New insn for
+	-mvector-pair-fp.
+	(vsx_register_operand): Likewise.
+	* config/rs6000/predicates.md (easy_vector_constant): Add support for
+	-mvector-pair-fp.
+	(easy_vpair_fp_constant): New predicate.
+	* config/rs6000/rs6000-builtin.cc
+	(rs6000_builtin_md_vectorized_function): Add support for
+	-mvector-pair-fp.
+	* config/rs6000/rs6000-builtins.def (__builtin_vsx_xvrecipdivdp_vp):
+	Likewise.
+	(__builtin_vsx_xvrecipdivsp_vp): Likewise.
+	(__builtin_vsx_xvredp_vp): Likewise.
+	(__builtin_vsx_xvresp_vp): Likewise.
+	(__builtin_vsx_xvrsqrtdp_vp): Likewise.
+	(__builtin_vsx_xvrsqrtsp_vp): Likewise.
+	(__builtin_vsx_xvsqrtdp_vp): Likewise.
+	(__builtin_vsx_xvsqrtsp_vp): Likewise.
+	* config/rs6000/rs6000-cpus.def(POWERPC_MASKS): Likewise.
+	* config/rs6000/rs6000-gen-builtins.cc (enum basetype): Likewise.
+	(type_map): Likewise.
+	(match_basetype): Likewise.
+	(match_type): Likewise.
+	(complete_vector_type): Likewise.
+	(complete_base_type): Likewise.
+	* config/rs6000/rs6000-protos.h (vec_const_256bit_to_bytes): New
+	declaration.
+	(vect_const_method): Likewise.
+	(vect_const_can_be_generated): Likewise.
+	(split_vector_pair_operands): Likewise.
+	* config/rs6000/rs6000.cc (RECIP_V8SF_DIV): New macro.
+	(RECIP_V4DF_DIV): Likewise.
+	(RECIP_V8SF_RSQRT): Likewise.
+	(RECIP_V4DF_RSQRT): Likewise.
+	(rs6000_hard_regno_mode_ok_uncached): Add support for -mvector-pair-fp.
+	(rs6000_debug_reg_global): Likewise.
+	(rs6000_setup_reg_addr_masks): Likewise.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_option_override_internal): Likewise.
+	(rs6000_builtin_vectorization_cost): Likewise.
+	(rs6000_expand_vector_init): Likewise.
+	(rs6000_expand_vector_set): Likewise.
+	(rs6000_expand_vector_extract): Likewise.
+	(reg_offset_addressing_ok_p): Likewise.
+	(rs6000_const_vec): Likewise.
+	(rs6000_emit_move): Likewise.
+	(rs6000_preferred_reload_class): Likewise.
+	(rs6000_handle_altivec_attribute): Likewise.
+	(rs6000_load_constant_and_splat): Likewise.
+	(rs6000_emit_swdiv): Likewise.
+	(rs6000_emit_swsqrt): Likewise.
+	(opt_masks): Likewise.
+	(opt_vars): Likewise.
+	(rs6000_split_multireg_move): Likewise.
+	(vec_const_256bit_to_bytes): New function.
+	(vect_const_can_be_generated): Likewise.
+	(split_vector_pair_operands): Likewise.
+	* config/rs6000/rs6000.h (VPAIR_FP_P): New macro.
+	(rs6000_builtin_type_index): New vector pair types.
+	(V4DF_type_node): Likewise.
+	(V8SF_type_node): Likewise.
+	(ptr_V4DF_type_node): Likewise.
+	(ptr_V8SF_type_node): Likewise.
+	* config/rs6000/rs6000.md (RECIPF mode iterator): Add support for
+	-mvector-pair-fp.
+	(sd mode attribute): Likewise.
+	(RELOAD mode iterator): Likewise.
+	* config/rs6000/rs6000.opt (-mvector-pair-fp): New option.
+	(-mvector-pair-memory): New debug option.
+	(-mvector-pair-load): Likewise.
+	(-mvector-pair-store): Likewise.
+	(-mvector-pair-float): Likewise.
+	(-mvector-pair-double): Likewise.
+	* config/rs6000/vector.md (VEC_E): Add V8SF and V4DF modes.
+	(VEC_base): Likewise.
+	(VEC_base_l): Likewise.
+	* config/rs6000/vsx.md (VStype_simple): Add support for
+	-mvector-pair-fp.
+	(VStype_div): Likewise.
+	(VPAIR_FP): Likewise.
+	(mov<mode>, VPAIR_FP iterator): Likewise.
+	(mov<mode>_p10): Likewise.
+	(mov<mode>_p10_lxvp): Likewise.
+	(mov<mode>_p10_stxvp): Likewise.
+	(mov<mode>_p9): Likewise.
+	(VPAIR_FP_unary): Likewise.
+	(VPAIR_FP_binary): Likewise.
+	(VPAIR_FP_name): Likewise.
+	(VPAIR_FP_BASE): Likewise.
+	(VPAIR_FP_SINGLE): Likewise.
+	(dup<mode>, VPAIR_FP iterator): Likewise.
+	(<VPAIR_FP_name><mode>2): Likewise.
+	(nabs<mode>2): Likewise.
+	(sqrt<mode>2): Likewise.
+	(rsqrte<mode>2): Likewise.
+	(fre<mode>2): Likewise.
+	(div<mode>3): Likewise.
+	(fma<mode>4): Likewise.
+	(fms<mode>4): Likewise.
+	(nfma<mode>4): Likewise.
+	(nfms<mode>4): Likewise.
+	(vpair_xxsel<mode>_1): Likewise.
+	(vpair_xxsel<mode>_): Likewise.
+	(vpair_xxsel<mode>_3): Likewise.
+	(vpair_xxsel<mode>_4): Likewise.
+	* doc/invoke.texi (PowerPC options): Add -mvector-pair-fp.
+
+
 ==================== Branch work275-float, patch #210 ====================
 
 Make -mfloat16 default on little endian 64-bit Linux.
