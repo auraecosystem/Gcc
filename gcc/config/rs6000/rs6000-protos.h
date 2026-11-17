@@ -254,9 +254,27 @@ typedef struct {
 
 extern bool vec_const_128bit_to_bytes (rtx, machine_mode,
 				       vec_const_128bit_type *);
+extern bool vec_const_256bit_to_bytes (rtx, machine_mode,
+				       vec_const_128bit_type *,
+				       vec_const_128bit_type *);
 extern unsigned constant_generates_lxvkq (vec_const_128bit_type *);
 extern unsigned constant_generates_xxspltiw (vec_const_128bit_type *);
 extern unsigned constant_generates_xxspltidp (vec_const_128bit_type *);
+
+typedef enum {
+  VECT_CONST_MEMORY,		/* need to load constant from memory.  */
+  VECT_CONST_ZERO,		/* constant is all 0's.  */
+  VECT_CONST_ONES,		/* constant is all 1's.  */
+  VECT_CONST_XXSPLTIB,		/* constant can be loaded with XXSPLTIB.  */
+  VECT_CONST_XXSPLTIW,		/* constant can be loaded with XXSPLTIW.  */
+  VECT_CONST_XXSPLTIDP,		/* constant can be loaded with XXSPLTIDP.  */
+  VECT_CONST_LXVKG		/* constant can be loaded with LXVKQ.  */
+} vect_const_method;
+
+extern vect_const_method vect_const_can_be_generated (vec_const_128bit_type *,
+						      unsigned *);
+extern void split_vector_pair_operands (size_t, rtx [], machine_mode);
+
 #endif /* RTX_CODE */
 
 #ifdef TREE_CODE
