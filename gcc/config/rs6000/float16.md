@@ -1111,6 +1111,27 @@
   DONE;
 })
 
+(define_insn_and_split "truncv8sfv8hf2"
+  [(set (match_operand:V8HF 0 "vsx_register_operand")
+	(float_truncate:V8HF
+	 (match_operand:V8SF 1 "vsx_register_operand")))]
+  "TARGET_FLOAT16_HW && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(pc)]
+{
+  rtx r1 = gen_reg_rtx (V8HFmode);
+  rtx r2 = gen_reg_rtx (V8HFmode);
+  rtx op1 = operands[1];
+  rtx op1_hi = gen_rtx_SUBREG (V4SFmode, op1, BYTES_BIG_ENDIAN ?  0 : 16);
+  rtx op1_lo = gen_rtx_SUBREG (V4SFmode, op1, BYTES_BIG_ENDIAN ? 16 :  0);
+
+  emit_insn (gen_xvcvsphp_v8hf (r1, op1_hi));
+  emit_insn (gen_xvcvsphp_v8hf (r2, op1_lo));
+  rs6000_expand_extract_even (operands[0], r1, r2);
+  DONE;
+})
+
 (define_expand "vec_pack_trunc_v4sf_v8bf"
   [(match_operand:V8BF 0 "vfloat_operand")
    (match_operand:V4SF 1 "vfloat_operand")
@@ -1122,6 +1143,27 @@
 
   emit_insn (gen_xvcvspbf16_v8bf (r1, operands[1]));
   emit_insn (gen_xvcvspbf16_v8bf (r2, operands[2]));
+  rs6000_expand_extract_even (operands[0], r1, r2);
+  DONE;
+})
+
+(define_insn_and_split "truncv8sfv8bf2"
+  [(set (match_operand:V8BF 0 "vsx_register_operand")
+	(float_truncate:V8BF
+	 (match_operand:V8SF 1 "vsx_register_operand")))]
+  "TARGET_FLOAT16_HW && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(pc)]
+{
+  rtx r1 = gen_reg_rtx (V8BFmode);
+  rtx r2 = gen_reg_rtx (V8BFmode);
+  rtx op1 = operands[1];
+  rtx op1_hi = gen_rtx_SUBREG (V4SFmode, op1, BYTES_BIG_ENDIAN ?  0 : 16);
+  rtx op1_lo = gen_rtx_SUBREG (V4SFmode, op1, BYTES_BIG_ENDIAN ? 16 :  0);
+
+  emit_insn (gen_xvcvspbf16_v8bf (r1, op1_hi));
+  emit_insn (gen_xvcvspbf16_v8bf (r2, op1_lo));
   rs6000_expand_extract_even (operands[0], r1, r2);
   DONE;
 })

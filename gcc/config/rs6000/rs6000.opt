@@ -658,6 +658,30 @@ mfloat16-debug2
 Target Undocumented Var(TARGET_FLOAT16_DEBUG2) Init(0) Save
 Turn on float16 debugging #2.
 
+mvector-pair-fp
+Target Mask(VECTOR_PAIR_FP) Var(rs6000_isa_flags)
+Enable or disable using paired vectors for floating point operations
+
+mvector-pair-memory
+Target Undocumented Var(TARGET_VECTOR_PAIR_MEMORY) Init(-1) Save
+Generate/do not generate lxvp/stxvp for vector pairs.
+
+mvector-pair-load
+Target Undocumented Var(TARGET_VECTOR_PAIR_LOAD) Init(-1) Save
+Generate/do not generate lxvp for vector pairs.
+
+mvector-pair-store
+Target Undocumented Var(TARGET_VECTOR_PAIR_STORE) Init(-1) Save
+Generate/do not generate stxvp for vector pairs.
+
+mvector-pair-float
+Target Undocumented Var(TARGET_VECTOR_PAIR_FLOAT) Init(1) Save
+Generate/do not vectorize float to use vector pair if -mvector-pair-fp.
+
+mvector-pair-double
+Target Undocumented Var(TARGET_VECTOR_PAIR_DOUBLE) Init(1) Save
+Generate/do not vectorize double to use vector pair if -mvector-pair-fp.
+
 ; Documented parameters
 
 -param=rs6000-vect-unroll-limit=

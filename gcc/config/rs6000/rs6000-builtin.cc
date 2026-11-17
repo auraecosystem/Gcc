@@ -296,24 +296,40 @@ rs6000_builtin_md_vectorized_function (tree fndecl, tree type_out,
 	  && out_mode == SFmode && out_n == 4
 	  && in_mode == SFmode && in_n == 4)
 	return rs6000_builtin_decls[RS6000_BIF_VRSQRTFP];
+      if (TARGET_VECTOR_PAIR_FP
+	  && out_mode == SFmode && out_n == 8
+	  && in_mode == SFmode && in_n == 8)
+	return rs6000_builtin_decls[RS6000_BIF_RSQRT_8SF];
       break;
     case RS6000_BIF_RSQRT:
       if (VECTOR_UNIT_VSX_P (V2DFmode)
 	  && out_mode == DFmode && out_n == 2
 	  && in_mode == DFmode && in_n == 2)
 	return rs6000_builtin_decls[RS6000_BIF_RSQRT_2DF];
+      if (TARGET_VECTOR_PAIR_FP
+	  && out_mode == DFmode && out_n == 4
+	  && in_mode == DFmode && in_n == 4)
+	return rs6000_builtin_decls[RS6000_BIF_RSQRT_4DF];
       break;
     case RS6000_BIF_RECIPF:
       if (VECTOR_UNIT_ALTIVEC_OR_VSX_P (V4SFmode)
 	  && out_mode == SFmode && out_n == 4
 	  && in_mode == SFmode && in_n == 4)
 	return rs6000_builtin_decls[RS6000_BIF_VRECIPFP];
+      if (TARGET_VECTOR_PAIR_FP
+	  && out_mode == SFmode && out_n == 8
+	  && in_mode == SFmode && in_n == 8)
+	return rs6000_builtin_decls[RS6000_BIF_RECIP_V8SF];
       break;
     case RS6000_BIF_RECIP:
       if (VECTOR_UNIT_VSX_P (V2DFmode)
 	  && out_mode == DFmode && out_n == 2
 	  && in_mode == DFmode && in_n == 2)
 	return rs6000_builtin_decls[RS6000_BIF_RECIP_V2DF];
+      if (TARGET_VECTOR_PAIR_FP
+	  && out_mode == DFmode && out_n == 4
+	  && in_mode == DFmode && in_n == 4)
+	return rs6000_builtin_decls[RS6000_BIF_RECIP_V4DF];
       break;
     default:
       break;
