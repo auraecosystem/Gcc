@@ -5873,6 +5873,15 @@ case "${target}" in
 		    fi
 		fi
 
+		# Test if we should enable -mvector-pair-fp by default
+		# on power9 and power10 systems.
+		if test x$with_powerpc_vector_pair_fp = xyes; then
+		    tm_defines="${tm_defines} POWERPC_VECTOR_PAIR_FP_DEFAULT=1"
+
+		elif test x$with_powerpc_vector_pair_fp = xno; then
+		    tm_defines="${tm_defines} POWERPC_VECTOR_PAIR_FP_DEFAULT=0"
+		fi
+
 		# Set up the default long double format if the user changed it.
 		if test x$with_long_double_format = xieee; then
 		    tm_defines="${tm_defines} TARGET_IEEEQUAD_DEFAULT=1"

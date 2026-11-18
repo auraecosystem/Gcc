@@ -2759,6 +2759,10 @@ rs6000_debug_reg_global (void)
   fprintf (stderr, DEBUG_FMT_D, "VECTOR_PAIR_DOUBLE",
 	   TARGET_VECTOR_PAIR_DOUBLE);
 
+#if POWERPC_VECTOR_PAIR_FP_DEFAULT
+  fprintf (stderr, DEBUG_FMT_S, "vector pair fp configured", "yes");
+#endif
+
   /* Print information about the various floating point formats used.  */
   if (TARGET_HARD_FLOAT)
     {
@@ -4167,10 +4171,27 @@ rs6000_option_override_internal (bool global_init_p)
     rs6000_isa_flags &= ~((OPTION_MASK_P8_VECTOR | OPTION_MASK_CRYPTO)
 		         & ~rs6000_isa_flags_explicit);
 
-  /* See if -mvector-pair-fp can be used.  On power10 systems, we use the
+  /* Support the --with-powerpc-vector-pair-fp configuration option.
+
+     See if -mvector-pair-fp can be used.  On power10 systems, we use the
      load/store vector pair instructions.  On power9 systems, we limit the
      addresses to offsettable instructions so we can do 2 loads or stores.
      Don't allow the option on power8 or before.  */
+
+#if defined(POWERPC_VECTOR_PAIR_FP_DEFAULT)
+  if ((rs6000_isa_flags_explicit & OPTION_MASK_VECTOR_PAIR_FP) == 0
+      && TARGET_P9_VECTOR
+      && !BYTES_BIG_ENDIAN
+      && TARGET_POWERPC64)
+    {
+#if POWERPC_VECTOR_PAIR_FP_DEFAULT
+      rs6000_isa_flags |=OPTION_MASK_VECTOR_PAIR_FP;
+#else
+      rs6000_isa_flags &= ~OPTION_MASK_VECTOR_PAIR_FP;
+#endif
+    }
+#endif
+      
   if (TARGET_VECTOR_PAIR_FP
       && (!TARGET_P9_VECTOR || BYTES_BIG_ENDIAN || !TARGET_POWERPC64))
     {
