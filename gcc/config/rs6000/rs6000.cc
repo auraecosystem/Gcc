@@ -2251,8 +2251,23 @@ rs6000_debug_print_mode (ssize_t m)
 
 #define DEBUG_FMT_ID "%-32s= "
 #define DEBUG_FMT_D   DEBUG_FMT_ID "%d\n"
-#define DEBUG_FMT_WX  DEBUG_FMT_ID "%#.12" HOST_WIDE_INT_PRINT "x: "
+#define DEBUG_FMT_X   DEBUG_FMT_ID "%#.13x: "
+#define DEBUG_FMT_WX  DEBUG_FMT_ID "%#.13" HOST_WIDE_INT_PRINT "x: "
 #define DEBUG_FMT_S   DEBUG_FMT_ID "%s\n"
+
+/* Print interesting floating point information.  */
+static void
+rs6000_debug_fp_mode (machine_mode m)
+{
+  fprintf (stderr,
+	   DEBUG_FMT_ID "nan: %c, snan: %c, inf: %c, -0: %c, size: %2d\n",
+	   GET_MODE_NAME (m),
+	   HONOR_NANS (m)            ? 'y' : 'n',
+	   HONOR_SNANS (m)           ? 'y' : 'n',
+	   HONOR_INFINITIES (m)      ? 'y' : 'n',
+	   HONOR_SIGNED_ZEROS (m)    ? 'y' : 'n',
+	   (int) GET_MODE_SIZE (m));
+}
 
 /* Print various interesting information with -mdebug=reg.  */
 static void
@@ -2428,6 +2443,95 @@ rs6000_debug_reg_global (void)
 	  }
 
       fputs ("\n", stderr);
+    }
+
+
+  /* Decode the -mdebug options.  */
+  if (rs6000_debug)
+    {
+      const char *comma = "";
+      fprintf (stderr, DEBUG_FMT_X, "-mdebug", rs6000_debug);
+
+      if ((rs6000_debug & MASK_DEBUG_ALL) == MASK_DEBUG_ALL)
+	{
+	  fprintf (stderr, "%s%s", comma, "all");
+	  comma = ", ";
+	}
+      else
+	{
+	  if (TARGET_DEBUG_EXTRA1)
+	    {
+	      fprintf (stderr, "%s%s", comma, "extra1");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_EXTRA2)
+	    {
+	      fprintf (stderr, "%s%s", comma, "extra2");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_EXTRA3)
+	    {
+	      fprintf (stderr, "%s%s", comma, "extra3");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_EXTRA4)
+	    {
+	      fprintf (stderr, "%s%s", comma, "extra4");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_STACK)
+	    {
+	      fprintf (stderr, "%s%s", comma, "stack");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_ARG)
+	    {
+	      fprintf (stderr, "%s%s", comma, "arg");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_REG)
+	    {
+	      fprintf (stderr, "%s%s", comma, "reg");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_ADDR)
+	    {
+	      fprintf (stderr, "%s%s", comma, "addr");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_COST)
+	    {
+	      fprintf (stderr, "%s%s", comma, "cost");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_TARGET)
+	    {
+	      fprintf (stderr, "%s%s", comma, "target");
+	      comma = ", ";
+	    }
+
+	  if (TARGET_DEBUG_BUILTIN)
+	    {
+	      fprintf (stderr, "%s%s", comma, "builtin");
+	      comma = ", ";
+	    }
+	}
+
+      if (TARGET_DEBUG_NUMBER)
+	fprintf (stderr, "%snumber = %d",
+		 comma,
+		 (int) TARGET_DEBUG_NUMBER);
+
+      fprintf (stderr, "\n");
     }
 
   if (rs6000_cpu_index >= 0)
@@ -2630,6 +2734,35 @@ rs6000_debug_reg_global (void)
   if (TARGET_DIRECT_MOVE_128)
     fprintf (stderr, DEBUG_FMT_D, "VSX easy 64-bit mfvsrld element",
 	     (int)VECTOR_ELEMENT_MFVSRLD_64BIT);
+
+  /* Print information about the various floating point formats used.  */
+  if (TARGET_HARD_FLOAT)
+    {
+      rs6000_debug_fp_mode (SFmode);
+      rs6000_debug_fp_mode (DFmode);
+
+      if (rs6000_long_double_type_size == 128)
+	rs6000_debug_fp_mode (TFmode);
+
+      if (TARGET_FLOAT128_TYPE)
+	{
+	  rs6000_debug_fp_mode (KFmode);
+	  rs6000_debug_fp_mode (IFmode);
+	}
+
+      if (TARGET_DFP)
+	{
+	  rs6000_debug_fp_mode (SDmode);
+	  rs6000_debug_fp_mode (DDmode);
+	  rs6000_debug_fp_mode (TDmode);
+	}
+
+      if (TARGET_VSX)
+	{
+	  rs6000_debug_fp_mode (V4SFmode);
+	  rs6000_debug_fp_mode (V2DFmode);
+	}
+    }
 }
 
 
