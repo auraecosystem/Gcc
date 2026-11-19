@@ -1,3 +1,14 @@
+==================== Branch work275-vpair, patch #302 ====================
+
+Add V4DFmode variable extract.
+
+2026-11-19  Michael Meissner  <meissner@linux.ibm.com>
+
+	* config/rs6000/rs6000.cc (rs6000_expand_vector_extract): Add support
+	for V4DFmode variable extract.
+	* config/rs6000/vsx.md (vsx_extract_v4df_var): Likewise.
+	(vsx_extract_v4df_var_memory): Likewise.
+
 ==================== Branch work275-vpair, patch #301 ====================
 
 Add configuration option --with-powerpc-vector-pair-fp.
