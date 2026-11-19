@@ -8732,6 +8732,26 @@ gfc_conv_expr_descriptor (gfc_se *se, gfc_expr *expr)
 	dtype = gfc_get_dtype (parmtype);
       gfc_conv_descriptor_dtype_set (&loop.pre, parm, dtype);
 
+      if (expr->ts.type == BT_CLASS)
+	{
+	  /* Try to copy the element length from the original descriptor if we
+	     find it.  */
+	  tree orig_desc = desc;
+	  if (!GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (orig_desc)))
+	    {
+	      tree decl = get_main_decl (orig_desc);
+	      if (decl
+		  && DECL_P (decl)
+		  && DECL_LANG_SPECIFIC (decl))
+		orig_desc = GFC_DECL_SAVED_DESCRIPTOR (decl);
+	    }
+	  if (orig_desc && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (orig_desc)))
+	    {
+	      tree elem_len = gfc_conv_descriptor_elem_len_get (orig_desc);
+	      gfc_conv_descriptor_elem_len_set (&loop.pre, parm, elem_len);
+	    }
+	}
+
       /* The 1st element in the section.  */
       base = gfc_index_zero_node;
       if (expr->ts.type == BT_CHARACTER && expr->rank == 0 && codim)
