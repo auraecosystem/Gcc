@@ -7851,3 +7851,41 @@
 }
   [(set_attr "type" "vecmove")
    (set_attr "length" "8")])
+	 
+(define_insn "vsx_extract_v4df_var"
+  [(set (match_operand:DF 0 "altivec_register_operand" "=v")
+	(unspec:DF
+	 [(match_operand:V4DF 1 "altivec_register_operand" "v")
+	  (match_operand:DI 2 "gpc_reg_operand" "r")]
+	 UNSPEC_VSX_EXTRACT))]
+  "TARGET_POWER10 && TARGET_POWERPC64"
+{
+  return (BYTES_BIG_ENDIAN
+	  ? "vextddvlx %0,%1,(%1)+1,%2"
+	  : "vextddvrx %0,%1,(%1)+1,%2");
+}
+  [(set_attr "type" "vecsimple")])
+
+(define_insn_and_split "vsx_extract_v4df_var_memory"
+  [(set (match_operand:DF 0 "vsx_register_operand" "=wa")
+	(unspec:DF
+	 [(match_operand:V4DF 1 "memory_operand" "Q")
+	  (match_operand:DI 2 "base_reg_operand" "b")]
+	 UNSPEC_VSX_EXTRACT))]
+  "TARGET_POWER10 && TARGET_POWERPC64"
+  "#"
+  "&& 1"
+  [(set (match_dup 0)
+	(match_dup 3))]
+{
+  rtx mem = operands[1];
+  rtx addr = XEXP (mem, 0);
+  rtx elt = operands[2];
+
+  if (!REG_P (addr) && !SUBREG_P (addr))
+    addr = force_reg (DImode, addr);
+
+  rtx new_addr = gen_rtx_PLUS (DImode, operands[2], elt);
+  operands[3] = change_address (mem, DFmode, new_addr);
+}
+  [(set_attr "type" "fpload")])

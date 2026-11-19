@@ -8059,6 +8059,20 @@ rs6000_expand_vector_extract (rtx target, rtx vec, rtx elt)
   machine_mode inner_mode = GET_MODE_INNER (mode);
   rtx mem;
 
+  /* On power10, implement V4DF extract.  */
+  if (mode == V4DFmode && TARGET_POWER10 && TARGET_POWERPC64
+      && !CONST_INT_P (elt))
+    {
+      rtx byte_num = gen_reg_rtx (DImode);
+
+      if (GET_MODE (elt) != DImode)
+	elt = convert_to_mode (DImode, elt, 0);
+
+      emit_insn (gen_ashldi3 (byte_num, elt, GEN_INT (3)));
+      emit_insn (gen_vsx_extract_v4df_var (target, vec, byte_num));
+      return;
+    }
+
   /* For vector pairs with constant elements, change it into a vector extract
      of the single register.  */
   if (VPAIR_FP_P (mode) && CONST_INT_P (elt))
