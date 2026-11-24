@@ -1,3 +1,383 @@
+==================== Branch work278-float, patch #200 ====================
+
+Add 16-bit floating point support to the PowerPC
+
+This patch adds support for two different 16-bit floating point formats to the
+little endian PowerPC GCC server compilers.
+
+This patch adds new options (-mfloat16 and -mno-float16) to control whether
+16-bit floating point is enabled.  The 16-bit floating point support is only
+supported on little endian 64-bit PowerPC systems.
+
+This patch adds configuration options (--with-powerpc-float16 and
+--without-powerpc-float16) to control whether 16-bit floating point is enabled.
+On little endian 64-bit PowerPC Linux systems, 16-bit floating point is enabled
+by default.
+
+The two 16-bit floating point modes are passed and returned in traditional
+floating point registers.
+
+The scalar 16-bit floating point modes are passed and returned in the 16-bit
+memory format (i.e. it is not converted to  the float/double scalar format).
+Values are passed and returned in bits 48-63 of the traditional floating point
+vector registers (i.e. the position that is loaded by the lxsihzx instruction,
+stored by the stxsihzx instruction, and moved from a GPR via the mtvsrwz
+instruction).  When a 16-bit value is passed or returned in a register, the
+other bits in the register are unspecified.
+
+The 128-bit vector 16-bit floating point modes are passed and returned like
+other 128-bit vector modes (i.e. in the traditional Altivec vector registers).
+
+If 16-bit floating point is enabled, the following macros are defined.
+
+    __FLOAT16__		// _Float16 is available
+    __BFLOAT16__	// __bf16 is available
+    __FLOAT16_HW__	// Hardware conversions for _Float16 are used (power9)
+    __BFLOAT16_HW__	// Hardware conversions for __bf16 are used (power10)
+
+
+The two scalar 16-bit floating point modes are:
+
+
+_Float16 (HFmode):
+==================
+
+This is the IEEE 754-2008 16-bit floating point.  It has 1 sign bit, 5
+exponent bits, 10 explicit mantassia bits (the 11th bit is implied with
+normalization).
+
+The PowerPC ISA 3.0 (power9) has instructions to convert between the
+scalar representations of _Float16 and float types.  The PowerPC ISA
+3.1 (power10 and power11) has instructions for converting between the
+even elements of _Float16 vectors and 32-bit float vectors.  In addition, the
+MMA subsystem has support for _Float16 vector processing.
+
+
+__bf16 (BFmode):
+================
+
+This is the brain 16-bit floating point created by the Google Brain
+project.  It has 1 sign bit, 8 exponent bits, 7 explicit mantissa bits
+(the 8th bit is implied with normalization).  The 16 bits in the
+__bf16 format is the same as the upper 16 bits in the normal IEEE
+754 32-bit floating point format.
+
+The PowerPC ISA 3.1 (power10 and power11) has instructions for
+converting between the even elements of __bf16 vectors and 32-bit float
+vectors.  In addition, the MMA subsystem has support for __bf16.
+vector processing.
+
+
+In addition to basic support, this patch optimizes __bf16 binary and fma
+operations.  Unlike _Float16 where we have instructions to convert between
+HFmode and SFmode as scalar values, with BFmode, we only have vector
+conversions.  Thus to do:
+
+        __bf16 a, b, c;
+
+        a = b + c;
+
+the GCC compiler would have generated the following code:
+
+	lhz          9,0(4)     // load __bf16 value b
+	lhz          2,0(5)     // load __bf16 value c
+	sldi         9,9,48     // prepare to call xscvspdpn
+	sldi         2,2,48     // prepare to call xscvspdpn
+	mtvsrd       12,9       // move to VSR register
+	mtvsrd       11,2       // move to VSR register
+	xscvspdpn    0,12       // convert to SF/DFmode scalar
+	xscvspdpn    12,11      // convert to SF/DFmode scalar
+	fadds        0,0,12     // SFmode add
+	xscvdpsp     0,0        // convert to V4SF format
+	xvcvspbf16   0,0        // convert to V8BF format
+	stxsihx      0,0,3      // store b+c
+
+This patch uses combiner patterns to now generate;
+
+        lxsihzx      12,4,2     // load __bf16 value b
+        lxsihzx      0,5,2      // load __bf16 value c
+        xxspltw      12,12,1    // shift b into bits 16..31
+        xxspltw      0,0,1      // shift c into bits 16..31
+        xvcvbf16spn  12,12      // vector convert b into V4SFmode
+        xvcvbf16spn  0,0        // vector convert c into V4SFmode
+        xvaddsp      0,0,12     // vector b+c in V4SFmode
+        xvcvspbf16   0,0        // convert b+c into BFmode memory format
+        stxsihx      0,3,2      // store b+c
+
+We cannot just define insns like 'addbf3' to keep the operation as
+BFmode because GCC will not generate these patterns unless the user
+uses -Ofast.  Without -Ofast, it will always convert BFmode into
+SFmode.
+
+
+The patch attempts to generate simple vectorization support for 16-bit floating
+point.  This patch can generate vector instructions to convert the operation to
+vector float operations for __bf16 using -O3, but it needs -Ofast to generate
+the same vectorization for _Float16.
+
+
+2026-11-24  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* common/config/rs6000/rs6000-common.cc (rs6000_handle_option): Add
+	-mdebug=extra{1,2,3,4} and -mdebug=<n>.
+	* config.gcc (powerpc*-*-*): Add float16.o as an extra object file.  Add
+	support for the configuration option --with-powerpc-float16.
+	* config/rs6000/altivec.md (VM): Add support for V8HFmode and
+        V8BFmode.
+	(VM2): Likewise.
+	(VI_char): Likewise.
+	(VI_scalar): Likewise.
+	(VI_unit): Likewise.
+	(VP_small): Likewise.
+	(VP_small_lc): Likewise.
+	(VU_char): Likewise.
+	* config/rs6000/constraints.md (eZ): New constraint for -0.0.
+	* config/rs6000/float16.cc: New support file for _Float16 and __bf16
+	support.
+	* config/rs6000/float16.md: New machine description for 16-bit floating
+	point support.
+	* config/rs6000/predicates.md (easy_fp_constant): Add support for HFmode
+	and BFmode constants.
+	(easy_vector_constant): Add support for V8HFmode and V8BFmode to load up
+	the vector -0.0 constant.
+	(minus_zero_constant): New predicate.
+	(fp16_xxspltiw_constant): Likewise.
+	(bfloat16_to_v4sf_operand): Likewise.
+	* config/rs6000/rs6000-builtin.cc (rs6000_type_string): Add support for
+	both 16-bit floating point types.
+	(rs6000_init_builtins): Create the bfloat16_type_node if needed.
+	* config/rs6000/rs6000-c.cc (rs6000_target_modify_macros): Define
+	__FLOAT16__ and __BFLOAT16__ if 16-bit floating pont is enabled.  Define
+	__FLOAT16_HW__ for power9 which has hardware conversions for _Float16.
+	Define __BFLOAT16_HW__ for power10 which has hardware conversions for
+	__bf16.
+	* config/rs6000/rs6000-call.cc (init_cumulative_args): Print more debug
+	information if -mdebug=arg.
+	* config/rs6000/rs6000-cpus.def (POWERPC_MASKS): Add -mfloat16.
+	* config/rs6000/rs6000-modes.def (HFmode, V4HFmode, V8HFmode): Add modes.
+	(BFmode, V4BFmode, V8BFmode): Likewise.
+	* config/rs6000/rs6000-p8swap.cc (rs6000_gen_stvx): Remove #ifdef for
+	HAVE_V8HFmode.  Add support for V8BFmode.
+	(rs6000_gen_lvx): Likewise.
+	(replace_swapped_load_constant): Likewise.
+	* config/rs6000/rs6000-protos.h (vec_const_128bit_type): Add mode field
+	to detect initializing both 16-bit floating constants.
+	(enum fp16_operation): New enumeration.
+	(fp16_vectorization): New declaration.
+	(bfloat16_operation_as_v4sf): Likewise.
+	(bfloat16_to_v4sf_p): Likewise.
+	(bfloat16_to_v4sf_split): Likewise.
+	* config/rs6000/rs6000.cc (POWERPC_FLOAT16_DEFAULT): On little endian
+	Linux, enable bot 16-bit floating point modes as a default if there
+	wasn't an explicit configuration option.
+	(rs6000_hard_regno_mode_ok_uncached): Add support for all 16-bit
+	floating point modes.
+	(rs6000_modes_tieable_p): Likewise.
+	(DEBUG_FMT_X): New macro.
+	(DEBUG_FMT_WX): Make field 13 characters, not 12.
+	(rs6000_debug_reg_global): Print information about 16-bit floating point
+	if -mdebug=reg.  Print the various -mdebug=<xxx> options.  Print additional
+	information for all floating point modes.
+	(rs6000_setup_reg_addr_masks): Add support for all 16-bit floating point
+	modes.
+	(rs6000_init_hard_regno_mode_ok): Likewise.
+	(rs6000_option_override_internal): Add support for -mfloat16.
+	(easy_altivec_constant): Add support for both 16-bit floating point
+	modes.
+	(xxspltib_constant_p): Likewise.
+	(output_vec_const_move): Add support for 16-bit vector floating point
+	modes.
+	(rs6000_expand_vector_init): Likewise.
+	(rs6000_expand_vector_set): Likewise.
+	(rs6000_expand_vector_extract): Likewise.
+	(rs6000_split_vec_extract_var): Likewise.
+	(reg_offset_addressing_ok_p): Add support for 16-bit scalar and vector
+	floating point modes.
+	(rs6000_legitimate_offset_address_p): Likewise.
+	(legitimate_lo_sum_address_p): Likewise.
+	(rs6000_const_vec): Add support for 16-bit vector floating point modes.
+	(rs6000_emit_move): Likewise.
+	(rs6000_secondary_reload_simple_move): Add support for 16-bit scalar
+	floating point modes.
+	(rs6000_preferred_reload_class): Add support for 16-bit scalar and
+	vector floating point modes.
+	(rs6000_can_change_mode_class): Add support for 16-bit scalar floating
+	point modes.
+	(rs6000_output_move_128bit): Add support for 16-bit vector floating
+	point modes.
+	(rs6000_load_constant_and_splat): Add support for 16-bit scalar floating
+	point modes.
+	(rs6000_scalar_mode_supported_p): Likewise.
+	(rs6000_libgcc_floating_mode_supported_p): Likewise.
+	(rs6000_floatn_mode): Likewise.
+	(opt_vars): Add -mfloat16.
+	(constant_fp_to_128bit_vector): Add support for 16-bit scalar floating
+	point modes.
+	(vec_const_128bit_to_bytes): Initialize mode field.
+	(constant_generates_xxspltiw): Add support for 16-bit scalar floating
+	point modes.
+	* config/rs6000/rs6000.h (MASK_DEBUG_*): Add -mdebug=<xxx> options.
+	(TARGET_DEBUG_*): Likewise.
+	(FP16_SCALAR_MODE_P): New macro.
+	(FP16_VECTOR_MODE_P): Likewise.
+	(TARGET_BFLOAT16_HW): Likewise.
+	(TARGET_FLOAT16_HW): Likewise.
+	(TARGET_FLOAT16_MIN_HARDWARE): Likewise.
+	(ALTIVEC_VECTOR_MODE): Add support for 16-bit vector floating point
+	modes.
+	* config/rs6000/rs6000.md (FMOVE128_GPR iterator): Likewise.
+	(wd attribute): Add support for all 16-bit floating point modes.
+	(du_or_d attribute): Likewise.
+	(BOOL_128 iterator): Likewise.
+	(BOOL_REGS_OUTPUT attribute): Likewise.
+	(BOOL_REGS_OP1 attribute): Likewise.
+	(BOOL_REGS_OP2 attribute): Likewise.
+	(BOOL_REGS_UNARY attribute): Likewise.
+	(RELOAD attribute): Likewise.
+	(toplevel): Include float16.md.
+	* config/rs6000/rs6000.opt (-mfloat16): New option.
+	(-mfloat16-bf-v4sf): Likewise.
+	(-mfloat16-debug1): Likewise.
+	(-mfloat16-debug2): Likewise.
+	* config/rs6000/t-rs6000 (float16.o): Build float16.o.
+	* config/rs6000/vector.md (VEC_L iterator): Add 16-bit floating point
+	vector modes.
+	(VEC_M attribute): Likewise.
+	(VEC_E attribute): Likewise.
+	(VEC_base attribute): Likewise.
+	(VEC_base_l attribute): Likewise.
+	* config/rs6000/vsx.md (VECTOR_16BIT iterator): New iterator.
+	(VSX_L iterator): Add 16-bit vector floating point modes.
+	(VSX_M iterator): Likewise.
+	(VSX_XXBR attribute): Likewise.
+	(VSm attribute): Likewise.
+	(VSr attribute): Likewise.
+	(VSisa attribute): Likewise.
+	(??r attribute): Likewise.
+	(nW attribute): Likewise.
+	(VSv attribute): Likewise.
+	(VSX_EXTRACT_I attribute): Likewise.
+	(VSX_EXTRACT_I2 attribute): Likewise.
+	(VSX_EXTRACT_I4 attribute): Likewise.
+	(VSX_EXTRACT_WIDTH attribute): Likewise.
+	(VSX_EXTRACT_PREDICATE attribute): Likewise.
+	(VSX_EX attribute): Likewise.
+	(VM3 iterator): Likewise.
+	(VM3_char attribute): Likewise.
+	(vsx_le_perm_load_<mode>): Rename from vsx_le_perm_load_v8hi and add
+	v8bf and v8hf modes.
+	(vsx_le_perm_store_<mode>): Rename from vsx_le_perm_store_v8hi and add
+	v8bf and v8hf modes.
+	(define_splits for v8hi): Add v8bf and v8hf modes.
+	(vsx_ld_elemrev_<mode>): Rename from vsx_ld_elemrev_v8hi, and add v8bf
+	and v8hf modes.
+	(vsx_ld_elemrev_<mode>): Rename from vsx_ld_elemrev_v8hi, and add v8bf
+	and v8hf modes.
+	(vsx_ld_elemrev_<mode>_internal): Rename from
+	vsx_ld_elemrev_v8hi_internal, and add v8bf and v8hf modes.
+	(vsx_st_elemrev_<mode>): Rename from vsx_st_elemrev_v8hi, and add v8bf
+	and v8hf modes.
+	(vsx_st_elemrev_<mode>_internal): Rename from
+	vsx_st_elemrev_v8hi_internal, and add v8bf and v8hf modes.
+	(vsx_lxvd2x8_le_<MODE>): Rename from vsx_lxvd2x8_le_V8HI, and add v8bf
+	and v8hf modes.
+	(vsx_extract_<mode>_store_p9): Add 16-bit vector floating point modes.
+	(vsx_extract_<mode>_p8): Likewise.
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Document -mfloat16.
+	* doc/md.texi (PowerPC and IBM RS6000 constraints): Document eZ.
+
+gcc/testsuite/
+
+	* gcc.target/powerpc/bf16-1.c: New target test.
+	* gcc.target/powerpc/bf16-2.c: Likewise.
+	* gcc.target/powerpc/bf16-3.c: Likewise.
+	* gcc.target/powerpc/bf16-4.c: Likewise.
+	* gcc.target/powerpc/bf16-5.c: Likewise.
+	* gcc.target/powerpc/float16-1.c: Likewise.
+	* gcc.target/powerpc/float16-2.c: Likewise.
+	* gcc.target/powerpc/float16-3.c: Likewise.
+	* lib/target-supports.exp (check_ppc_float16_hw_available): New target
+	supports for _Float16 and __bf16 support.
+	(check_ppc_float16_runtime_available): Likewise.
+	(check_ppc_bfloat16_hw_available): Likewise.
+	(check_ppc_bfloat16_runtime_available): Likewise.
+	(is-effective-target): Add new _Float16 and __bf16 targets.
+
+libgcc/
+
+	* config.host (powerpc*-*-linux*): Add HF/BF emulation functions to
+	PowerPC libgcc.
+	* config/rs6000/float16-eqbf.c: New file.
+	* config/rs6000/float16-extendbfdf2.c: Likewise.
+	* config/rs6000/float16-fixbfdi.c: Likewise.
+	* config/rs6000/float16-fixbfsi.c: Likewise.
+	* config/rs6000/float16-fixbfti.c: Likewise.
+	* config/rs6000/float16-fixhfti.c: Likewise.
+	* config/rs6000/float16-fixunsbfdi.c: Likewise.
+	* config/rs6000/float16-fixunsbfsi.c: Likewise.
+	* config/rs6000/float16-fixunsbfti.c: Likewise.
+	* config/rs6000/float16-fixunshfti.c: Likewise.
+	* config/rs6000/float16-floattibf.c: Likewise.
+	* config/rs6000/float16-floattihf.c: Likewise.
+	* config/rs6000/float16-floatuntibf.c: Likewise.
+	* config/rs6000/float16-floatuntihf.c: Likewise.
+	* config/rs6000/sfp-machine.h (_FP_NANFRAC_H): New macro.
+	(_FP_NANFRAC_B): Likewise.
+	(_FP_NANSIGN_H): Likewise.
+	(_FP_NANSIGN_B): Likewise.
+	(DFtype2): Add HF/BF emulation function declarations.
+	(SFtype2): Likewise.
+	(DItype2): Likewise.
+	(UDItype2): Likewise.
+	(SItype2): Likewise.
+	(USItype2): Likewise.
+	(TItype2): Likewise.
+	(UTItype2): Likewise.
+	(HFtype2): Likewise.
+	(__eqhf2): Likewise.
+	(__extendhfdf2): Likewise.
+	(__extendhfsf2): Likewise.
+	(__fixhfdi): Likewise.
+	(__fixhfsi): Likewise.
+	(__fixunshfdi): Likewise.
+	(__fixunshfsi): Likewise.
+	(__floatdihf): Likewise.
+	(__floatsihf): Likewise.
+	(__floatundihf): Likewise.
+	(__floatunsihf): Likewise.
+	(__truncdfhf2): Likewise.
+	(__truncsfhf2): Likewise.
+	(__fixhfti): Likewise.
+	(__fixunshfti): Likewise.
+	(__floattihf): Likewise.
+	(__floatuntihf): Likewise.
+	(BFtype2): Likewise.
+	(__eqbf2): Likewise.
+	(__extendbfsf2): Likewise.
+	(__extendbfdf2): Likewise.
+	(__fixbfdi): Likewise.
+	(__fixbfsi): Likewise.
+	(__fixunsbfdi): Likewise.
+	(__fixunsbfsi): Likewise.
+	(__floatdibf): Likewise.
+	(__floatsibf): Likewise.
+	(__floatundibf): Likewise.
+	(__floatunsibf): Likewise.
+	(__truncdfbf2): Likewise.
+	(__truncsfbf2): Likewise.
+	(__fixbfti): Likewise.
+	(__fixunsbfti): Likewise.
+	(__floattibf): Likewise.
+	(__floatuntibf): Likewise.
+	(__truncbfhf2): Likewise.
+	(__trunchfbf2): Likewise.
+	* config/rs6000/t-float16: New file.
+	* configure.ac (powerpc*-*-linux*): Check if the PowerPC compiler
+	supports _Float16 and __bf16 types.
+	* configure: Regenerate.
+
 ==================== Branch work278-float, baseline ====================
 
 2026-11-24   Michael Meissner  <meissner@linux.ibm.com>
