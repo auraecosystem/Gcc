@@ -271,6 +271,10 @@ enum fp16_operation {
 
 extern void fp16_vectorization (enum rtx_code, rtx, rtx, rtx, rtx,
 				enum fp16_operation);
+extern void bfloat16_operation_as_v4sf (enum rtx_code, rtx, rtx, rtx, rtx,
+					enum fp16_operation);
+extern bool bfloat16_to_v4sf_p (rtx, machine_mode);
+extern void bfloat16_to_v4sf_split (rtx, rtx);
 #endif /* RTX_CODE */
 
 #ifdef TREE_CODE
