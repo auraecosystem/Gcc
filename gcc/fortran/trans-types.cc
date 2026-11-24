@@ -1804,26 +1804,14 @@ gfc_get_dtype_rank_type (int rank, tree etype)
       size = gfc_get_character_len_in_bytes (ptype);
       break;
     case BT_VOID:
-      /* There are two input etype that arrive here:
-         - void   -> an unlimited polymorphic descriptor holding a scalar
-		     non-coarray value.  Elements are of unknown size at
-		     compile time.
-	 - void * -> either an array of C_PTR values, or an unlimited
-		     polymorphic descriptor holding a coarray or an array.
-		     As the initialization value in the unlimited polymorphic
-		     case doesn't matter, we set the elements to have pointer
-		     size.  TODO: find a way to distinguish the unlimited
-		     polymorphic case, and skip the element length
-		     initialization for it as in the above case.  */
-      gcc_assert (TREE_CODE (ptype) == POINTER_TYPE
-		  || TREE_CODE (etype) == VOID_TYPE);
-      if (TREE_CODE (ptype) == POINTER_TYPE)
-	size = size_in_bytes (ptype);
+      gcc_assert (TREE_CODE (ptype) == POINTER_TYPE);
+      size = size_in_bytes (ptype);
       break;
     case BT_CLASS:
       /* For classes, the element length isn't a known constant, we set it to
-	 the declared type length instead if possible.  In the unlimited
-	 polymorphic case, that is not possible.  */
+	 the declared type length instead if possible.  Except in the scalar
+	 unlimited polymorphic case, where the type that comes out is void,
+	 which has no size.  Skip that case.  */
       if (VOID_TYPE_P (etype))
 	break;
       /* Fall through.  */
