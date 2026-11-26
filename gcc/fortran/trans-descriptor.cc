@@ -877,12 +877,11 @@ set_descriptor_from_scalar (stmtblock_t *block, tree descr, tree type,
 
 
 /* Add code to BLOCK initializing the zero-rank array descriptor DESCR, so that
-   it represents the same data as the pointer-typed middle-end expression SCALAR
-   corresponding to the scalar front-end expression SCALAR_EXPR.  If
-   COND_PRESENCE is set, make the value assigned to the data field either SCALAR
-   or nullptr depending on COND_PRESENCE; otherwise SCALAR unconditionally.
-   This is used to implement the argument association between the actual
-   argument SCALAR_EXPR and an assumed-rank dummy argument.  */
+   it represents the same data as the pointer-typed middle-end expression
+   SCALAR.  If COND_PRESENCE is set, make the value assigned to the data field
+   either SCALAR or nullptr depending on COND_PRESENCE; otherwise SCALAR
+   unconditionally.  This is used to implement the argument association between
+   the actual argument SCALAR and an assumed-rank dummy argument.  */
 
 void
 gfc_set_descriptor_from_scalar (stmtblock_t *block, tree descr,
@@ -999,10 +998,9 @@ is_polymorphic_ref (tree expr, tree *class_ref = nullptr,
 
 
 /* Add code to BLOCK initializing the zero-rank array descriptor DESCR, so that
-   it represents the same data as the class descriptor reference SCALAR
-   corresponding to the scalar polymorphic expression SCALAR_EXPR.  This is used
-   to implement the argument association between the actual argument SCALAR_EXPR
-   and an assumed-rank dummy argument.  */
+   it represents the same data as the class descriptor reference SCALAR.  This
+   is used to implement the argument association between the actual argument
+   SCALAR and an assumed-rank dummy argument.  */
 
 void
 gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
