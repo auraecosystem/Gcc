@@ -965,7 +965,7 @@ gfc_set_descriptor_from_scalar_class (stmtblock_t *block, tree descr,
 {
   tree class_ref = nullptr;
   bool is_class = is_polymorphic_ref (scalar, &class_ref);
-  gcc_checking_assert (is_class);
+  gcc_assert (is_class);
   tree dtype_val = gfc_get_dtype_rank_type (0, TREE_TYPE (class_ref));
   gfc_conv_descriptor_dtype_set (block, descr, dtype_val);
 
