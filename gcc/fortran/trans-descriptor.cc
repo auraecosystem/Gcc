@@ -917,6 +917,7 @@ is_polymorphic_ref (tree expr, tree *class_ref = nullptr,
 		    tree *val_ptr = nullptr)
 {
   tree valptr_candidate = NULL_TREE;
+  tree class_pointer = NULL_TREE;
   tree class_container = NULL_TREE;
 
   tree e = expr;
@@ -928,14 +929,12 @@ is_polymorphic_ref (tree expr, tree *class_ref = nullptr,
       else if (POINTER_TYPE_P (TREE_TYPE (e))
 	       && GFC_CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (e))))
 	{
-	  if (class_ref != nullptr)
-	    class_container = build_fold_indirect_ref_loc (input_location, e);
+	  class_pointer = e;
 	  break;
 	}
       else if (GFC_CLASS_TYPE_P (TREE_TYPE (e)))
 	{
-	  if (class_ref != nullptr)
-	    class_container = e;
+	  class_container = e;
 	  break;
 	}
       else if (TREE_CODE (e) == COMPONENT_REF)
@@ -965,17 +964,27 @@ is_polymorphic_ref (tree expr, tree *class_ref = nullptr,
       e = TREE_OPERAND (e, 0);
     }
 
-  gcc_assert (class_container != nullptr);
-  if (class_ref != nullptr)
-    *class_ref = class_container;
+  gcc_assert (class_container != nullptr || class_pointer != nullptr);
 
+  bool valptr_from_class_container = false;
   if (val_ptr != nullptr)
     {
       if (valptr_candidate != nullptr)
 	*val_ptr = valptr_candidate;
       else
-	*val_ptr = gfc_class_data_get (class_container);
+	valptr_from_class_container = true;
     }
+
+  if ((class_ref != nullptr
+       || valptr_from_class_container)
+      && class_container == nullptr)
+    class_container = build_fold_indirect_ref_loc (input_location,
+						   class_pointer);
+  if (class_ref != nullptr)
+    *class_ref = class_container;
+
+  if (valptr_from_class_container)
+    *val_ptr = gfc_class_data_get (class_container);
 
   return true;
 }
