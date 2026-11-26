@@ -1739,7 +1739,7 @@ gfc_get_dtype_rank_type (int rank, tree etype)
   int n;
 
   ptype = etype;
-  while (TREE_CODE (etype) == POINTER_TYPE
+  while (POINTER_TYPE_P (etype)
 	 || TREE_CODE (etype) == ARRAY_TYPE)
     {
       ptype = etype;
