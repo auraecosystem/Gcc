@@ -1,5 +1,18 @@
 ==================== Branch work278-float, patch #200 ====================
 
+Document -mfloat16
+
+When I added -mfloat16 to the PowerPC, I did not add it to rs6000.opt.urls.
+This patch fixes that.
+
+2026-11-26  Michael Meissner  <meissner@linux.ibm.com>
+
+gcc/
+
+	* config/rs6000/rs6000.opt.urls (-mfloat): Add switch.
+
+==================== Branch work278-float, patch #200 ====================
+
 Add 16-bit floating point support to the PowerPC
 
 This patch adds support for two different 16-bit floating point formats to the
