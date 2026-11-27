@@ -1,5 +1,6 @@
+# Load the repository's Bison-aware Autotest macro definitions first.
+# autom4te.m4 owns AT_INIT, so this file must not define it again.
+m4_include([autom4te.m4])
 
-AT_INIT([Bison Calculator Tests])
-
-m4_include([calc.at])
-m4_include([bison-tests.at])
+m4_include([Calc.at])
+m4_include([Bison.at])
