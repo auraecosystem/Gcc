@@ -1,0 +1,6 @@
+Enable the use of the fsrra instruction.
+
+mlra
+Target Var(sh_lra_flag) Init(0) Save
+Target Var(sh_lra_flag) Init(1) Save
+Use LRA instead of reload (transitional).
