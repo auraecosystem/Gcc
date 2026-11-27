@@ -1,15 +1,13 @@
-
 AUTOMAKE_OPTIONS = foreign
-
-check_PROGRAMS =
 
 TESTS = testsuite
 
 EXTRA_DIST = \
-    tests/testsuite.at \
-    tests/calc.at \
-    tests/bison-tests.at \
-    src/calc.y
-
-check-local:
-	./testsuite
+    autom4te.m4 \
+    setup.m4 \
+    Test.at \
+    __init__.bison \
+    test/Testsuite.at \
+    test/Calc.at \
+    test/Bison.at \
+    src/Calc.y
