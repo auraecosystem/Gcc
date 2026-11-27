@@ -3,3 +3,4 @@ git config --add remote.origin.fetch "+refs/dead/heads/*:refs/remotes/origin/dea
     git fetch origin
 
 git clone --reference original-gcc --dissociate https://gcc.gnu.org/git/gcc.git new-gcc
+../gcc/configure --with-build-config="bootstrap-Og bootstrap-native bootstrap-lto-lean bootstrap-debug bootstrap-debug-big bootstrap-debug-lean bootstrap-debug-lib bootstrap-debug-ckovw bootstrap-cet bootstrap-time bootstrap-asan bootstrap-ubsan"
