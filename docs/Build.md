@@ -1,4 +1,4 @@
-# Building auraecosystem/Gcc: repository assessment
+# Building auraecosystem/Gcc: repository assessment 
 
 I've inspected the actual files on the repository's `main` branch, including `autom4te.m4`, `setup.m4`, `config.ac`, `Makefile.am`, `Bootstrap.sh`, and `__init__.bison`.
 
