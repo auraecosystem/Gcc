@@ -1,0 +1,45 @@
+name: Build infrastructure
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "audit/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  autotools-and-autotest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            autoconf automake bison build-essential m4 perl
+
+      - name: Check shell syntax
+        run: |
+          sh -n Bootstrap.sh
+          sh -n Run.sh
+          sh -n Bash.sh
+          sh -n gcc/config.sh
+          sh -n Verify.sh
+
+      - name: Generate build system and test runner
+        run: ./Bootstrap.sh
+
+      - name: Configure
+        run: ./configure
+
+      - name: Build
+        run: make -j2
+
+      - name: Run Autotest suite
+        run: make check
