@@ -1177,3 +1177,48 @@ I have not modified or committed anything.
 **My recommendation is to start with a complete repository audit, then repair the build infrastructure before implementing LMLM-specific compiler integration.**
 
 [Open the repository on GitHub](https://github.com/auraecosystem/Gcc?utm_source=chatgpt.com).
+
+Changes committed to draft PR
+Executed the first build-infrastructure repair pass on auraecosystem/Gcc.
+Pull request #2
+
+Repair build scripts and document GCC source readiness
+9 commits
+9 files changed
+Draft
+
+Branch: audit/build-readiness-2026-11-27
+
+What I changed
+1. Fixed Autotest macro initialization and test-file references.
+2. Reworked the calculator tests to verify addition and multiplication independently.
+3. Repaired Bootstrap.sh and Run.sh path handling.
+4. Corrected Makefile.am distribution paths and removed duplicate test execution.
+5. Replaced the external GCC cloning logic in Bash.sh with a local-source-only bootstrap workflow.
+6. Removed build commands from .env.
+7. Updated gcc/config.sh to use the new bootstrap entrypoint.
+8. Added docs/Repository-Audit.md documenting the repository's build blockers.
+Important remaining blocker
+The inspected repository tree does not establish that a complete GCC source tree exists. Consequently, I did not claim a successful GCC build.
+
+Validation status:
+Check	Status
+Repository inspection	Completed
+Script and test corrections	Committed
+Updated files retrieved and checked	Completed
+Shell syntax tests	Not run
+Autotools generation	Not run
+Bison test suite	Not run
+GCC bootstrap	Blocked pending complete local source
+
+Next execution command
+Once you have the complete GCC source tree locally:
+GCC_SOURCE_DIR=/path/to/local/gcc-source \
+BUILD_CONFIG=bootstrap-Og \
+JOBS=2 \
+./Bash.sh
+
+
+The script will not clone or fetch another source repository.
+
+PR #2 remains open as a draft. Nothing has been merged into main.
