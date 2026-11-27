@@ -1,1 +1,3 @@
 make -j$(nproc)
+export UBSAN_OPTIONS="abort_on_error=1:halt_on_error=1:print_summary=1:print_stacktrace=1"
+make -j$(nproc)
