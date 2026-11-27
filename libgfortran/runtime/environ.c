@@ -1,4 +1,3 @@
-the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include <unistd.h>
 #endif
 
