@@ -587,4 +587,469 @@ find . -maxdepth 3 -type f | sort
 
 This will let me reconcile the actual `autom4te/`, `src/`, and `test/` directory contents with the build configuration rather than guessing which files exist.
 
-Then we can repair the repository file by file, with practical explanations of every macro as we encounter it.
+# GCC source walkthrough: `pr71336-2.c`
+
+The file `gcc/testsuite/gcc.dg/tree-ssa/pr71336-2.c` is a GCC regression test for PR tree-optimization/71336.
+
+Its purpose is to verify that GCC's optimizer can simplify conditional expressions involving bit tests and integer constants without changing the program's behavior.
+
+The test also checks that the optimized program still produces the correct results at runtime.
+
+The important optimization is transforming:
+
+c
+
+```c
+return (a & 1) ? 7 : 3;
+```
+
+into an equivalent arithmetic expression:
+
+c
+
+```c
+return (a & 1) * 4 + 3;
+```
+
+This works because:
+
+- When `a & 1` is zero, the result is `3`.
+- When `a & 1` is one, the result is `7`.
+
+The transformation removes the conditional selection and exposes simpler arithmetic to subsequent optimization passes.
+
+mail-archive.com
+
++1
+
+## 1\. Understand every macro and directive
+
+### A. `FAIL()` macro
+
+The source defines:
+
+c
+
+```c
+#define FAIL() \
+  do { \
+    __builtin_printf ("Failure at line: %d\n", __LINE__); \
+    abort(); \
+  } while (0)
+```
+
+This is the main macro in the file.
+
+Let's explain every component.
+
+| Component | Explanation |
+| --- | --- |
+| `#define` | Defines a C preprocessor macro. |
+| `FAIL()` | Macro name. Takes no arguments. |
+| `\` | Continues the macro definition onto the next physical line. |
+| `do` | Starts a do-while statement. |
+| `__builtin_printf` | GCC built-in implementation of formatted output. |
+| `%d` | Prints an integer in decimal format. |
+| `\n` | Adds a newline. |
+| `__LINE__` | Predefined macro containing the current source line number. |
+| `abort()` | Terminates the program abnormally. |
+| `while (0)` | Makes the macro behave like one statement. |
+
+Practical example
+
+Suppose you write:
+
+c
+
+```c
+if (test(0) != 3)
+    FAIL();
+```
+
+If the condition is true, the macro expands approximately to:
+
+c
+
+```c
+if (test(0) != 3)
+{
+    do {
+        __builtin_printf("Failure at line: %d\n", 10);
+        abort();
+    } while (0);
+}
+```
+
+The number `10` is illustrative; the actual value is the source line where the macro is expanded.
+
+Why use `do { ... } while (0)`?
+
+It makes multiple statements behave like a single statement.
+
+For example:
+
+c
+
+```c
+if (error)
+    FAIL();
+else
+    printf("Success\n");
+```
+
+Without the do-while wrapper, macros containing multiple statements can cause problems with `if/else` syntax.
+
+### B. `__LINE__`
+
+This is a predefined C preprocessor macro.
+
+Example:
+
+c
+
+```c
+#include <stdio.h>
+
+int main(void)
+{
+    printf("Current line: %d\n", __LINE__);
+    return 0;
+}
+```
+
+Possible output:
+
+text
+
+```text
+Current line: 6
+```
+
+In GCC regression tests, this is useful because it tells developers exactly where a test failed.
+
+### C. `__builtin_printf`
+
+This is a GCC built-in function.
+
+Example:
+
+c
+
+```c
+int main(void)
+{
+    __builtin_printf("Hello GCC\n");
+    return 0;
+}
+```
+
+It provides formatted output without requiring an explicit declaration of the standard library `printf` function.
+
+### D. `#define`
+
+The C preprocessor directive creates a replacement macro.
+
+Example:
+
+c
+
+```c
+#define VALUE 100
+
+int main(void)
+{
+    return VALUE;
+}
+```
+
+After preprocessing, `VALUE` is replaced with `100`.
+
+In the regression test, `#define FAIL()` defines a reusable failure-reporting operation.
+
+## 2\. Understand the GCC test directives
+
+At the beginning of the file:
+
+c
+
+```c
+/* { dg-do run } */
+/* { dg-options "-O1" } */
+```
+
+These are DejaGNU/GCC testsuite directives, not ordinary C macros.
+
+| Directive | Meaning |
+| --- | --- |
+| `dg-do run` | Compile and execute the test. |
+| `dg-options "-O1"` | Compile using GCC optimization level 1. |
+
+Why `-O1`?
+
+Because the test specifically exercises compiler optimization.
+
+Without optimization, the compiler might not perform the transformation being tested.
+
+## 3\. Understand the four test functions
+
+### Function 1: `test()`
+
+c
+
+```c
+int test(int a)
+{
+    return a & 1 ? 7 : 3;
+}
+```
+
+The expression:
+
+c
+
+```c
+a & 1
+```
+
+performs a bitwise AND.
+
+It checks whether the least significant bit is set.
+
+| Input | `a & 1` | Result |
+| --- | --- | --- |
+| 0 | 0 | 3 |
+| 1 | 1 | 7 |
+| 2 | 0 | 3 |
+| 3 | 1 | 7 |
+
+Equivalent arithmetic:
+
+c
+
+```c
+return (a & 1) * 4 + 3;
+```
+
+### Function 2: `test2()`
+
+c
+
+```c
+int test2(int a)
+{
+    return a & 1 ? 3 : 7;
+}
+```
+
+This reverses the two constants.
+
+Equivalent arithmetic:
+
+c
+
+```c
+return (a & 1) * -4 + 7;
+```
+
+This particular reverse ordering is useful for checking that the optimizer does not incorrectly apply the transformation when its required constant ordering is not satisfied.
+
+### Function 3: `test3()`
+
+c
+
+```c
+int test3(int a)
+{
+    return (a & 1) == 0 ? 3 : 7;
+}
+```
+
+This explicitly checks whether the least significant bit is zero.
+
+Equivalent arithmetic:
+
+c
+
+```c
+return (a & 1) * 4 + 3;
+```
+
+### Function 4: `test4()`
+
+c
+
+```c
+int test4(int a)
+{
+    return (a & 1) == 0 ? 7 : 3;
+}
+```
+
+This reverses the constants while using the equality comparison.
+
+It checks another optimization case.
+
+## 4\. Understand `main()`
+
+The main function checks whether all four functions return the expected results.
+
+For example:
+
+c
+
+```c
+if (test(0) != 3)
+    FAIL();
+```
+
+This means:
+
+1. Call `test(0)`.
+2. Compare its result with `3`.
+3. If the result differs, execute `FAIL()`.
+4. Otherwise, continue.
+
+The test repeats this for different input values.
+
+At the end:
+
+c
+
+```c
+return 0;
+```
+
+This indicates successful execution.
+
+If any test fails, `abort()` terminates the program.
+
+## 5\. How the optimization works internally
+
+The relevant GCC optimization is associated with tree optimization and PR71336.
+
+Consider:
+
+c
+
+```c
+int test(int a)
+{
+    return (a & 1) ? 7 : 3;
+}
+```
+
+The compiler can represent the conditional as:
+
+Original conditional
+
+`a & 1`
+
+True (1)
+
+# 7
+
+False (0)
+
+# 3
+
+Equivalent arithmetic
+
+`(a & 1) * 4 + 3`
+
+The mathematical relationship is:
+
+$$
+result = condition \times (7-3)+3
+$$
+
+Therefore:
+
+$$
+result = condition \times 4+3
+$$
+
+The optimizer attempts to remove the conditional while preserving the original result.
+
+The implementation must also check integer types, constant ordering, and supported precision to avoid unsafe transformations.
+
+mail-archive.com
+
++1
+
+## 6\. How to build and run this specific test
+
+From your GCC repository, first build GCC in a separate build directory.
+
+For example:
+
+bash
+
+```bash
+mkdir gcc-build
+cd gcc-build
+
+../Gcc/configure --enable-languages=c \
+    --disable-multilib
+
+make -j$(nproc)
+```
+
+Then execute the individual regression test:
+
+bash
+
+```bash
+make check-gcc RUNTESTFLAGS="dg.exp=tree-ssa/pr71336-2.c"
+```
+
+The testsuite should compile the source with `-O1`, execute it and report whether it passes.
+
+You can also compile the test manually:
+
+bash
+
+```bash
+gcc -O1 -Wall -Wextra \
+    Gcc/gcc/testsuite/gcc.dg/tree-ssa/pr71336-2.c \
+    -o pr71336-2
+```
+
+Run it:
+
+bash
+
+```bash
+./pr71336-2
+echo $?
+```
+
+Expected result:
+
+text
+
+```text
+0
+```
+
+A zero exit status means the test completed successfully.
+
+## 7\. Important learning points
+
+| GCC/C concept | What you learn |
+| --- | --- |
+| `#define` | Creating macros |
+| `__LINE__` | Predefined macros |
+| `__builtin_printf` | GCC built-ins |
+| `do { } while (0)` | Safe multi-statement macros |
+| `&` | Bitwise operations |
+| `?:` | Conditional operator |
+| `dg-do run` | GCC regression testing |
+| `dg-options` | Compiler test options |
+| `-O1` | Compiler optimization |
+| Tree SSA | GCC intermediate representation and optimization |
+
+Repository source: [Open pr71336-2.c on GitHub](<https://github.com/auraecosystem/Gcc/blob/master/gcc/testsuite/gcc.dg/tree-ssa/pr71336-2.c?utm_source=chatgpt.com>).
+
+One important distinction: this file tests the correctness of an optimization; it does not itself implement the optimization. The implementation belongs in GCC's optimization passes.
+
+Next, I can walk through the actual GCC implementation of PR71336 in `gcc/tree-ssa-phiopt.cc`, explaining every macro, function, tree representation and optimization condition with practical C examples.
