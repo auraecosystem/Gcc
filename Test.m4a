@@ -1,0 +1,12 @@
+AT_SETUP([Simple addition])
+
+AT_BISON_CHECK([input.y])
+
+AT_COMPILE([input], [input.c])
+
+AT_CHECK([echo "2+3" | ./input],
+         [0],
+         [5
+])
+
+AT_CLEANUP
