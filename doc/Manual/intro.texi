@@ -1,0 +1,4 @@
+@node Introduction
+@chapter Introduction
+
+Welcome to the multi-file manual. This chapter lives in @file{intro.texi}.
