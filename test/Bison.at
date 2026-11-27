@@ -1,0 +1,23 @@
+
+AT_SETUP([Bison grammar generation])
+
+AT_DATA([input.y],
+[[
+%{
+#include <stdio.h>
+%}
+
+%token NUMBER
+
+%%
+
+input:
+    NUMBER { printf("Parser works\n"); }
+    ;
+
+%%
+]])
+
+AT_BISON_CHECK([input.y])
+
+AT_CLEANUP
