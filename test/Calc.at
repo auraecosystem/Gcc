@@ -1,0 +1,67 @@
+AT_SETUP([Calculator addition])
+
+AT_DATA([calc.y],
+[[
+%{
+#include <stdio.h>
+int yylex(void);
+void yyerror(const char *);
+%}
+
+%token NUMBER
+%left '+'
+%%
+
+input:
+    expression '\n' { printf("%d\n", $1); }
+    ;
+
+expression:
+      NUMBER
+    | expression '+' expression { $$ = $1 + $3; }
+    ;
+
+%%
+
+int yylex(void)
+{
+    int c = getchar();
+
+    if (c >= '0' && c <= '9') {
+        yylval = c - '0';
+        return NUMBER;
+    }
+
+    return c;
+}
+
+void yyerror(const char *s)
+{
+    fprintf(stderr, "%s\n", s);
+}
+
+int main(void)
+{
+    return yyparse();
+}
+]])
+
+AT_CHECK([bison -o calc.c calc.y], [0])
+AT_CHECK([$CC $CFLAGS -o calc calc.c], [0])
+
+AT_CHECK([echo '2+3' | ./calc],
+         [0],
+         [5
+])
+
+AT_CLEANUP
+
+
+AT_SETUP([Calculator multiplication])
+
+AT_CHECK([echo '3+4' | ./calc],
+         [0],
+         [7
+])
+
+AT_CLEANUP
