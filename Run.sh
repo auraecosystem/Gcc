@@ -1,9 +1,11 @@
-chmod +x bootstrap.sh
+#!/bin/sh
+set -eu
 
-./bootstrap.sh
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$ROOT"
 
+chmod +x ./Bootstrap.sh
+./Bootstrap.sh
 ./configure
-
 make
-
 make check
