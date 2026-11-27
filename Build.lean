@@ -1,7 +1,7 @@
 ‘bootstrap-O1’
 Removes any -O-started option from BOOT_CFLAGS, and adds -O1 to it. ‘BUILD_CONFIG=bootstrap-O1’ is equivalent to ‘BOOT_CFLAGS='-g -O1'’.
 
-‘bootstrap-O3’
+‘bootstrap-O3’ 
 ‘bootstrap-Og’
 Analogous to bootstrap-O1.
 
